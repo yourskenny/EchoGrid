@@ -405,6 +405,35 @@ deepseek-v4-flash max_model_turns=64:
 
 This is the first strict pure DeepSeek completion of the micro task in the recorded loop. The remaining gap is full MVP performance and Pro's occasional empty final-output instability.
 
+## MVP Seed Result
+
+The same heat-aware public protocol was then tested on full MVP mode for seed `9001`:
+
+```text
+deepseek-v4-flash strict pure MVP:
+  status=success
+  score=866
+  turns=68
+  artifacts=3/3
+  invalid_actions=0
+  fallback_actions=0
+
+deepseek-v4-pro strict pure MVP:
+  status=failure
+  score=471
+  artifacts=2/3
+  reason=empty_model_action
+
+deepseek-v4-pro recovery diagnostic MVP:
+  status=success
+  score=844
+  turns=71
+  artifacts=3/3
+  recovered_reasoning_actions=3
+```
+
+This establishes a clean milestone: `deepseek-v4-flash` can complete the full MVP seed in strict pure mode. `deepseek-v4-pro` appears capable of the same route, but its final answer channel is still less reliable; recovery remains diagnostic rather than leaderboard-default behavior.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

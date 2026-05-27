@@ -638,6 +638,45 @@ Interpretation:
 
 Heat-aware goals turned the micro DeepSeek run from "explores but never extracts" into "finds and extracts the artifact." With enough strict pure model budget, Flash now completes the micro task end-to-end without fallback. Pro also reaches artifact extraction but remains vulnerable to empty final output after the artifact is collected.
 
+## Loop 21: MVP Strict Pure Smoke
+
+Finding:
+
+After heat-aware goals made the micro task solvable, the next question was whether the same public protocol scales to the full MVP objective on seed `9001`.
+
+Verification:
+
+```text
+deepseek-v4-flash strict pure MVP, max_model_turns=96:
+  status=success
+  score=866
+  turns=68
+  artifacts=3/3
+  invalid_actions=0
+  fallback_actions=0
+  model_actions=68
+
+deepseek-v4-pro strict pure MVP, max_model_turns=96:
+  status=failure
+  score=471
+  artifacts=2/3
+  model_actions=26
+  model_error_actions=1
+  reason=empty_model_action
+
+deepseek-v4-pro MVP recovery diagnostic, max_model_turns=96:
+  status=success
+  score=844
+  turns=71
+  artifacts=3/3
+  recovered_reasoning_actions=3
+  fallback_actions=0
+```
+
+Interpretation:
+
+Flash now completes the full MVP seed as a strict pure model with no fallback. Pro can also solve the task, but only when reasoning recovery is enabled, confirming that its remaining blocker is final-channel action emission rather than EchoGrid navigation or artifact-search affordances.
+
 ## Current Verification Snapshot
 
 Latest local verification:
