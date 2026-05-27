@@ -81,6 +81,18 @@ fs.writeFileSync(summaryPath, JSON.stringify({
 
 process.stdout.write(`Wrote ${path.relative(root, summaryPath).replace(/\\/g, '/')}\n`);
 
+if (!options.noSummaryTable) {
+  const summary = spawnSync(process.execPath, ['./scripts/summarize-llm-logs.js', path.relative(root, outDir)], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 30000,
+  });
+  if (summary.status === 0) {
+    process.stdout.write('\n');
+    process.stdout.write(summary.stdout);
+  }
+}
+
 function parseArgs(argv) {
   const parsed = {};
   for (let i = 0; i < argv.length; i += 1) {
@@ -112,6 +124,8 @@ function parseArgs(argv) {
     } else if (arg === '--max-model-turns') {
       parsed.maxModelTurns = Number(argv[i + 1]);
       i += 1;
+    } else if (arg === '--no-summary-table') {
+      parsed.noSummaryTable = true;
     }
   }
   return parsed;
