@@ -273,3 +273,38 @@ test('report command counts model errors separately from model actions', () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('reasoning recovery diagnostics stay separate from model errors', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const logDir = path.join(tmp, 'recover');
+    const result = spawnSync(
+      process.execPath,
+      [cli, 'evaluate', '--agent', './agents/fake-empty-final-llm.js', '--seed', '9001', '--mode', 'micro', '--json', '--timeout', '3000', '--log-dir', logDir],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 30000,
+        env: {
+          ...process.env,
+          ECHOGRID_LLM_RECOVER_REASONING_ACTION: '1',
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.results[0].turns, 70);
+
+    const analysis = spawnSync(process.execPath, ['./scripts/analyze-run.js', path.join(logDir, '9001.jsonl')], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    assert.equal(analysis.status, 0, analysis.stderr);
+    const parsed = JSON.parse(analysis.stdout);
+    assert.equal(parsed.recovered_reasoning_actions, 70);
+    assert.equal(parsed.model_error_actions, 0);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

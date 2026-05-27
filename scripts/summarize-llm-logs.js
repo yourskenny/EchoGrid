@@ -39,6 +39,7 @@ for (const file of walk(logRoot)) {
     fallback_actions: diagnostics.fallbackActions,
     local_actions: diagnostics.localActions,
     model_errors: diagnostics.modelErrors,
+    recovered: diagnostics.recoveredActions,
     aborted: events.some((event) => event.type === 'abort') ? 'yes' : 'no',
     top_reasons: Object.entries(diagnostics.reasons)
       .sort((a, b) => b[1] - a[1])
@@ -56,9 +57,11 @@ function summarizeDiagnostics(actions) {
   let fallbackActions = 0;
   let localActions = 0;
   let modelErrors = 0;
+  let recoveredActions = 0;
   for (const action of actions) {
     const diagnostic = action.agent_diagnostic;
     if (!diagnostic) continue;
+    if (diagnostic.recovered_from_reasoning) recoveredActions += 1;
     if (diagnostic.model_error) {
       modelErrors += 1;
       const reason = diagnostic.reason || 'model_error';
@@ -75,7 +78,7 @@ function summarizeDiagnostics(actions) {
       reasons.model = (reasons.model || 0) + 1;
     }
   }
-  return { fallbackActions, localActions, modelActions, modelErrors, reasons };
+  return { fallbackActions, localActions, modelActions, modelErrors, recoveredActions, reasons };
 }
 
 function printTable(items) {
@@ -97,6 +100,7 @@ function printTable(items) {
     ['fallback_actions', 'Fallback'],
     ['local_actions', 'Local'],
     ['model_errors', 'Errors'],
+    ['recovered', 'Recovered'],
     ['aborted', 'Abort'],
     ['top_reasons', 'Top Reasons'],
   ];

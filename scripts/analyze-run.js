@@ -49,6 +49,7 @@ function analyze(actionEvents, finalState) {
     fallback_actions: diagnostics.fallbackActions,
     local_policy_actions: diagnostics.localActions,
     model_error_actions: diagnostics.modelErrors,
+    recovered_reasoning_actions: diagnostics.recoveredActions,
     leaderboard: diagnostics.fallbackModes.has('none') ? 'pure' : diagnostics.fallbackModes.size ? 'hybrid' : 'unknown',
     top_diagnostic_reasons: topReasons(diagnostics.reasons),
     quality: {
@@ -58,6 +59,7 @@ function analyze(actionEvents, finalState) {
       fallback_rate: round(diagnostics.fallbackActions / turns),
       model_contribution_rate: round(diagnostics.modelActions / turns),
       model_error_rate: round(diagnostics.modelErrors / turns),
+      recovered_reasoning_rate: round(diagnostics.recoveredActions / turns),
       oscillation_rate: round(oscillations / turns),
     },
     flags: flags({ success, invalid, waits, turns, diagnostics, oscillations }),
@@ -95,11 +97,13 @@ function summarizeDiagnostics(actionEvents) {
   let fallbackActions = 0;
   let localActions = 0;
   let modelErrors = 0;
+  let recoveredActions = 0;
   const fallbackModes = new Set();
   for (const event of actionEvents) {
     const diagnostic = event.agent_diagnostic;
     if (!diagnostic) continue;
     if (diagnostic.fallback_mode) fallbackModes.add(diagnostic.fallback_mode);
+    if (diagnostic.recovered_from_reasoning) recoveredActions += 1;
     if (diagnostic.model_error) {
       modelErrors += 1;
       const reason = diagnostic.reason || 'model_error';
@@ -116,7 +120,7 @@ function summarizeDiagnostics(actionEvents) {
       reasons.model = (reasons.model || 0) + 1;
     }
   }
-  return { fallbackActions, localActions, modelActions, modelErrors, fallbackModes, reasons };
+  return { fallbackActions, localActions, modelActions, modelErrors, recoveredActions, fallbackModes, reasons };
 }
 
 function topReasons(reasons) {

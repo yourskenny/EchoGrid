@@ -14,6 +14,7 @@ const maxTokens = Number(process.env.ECHOGRID_LLM_MAX_TOKENS || 256);
 const maxModelTurns = Number(process.env.ECHOGRID_LLM_MAX_MODEL_TURNS || 12);
 const fallbackMode = process.env.ECHOGRID_LLM_FALLBACK_MODE || 'baseline';
 const localPolicyEnabled = process.env.ECHOGRID_LLM_LOCAL_POLICY !== '0' && fallbackMode !== 'none';
+const recoverReasoningAction = process.env.ECHOGRID_LLM_RECOVER_REASONING_ACTION === '1';
 
 if (!apiKey) {
   fallback('missing_api_key', { source: 'env' });
@@ -92,6 +93,18 @@ async function main() {
   const finishReason = payload?.choices?.[0]?.finish_reason || null;
   const reasoning = payload?.choices?.[0]?.message?.reasoning_content || '';
   const action = sanitizeAction(content);
+  const recoveredAction = action ? null : recoverReasoningAction ? extractActionFromReasoning(reasoning) : null;
+  if (recoveredAction) {
+    emitDiagnostic(baseDiagnostic({
+      fallback: false,
+      action: recoveredAction,
+      recovered_from_reasoning: true,
+      finish_reason: finishReason,
+      empty_final_content: !content,
+    }));
+    console.log(recoveredAction);
+    return;
+  }
   if (!action) fallback('empty_model_action', {
     content: redact(content).slice(0, 300),
     finish_reason: finishReason,
@@ -178,6 +191,14 @@ function sanitizeAction(content) {
   return match ? match[1].toLowerCase().replace(/^move\s+([nsew])$/i, (_, dir) => `move ${dir.toUpperCase()}`) : null;
 }
 
+function extractActionFromReasoning(reasoning) {
+  const text = String(reasoning || '');
+  if (!text.trim()) return null;
+  const matches = [...text.matchAll(/\b(move\s+[NSEW]|probe\s+\d+\s+\d+|scan\s+(?:row|col)\s+\d+|scan\s+sector\s+[ABCD]|mark\s+\d+\s+\d+\s+(?:hazard|safe|artifact|entity)|extract|wait|claim_rule\s+[a-z0-9_]+)\b/gi)];
+  if (!matches.length) return null;
+  return sanitizeAction(matches.at(-1)[1]);
+}
+
 function fallback(reason, detail = {}) {
   if (fallbackMode === 'none') {
     emitDiagnostic(baseDiagnostic({
@@ -261,6 +282,7 @@ function baseDiagnostic(extra) {
     base_url: baseUrl,
     fallback_mode: fallbackMode,
     local_policy_enabled: localPolicyEnabled,
+    recover_reasoning_action: recoverReasoningAction,
     ...extra,
   };
 }

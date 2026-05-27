@@ -288,6 +288,37 @@ Interpretation:
 
 The new field gives LLMs a cheap way to avoid one-step backtracking. It does not leak hidden information because it is derived only from the agent's previous public move.
 
+## Loop 12: Reasoning Recovery Diagnostic
+
+Finding:
+
+DeepSeek responses often had empty final `message.content`, but the `reasoning_content` preview contained a concrete legal action. This makes strict pure leaderboard failures ambiguous: some are reasoning failures, while others are final-channel formatting failures.
+
+Optimization:
+
+- added opt-in `ECHOGRID_LLM_RECOVER_REASONING_ACTION=1`
+- added `--recover-reasoning-action` to the LLM runner
+- added recovered-action counts to `analyze-run` and `summarize-llm-logs`
+- kept strict pure leaderboard behavior unchanged by default
+
+Verification:
+
+```text
+deepseek-v4-pro pure micro diagnostic:
+  model_actions=6
+  recovered_reasoning_actions=1
+  movement_oscillations=0
+
+deepseek-v4-flash pure micro diagnostic:
+  model_actions=6
+  recovered_reasoning_actions=2
+  movement_oscillations=0
+```
+
+Interpretation:
+
+Reasoning recovery is diagnostic only. It shows that both DeepSeek models sometimes identify valid actions in reasoning but fail to emit them in the final answer. This separates planning capability from output-channel reliability without inflating the strict pure leaderboard.
+
 ## Current Verification Snapshot
 
 Latest local verification:

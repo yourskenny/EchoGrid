@@ -195,6 +195,25 @@ model_contribution_rate=0.75
 
 The public state now includes `action_hints.avoid_repeating`, and the LLM summary prompt includes `avoid_actions`. This reduced immediate backtracking without exposing hidden map information.
 
+## Reasoning Recovery Diagnostic
+
+DeepSeek sometimes returns an empty final `message.content` while `reasoning_content` contains a concrete action. The LLM runner now has an opt-in diagnostic mode:
+
+```bash
+node ./scripts/run-llm-eval.js --leaderboard pure --recover-reasoning-action
+```
+
+This mode extracts a valid EchoGrid action from `reasoning_content` only for diagnosis. It is not the default strict pure leaderboard behavior.
+
+Short diagnostic run with `max_tokens=512` and `max_model_turns=6`:
+
+```text
+deepseek-v4-pro:   model_actions=6, recovered_reasoning_actions=1, movement_oscillations=0
+deepseek-v4-flash: model_actions=6, recovered_reasoning_actions=2, movement_oscillations=0
+```
+
+Interpretation: both models sometimes know a valid action but fail to place it in the final answer field. The strict pure leaderboard still treats that as a model-output failure; the recovery mode is useful for separating reasoning capability from final-channel formatting reliability.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

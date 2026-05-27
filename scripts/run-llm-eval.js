@@ -57,6 +57,7 @@ for (const leaderboard of leaderboards) {
           ECHOGRID_LLM_MAX_MODEL_TURNS: String(options.maxModelTurns || 12),
           ECHOGRID_LLM_FALLBACK_MODE: leaderboard === 'pure' ? 'none' : 'baseline',
           ECHOGRID_LLM_LOCAL_POLICY: leaderboard === 'pure' ? '0' : '1',
+          ECHOGRID_LLM_RECOVER_REASONING_ACTION: options.recoverReasoningAction ? '1' : '0',
         },
       },
     );
@@ -134,6 +135,8 @@ function parseArgs(argv) {
     } else if (arg === '--leaderboard') {
       parsed.leaderboard = argv[i + 1];
       i += 1;
+    } else if (arg === '--recover-reasoning-action') {
+      parsed.recoverReasoningAction = true;
     } else if (arg === '--no-summary-table') {
       parsed.noSummaryTable = true;
     }
