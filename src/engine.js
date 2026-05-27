@@ -405,6 +405,8 @@ class EchoGridGame {
       },
       agent: {
         position: [...this.position],
+        current_cell: this.publicCell(this.position[0], this.position[1]),
+        adjacent: this.adjacentCells(),
       },
       map: this.knownMap(),
       observations: {
@@ -428,10 +430,67 @@ class EchoGridGame {
         'wait',
         'claim_rule rule_id',
       ],
+      action_hints: this.actionHints(),
       score: this.score(),
       score_breakdown: this.scoreBreakdown(),
       metrics: this.metrics(),
       ...(includeAnswer ? { answer: this.answer() } : {}),
+    };
+  }
+
+  publicCell(x, y) {
+    const key = keyOf(x, y);
+    const visible = this.visible.has(key);
+    const mark = this.marks.get(key) || null;
+    return {
+      coord: [x, y],
+      visible,
+      terrain: visible ? this.visibleTerrain(x, y) : 'unknown',
+      mark,
+      observation: visible ? this.observe(x, y, 'public_cell') : null,
+    };
+  }
+
+  adjacentCells() {
+    return Object.entries(DIRECTIONS).map(([direction, [dx, dy]]) => {
+      const x = this.position[0] + dx;
+      const y = this.position[1] + dy;
+      if (!inBounds(this.world.size, x, y)) {
+        return {
+          direction,
+          coord: [x, y],
+          in_bounds: false,
+          recommended_actions: [],
+        };
+      }
+      const cell = this.publicCell(x, y);
+      return {
+        direction,
+        in_bounds: true,
+        ...cell,
+        recommended_actions: this.recommendedActionsForAdjacent(direction, cell),
+      };
+    });
+  }
+
+  recommendedActionsForAdjacent(direction, cell) {
+    if (!cell.visible) return [`probe ${cell.coord[0]} ${cell.coord[1]}`];
+    if (cell.terrain === 'wall' || cell.terrain === 'hazard') return [];
+    return [`move ${direction}`];
+  }
+
+  actionHints() {
+    const hints = [];
+    const current = this.publicCell(this.position[0], this.position[1]);
+    if (current.terrain === 'artifact') hints.push('extract');
+    if (current.terrain === 'exit' && this.collected.size >= this.world.config.artifactsRequired) hints.push('extract');
+    for (const adjacent of this.adjacentCells()) {
+      for (const action of adjacent.recommended_actions) hints.push(action);
+    }
+    const deduped = [...new Set(hints)];
+    return {
+      safe_recommended: deduped,
+      warning: 'Prefer these actions unless you have a specific reason to scan, mark, wait, or claim_rule.',
     };
   }
 

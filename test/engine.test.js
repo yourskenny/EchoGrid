@@ -37,6 +37,8 @@ test('probe and scan produce structured observations without exposing the answer
   assert.equal(state.answer, undefined);
   assert.equal(state.score_breakdown.total, state.score);
   assert.equal(state.metrics.visible_cells, 2);
+  assert.ok(Array.isArray(state.agent.adjacent));
+  assert.ok(Array.isArray(state.action_hints.safe_recommended));
   assert.ok(Array.isArray(state.observations.recent));
   assert.ok(state.observations.recent.length >= 2);
 });

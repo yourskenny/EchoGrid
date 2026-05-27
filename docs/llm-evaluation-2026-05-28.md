@@ -1,0 +1,137 @@
+# LLM Evaluation Notes - 2026-05-28
+
+This report records the first external-model test loop for EchoGrid. API keys are intentionally excluded from logs, docs, and committed files.
+
+## Models Tested
+
+- `deepseek-v4-pro`
+- `deepseek-v4-flash`
+- Codex CLI isolated review
+
+DeepSeek was tested through the OpenAI-compatible chat completions interface with `agents/llm-openai-compatible.js`. Codex was tested in a separate `codex exec` session with a prompt that only referenced the repository, not this thread context.
+
+## Test Seeds
+
+- `9001` for showcase behavior.
+- `48129` was also used in the first smoke pass.
+
+## Findings
+
+### 1. Raw LLM play exposed protocol friction
+
+Initial DeepSeek runs on `9001` and `48129` failed with turn-limit outcomes. Both models repeatedly fell back to `wait` because the response body contained no final `message.content`.
+
+Diagnosis showed:
+
+- `deepseek-v4-pro` often spent the whole completion budget on `reasoning_content`.
+- `deepseek-v4-flash` could output valid actions, but still produced many empty-final responses on full game states.
+- When Flash did produce actions, it attempted illegal movement into known walls because the public state required too much local-action reconstruction from `map.rows` and `map.cells`.
+
+Representative pre-optimization result for Flash on `9001`:
+
+```text
+status=failure
+reason=turn_limit
+score=-712
+artifacts=0
+invalid_actions=47
+wait_actions=73
+```
+
+### 2. Adding explicit local affordances improved agent usability
+
+The state protocol now exposes:
+
+- `agent.current_cell`
+- `agent.adjacent`
+- `action_hints.safe_recommended`
+
+This keeps the hidden map hidden while making local legal action choices obvious to agents.
+
+After this change, Flash on `9001` improved:
+
+```text
+status=failure
+reason=turn_limit
+score=401
+artifacts=2
+invalid_actions=0
+wait_actions=82
+```
+
+The result proves that the game became more agent-readable: invalid moves disappeared without exposing hidden answers.
+
+### 3. Budgeted model control plus baseline fallback makes tests reliable
+
+`agents/llm-openai-compatible.js` now supports:
+
+- `ECHOGRID_LLM_MAX_MODEL_TURNS`
+- `ECHOGRID_LLM_MAX_TOKENS`
+- diagnostic logging for fallback reasons
+- baseline fallback when a model returns no final action
+
+Budgeted showcase result:
+
+```text
+deepseek-v4-flash:
+  status=success
+  score=860
+  turns=85
+  artifacts=3
+  invalid_actions=0
+  model_actions=7
+
+deepseek-v4-pro:
+  status=success
+  score=860
+  turns=85
+  artifacts=3
+  invalid_actions=0
+  model_actions=2
+```
+
+This should be interpreted as a hybrid test: the external model contributes early actions, then baseline fallback guarantees the run remains evaluable. The fallback count is recorded, so model contribution remains auditable.
+
+### 4. Codex isolated review
+
+Codex was run in a separate non-interactive session without this thread context. It inspected repository docs and source. Runtime execution was blocked by its read-only policy, but the isolated assessment was:
+
+- understandable: yes
+- verifiable: mostly; documented commands and sample report exist
+- agent-friendly: yes
+
+It specifically confirmed README, package scripts, competition demo docs, sample report, `rule-aware` agent behavior, and test coverage.
+
+## Optimizations Implemented
+
+1. Added OpenAI-compatible LLM agent:
+   - `agents/llm-openai-compatible.js`
+
+2. Added DeepSeek/OpenAI-compatible evaluation runner:
+   - `scripts/run-llm-eval.js`
+
+3. Added LLM smoke seeds:
+   - `seeds/llm-smoke.txt`
+
+4. Added protocol affordances:
+   - `agent.current_cell`
+   - `agent.adjacent`
+   - `action_hints.safe_recommended`
+
+5. Added agent diagnostics to JSONL action logs:
+   - fallback reason
+   - model name
+   - finish reason
+   - fallback policy
+
+## Design Implications
+
+The test loop validates the project direction: EchoGrid needs to be agent-first not only in principle, but in concrete protocol affordances. LLMs are poor at reconstructing legal local moves from compact board rows. A mature agent-native game should expose action-relevant structure directly while keeping hidden-world uncertainty intact.
+
+Next improvements should focus on:
+
+- stronger structured action schemas
+- optional belief/reason fields
+- faster persistent-agent evaluation
+- explicit per-turn legal/recommended action lists
+- separate "pure model" and "hybrid model+baseline" leaderboards

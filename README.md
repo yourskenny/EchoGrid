@@ -43,6 +43,15 @@ node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 ```
 
+LLM-compatible smoke testing can be run with an OpenAI-compatible endpoint:
+
+```bash
+set ECHOGRID_LLM_API_KEY=...
+node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt
+```
+
+The key is read only from the environment and should never be committed.
+
 ## Game Loop
 
 Each run starts from a seed and an agent. On every turn, EchoGrid sends a `STATE` JSON object to the agent. The agent returns exactly one action line. EchoGrid validates the action, updates the hidden world, records an event, and eventually produces a score, JSONL log, replay, and report.
@@ -84,6 +93,7 @@ For batch evaluation, EchoGrid runs the agent once per turn and sends the full `
 - `agents/random.js`: weak deterministic random policy; included to prove the game is not solved by arbitrary movement.
 - `agents/baseline.js`: conservative explorer that uses visible terrain, trace, and path planning.
 - `agents/rule-aware.js`: showcase agent that actively checks a hidden-rule signal before delegating to baseline.
+- `agents/llm-openai-compatible.js`: OpenAI-compatible LLM bridge for DeepSeek/OpenAI-style chat completion APIs.
 
 Example comparison:
 
@@ -108,6 +118,7 @@ The showcase seed is `9001`. It demonstrates the full loop: structured observati
 For a guided explanation, see [docs/competition-demo.md](./docs/competition-demo.md).
 For scoring details, see [docs/scoring.md](./docs/scoring.md).
 For representative report output, see [docs/sample-report.md](./docs/sample-report.md).
+For the first LLM evaluation loop, see [docs/llm-evaluation-2026-05-28.md](./docs/llm-evaluation-2026-05-28.md).
 
 ## Project Direction
 

@@ -122,7 +122,7 @@ async function evaluate(argv, io) {
       });
       const event = game.step(command);
       const nextState = game.state();
-      if (log) log.write({ type: 'action', command, event, state: nextState });
+      if (log) log.write({ type: 'action', command: displayCommand(command), agent_diagnostic: command.diagnostic || null, event, state: nextState });
       if (nextState.turn.terminal) break;
     }
 
@@ -247,10 +247,41 @@ async function runAgent(agentPath, state, options) {
   child.stdin.end(`${JSON.stringify(state)}\n`);
 
   const exit = await waitForChild(child, options.timeoutMs);
-  if (exit.timedOut) return '__agent_timeout__';
-  if (exit.code !== 0) return `__agent_error__ ${JSON.stringify(stderr.trim()).slice(0, 120)}`;
+  if (exit.timedOut) return actionWithDiagnostic('__agent_timeout__', { timed_out: true });
+  if (exit.code !== 0) {
+    return actionWithDiagnostic(`__agent_error__ ${JSON.stringify(stderr.trim()).slice(0, 120)}`, {
+      exit_code: exit.code,
+      stderr: truncate(stderr),
+    });
+  }
   const commandLine = stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line && !line.startsWith('#'));
-  return commandLine || '__agent_empty__';
+  const diagnostic = parseAgentDiagnostic(stderr);
+  return actionWithDiagnostic(commandLine || '__agent_empty__', diagnostic);
+}
+
+function actionWithDiagnostic(command, diagnostic) {
+  const boxed = new String(command);
+  boxed.diagnostic = diagnostic || null;
+  return boxed;
+}
+
+function displayCommand(command) {
+  return String(command);
+}
+
+function parseAgentDiagnostic(stderr) {
+  const line = String(stderr || '').split(/\r?\n/).find((item) => item.startsWith('ECHOGRID_AGENT_DIAG '));
+  if (!line) return null;
+  try {
+    return JSON.parse(line.slice('ECHOGRID_AGENT_DIAG '.length));
+  } catch {
+    return { diagnostic_parse_error: truncate(line) };
+  }
+}
+
+function truncate(value, limit = 500) {
+  const text = String(value || '');
+  return text.length > limit ? `${text.slice(0, limit)}...` : text;
 }
 
 function waitForChild(child, timeoutMs) {
