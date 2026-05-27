@@ -59,10 +59,26 @@ test('report command summarizes a JSONL run log', () => {
       encoding: 'utf8',
     });
     assert.equal(report.status, 0, report.stderr);
-    assert.match(report.stdout, /SEED 48129/);
+    assert.match(report.stdout, /ECHO GRID BATTLE REPORT/);
+    assert.match(report.stdout, /Seed: 48129/);
+    assert.match(report.stdout, /SCORE BREAKDOWN/);
     assert.match(report.stdout, /KEY EVENTS/);
     assert.match(report.stdout, /TRANSFERABLE LESSON/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('compare script prints agent comparison table', () => {
+  const result = spawnSync(process.execPath, ['./scripts/compare.js', '--seeds', './seeds/showcase.txt'], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 90000,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ECHO GRID AGENT COMPARISON/);
+  assert.match(result.stdout, /agents\/random\.js/);
+  assert.match(result.stdout, /agents\/baseline\.js/);
+  assert.match(result.stdout, /agents\/rule-aware\.js/);
 });

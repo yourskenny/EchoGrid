@@ -429,6 +429,8 @@ class EchoGridGame {
         'claim_rule rule_id',
       ],
       score: this.score(),
+      score_breakdown: this.scoreBreakdown(),
+      metrics: this.metrics(),
       ...(includeAnswer ? { answer: this.answer() } : {}),
     };
   }
@@ -494,6 +496,10 @@ class EchoGridGame {
   }
 
   score() {
+    return this.scoreBreakdown().total;
+  }
+
+  scoreBreakdown() {
     const success = this.terminal && this.terminal.status === 'success';
     const missionValue = success ? 300 : 0;
     const artifactValue = this.collected.size * 100;
@@ -505,7 +511,7 @@ class EchoGridGame {
     const falseMarkPenalty = this.countFalseMarks() * 25;
     const invalidPenalty = this.penalties.invalid * 20;
     const wastedPenalty = this.penalties.wasted * 8;
-    return Math.round(
+    const total = Math.round(
       missionValue +
         artifactValue +
         mapCertainty +
@@ -517,6 +523,31 @@ class EchoGridGame {
         invalidPenalty -
         wastedPenalty,
     );
+    return {
+      mission_value: missionValue,
+      artifact_value: artifactValue,
+      map_certainty_bonus: mapCertainty,
+      rule_discovery_bonus: ruleBonus,
+      unused_energy_bonus: unusedEnergy,
+      integrity_bonus: integrityBonus,
+      damage_penalty: -damagePenalty,
+      false_mark_penalty: -falseMarkPenalty,
+      invalid_action_penalty: -invalidPenalty,
+      wasted_action_penalty: -wastedPenalty,
+      total,
+    };
+  }
+
+  metrics() {
+    return {
+      visible_cells: this.visible.size,
+      marked_cells: this.marks.size,
+      correct_marks: this.countCorrectMarks(),
+      false_marks: this.countFalseMarks(),
+      damage_events: this.penalties.damage,
+      invalid_actions: this.penalties.invalid,
+      wasted_actions: this.penalties.wasted,
+    };
   }
 
   countCorrectMarks() {

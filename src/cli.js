@@ -32,7 +32,7 @@ async function runGame(argv, io) {
   const log = options.log ? createJsonlLogger(resolvePath(io.cwd, options.log)) : null;
 
   writeState(io.stdout, game.state({ includeAnswer }), pretty);
-  if (log) log.write({ type: 'start', state: game.state({ includeAnswer }) });
+  if (log) log.write({ type: 'start', runner: 'script', state: game.state({ includeAnswer }) });
 
   const commands = options.script
     ? readScript(resolvePath(io.cwd, options.script))
@@ -105,7 +105,14 @@ async function evaluate(argv, io) {
   for (const seed of seeds) {
     const game = new EchoGridGame({ seed, mode: options.mode || 'mvp' });
     const log = logDir ? createJsonlLogger(path.join(logDir, `${sanitize(seed)}.jsonl`)) : null;
-    if (log) log.write({ type: 'start', state: game.state() });
+    if (log) {
+      log.write({
+        type: 'start',
+        runner: 'evaluate',
+        agent: path.relative(io.cwd, agentPath).replace(/\\/g, '/'),
+        state: game.state(),
+      });
+    }
 
     while (!game.state().turn.terminal) {
       const state = game.state();
@@ -272,13 +279,13 @@ function commandForAgent(agentPath) {
 
 function createJsonlLogger(file) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const stream = fs.createWriteStream(file, { encoding: 'utf8' });
+  fs.writeFileSync(file, '', 'utf8');
   return {
     write(event) {
-      stream.write(`${JSON.stringify(event)}\n`);
+      fs.appendFileSync(file, `${JSON.stringify(event)}\n`, 'utf8');
     },
     close() {
-      stream.end();
+      // Synchronous logger keeps demo scripts deterministic.
     },
   };
 }
@@ -319,6 +326,10 @@ function buildReport(events) {
   const actionEvents = events.filter((event) => event.type === 'action');
   const finalState = [...events].reverse().find((event) => event.state)?.state || start?.state;
   const terminal = finalState?.turn?.terminal || { status: 'incomplete', score: finalState?.score || 0 };
+  const score = finalState?.score_breakdown || {};
+  const metrics = finalState?.metrics || {};
+  const objective = finalState?.objective || {};
+  const resources = finalState?.resources || {};
   const keyEvents = [];
   const risks = [];
 
@@ -354,14 +365,42 @@ function buildReport(events) {
   }
 
   const hiddenRule = terminal.hidden_rule || finalState?.answer?.hidden_rule || 'unknown';
+  const result = terminal.status || 'incomplete';
+  const reason = terminal.reason || 'not_terminal';
   return [
-    `SEED ${finalState?.seed || start?.state?.seed || 'unknown'}`,
-    'BUILD echogrid-v0.1-demo',
-    `RESULT ${terminal.status || 'incomplete'} / score ${terminal.score ?? finalState?.score ?? 0}`,
+    'ECHO GRID BATTLE REPORT',
+    `Seed: ${finalState?.seed || start?.state?.seed || 'unknown'}`,
+    `Agent: ${start?.agent || start?.runner || 'unknown'}`,
+    'Build: echogrid-v0.1-demo',
+    `Result: ${result.toUpperCase()} / ${reason}`,
+    `Score: ${terminal.score ?? finalState?.score ?? 0}`,
+    `Turns: ${finalState?.turn?.current ?? 'unknown'} / ${finalState?.turn?.limit ?? 'unknown'}`,
+    `Artifacts: ${objective.artifacts_collected ?? 0} / ${objective.artifacts_required ?? 0}`,
+    `Resources: energy=${resources.energy ?? 'unknown'} integrity=${resources.integrity ?? 'unknown'}`,
+    `Hidden Rule: ${hiddenRule}`,
+    '',
+    'SCORE BREAKDOWN',
+    `- Mission: ${score.mission_value ?? 0}`,
+    `- Artifacts: ${score.artifact_value ?? 0}`,
+    `- Map certainty: ${score.map_certainty_bonus ?? 0}`,
+    `- Rule discovery: ${score.rule_discovery_bonus ?? 0}`,
+    `- Unused energy: ${score.unused_energy_bonus ?? 0}`,
+    `- Integrity: ${score.integrity_bonus ?? 0}`,
+    `- Penalties: ${(score.damage_penalty ?? 0) + (score.false_mark_penalty ?? 0) + (score.invalid_action_penalty ?? 0) + (score.wasted_action_penalty ?? 0)}`,
+    '',
+    'AUDIT METRICS',
+    `- Visible cells: ${metrics.visible_cells ?? 0}`,
+    `- Marks: ${metrics.marked_cells ?? 0} correct=${metrics.correct_marks ?? 0} false=${metrics.false_marks ?? 0}`,
+    `- Damage events: ${metrics.damage_events ?? 0}`,
+    `- Invalid actions: ${metrics.invalid_actions ?? 0}`,
+    `- Wasted actions: ${metrics.wasted_actions ?? 0}`,
+    '',
     'KEY EVENTS',
     ...(keyEvents.length ? keyEvents.slice(0, 8) : ['- No major milestones recorded.']),
+    '',
     'FAILURES OR RISKS',
     ...(risks.length ? risks.slice(0, 8) : ['- No damage or invalid actions recorded.']),
+    '',
     'TRANSFERABLE LESSON',
     `- ${lessonForRule(hiddenRule)}`,
     '',
