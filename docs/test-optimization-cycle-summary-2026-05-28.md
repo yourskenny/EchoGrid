@@ -355,12 +355,46 @@ Interpretation:
 
 Preferred hints make the public protocol more executable for LLM agents while preserving uncertainty. Flash reached the configured six model turns in strict pure mode without reasoning recovery or fallback, which is a clearer pure-model diagnostic signal.
 
+## Loop 14: Move-First Preferred Ordering
+
+Finding:
+
+The first preferred hint still mixed movement through already-known safe cells with probes into unknown cells. In the strict pure trace, Flash spent extra model turns probing around the start instead of advancing along the trace once a safe adjacent cell was visible.
+
+Optimization:
+
+- sorted preferred hints by action type: `extract`, then `move`, then `probe`, then scans/rule actions, then `wait`
+- kept `safe_recommended` unsorted as the full local action set
+- added a test confirming known safe movement is ranked before probing
+
+Verification:
+
+```text
+deepseek-v4-flash strict pure micro:
+  model_actions=8
+  model_error_actions=1
+  movement_oscillations=0
+  model_contribution_rate=0.889
+
+deepseek-v4-pro strict pure micro:
+  model_actions=1
+  model_error_actions=1
+  movement_oscillations=0
+
+npm test: 21 pass / 0 fail
+npm run demo:verify: pass
+```
+
+Interpretation:
+
+Move-first ordering improved Flash's strict pure continuity and kept the agent moving away from the start. Pro remained dominated by empty final-output instability in this run, which supports keeping reasoning recovery as a diagnostic rather than a leaderboard setting.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 19 pass / 0 fail
+npm test: 21 pass / 0 fail
 npm run demo:verify: pass
 ```
 

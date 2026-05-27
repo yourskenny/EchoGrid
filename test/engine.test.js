@@ -57,6 +57,16 @@ test('state exposes repeat-avoidance action hints without hidden information', (
   assert.equal(state.action_hints.preferred.includes('move N'), false);
 });
 
+test('preferred hints prioritize movement through known safe cells', () => {
+  const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
+  game.step('probe 0 1');
+  const state = game.state();
+
+  assert.ok(state.action_hints.safe_recommended.includes('move S'));
+  assert.ok(state.action_hints.safe_recommended.includes('probe 1 0'));
+  assert.equal(state.action_hints.preferred[0], 'move S');
+});
+
 test('invalid actions are penalized and preserve a parseable state', () => {
   const game = new EchoGridGame({ seed: 48129 });
   const event = game.step('jump north');

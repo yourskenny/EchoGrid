@@ -234,6 +234,18 @@ deepseek-v4-flash:
 
 This keeps the strict leaderboard honest while reducing action-selection friction in the public protocol.
 
+Preferred actions are now ordered by action type so known safe movement ranks before probing unknown cells after the local frontier is opened. In a strict pure follow-up, Flash reached eight model-controlled turns without oscillation:
+
+```text
+deepseek-v4-flash:
+  model_actions=8
+  model_error_actions=1
+  movement_oscillations=0
+  model_contribution_rate=0.889
+```
+
+The same run still showed Pro failing early with an empty final response, so model-output reliability remains model-dependent.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

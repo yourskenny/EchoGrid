@@ -489,7 +489,9 @@ class EchoGridGame {
     }
     const deduped = [...new Set(hints)];
     const avoidRepeating = this.repeatAvoidanceHints();
-    const preferred = deduped.filter((action) => !avoidRepeating.includes(action));
+    const preferred = deduped
+      .filter((action) => !avoidRepeating.includes(action))
+      .sort(comparePreferredActions);
     return {
       preferred: preferred.length ? preferred : deduped,
       safe_recommended: deduped,
@@ -782,6 +784,20 @@ function band(count) {
   if (count <= 0) return 'none';
   if (count === 1) return 'low';
   return 'high';
+}
+
+function comparePreferredActions(a, b) {
+  return actionPriority(a) - actionPriority(b);
+}
+
+function actionPriority(action) {
+  if (action === 'extract') return 0;
+  if (action.startsWith('move ')) return 1;
+  if (action.startsWith('probe ')) return 2;
+  if (action.startsWith('scan ')) return 3;
+  if (action.startsWith('claim_rule ')) return 4;
+  if (action === 'wait') return 6;
+  return 5;
 }
 
 function markMatchesTerrain(mark, terrain) {
