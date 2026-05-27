@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/echogrid/state.schema.json",
+  "title": "EchoGrid State",
+  "type": "object",
+  "required": [
+    "protocol",
+    "seed",
+    "mode",
+    "coordinate_system",
+    "turn",
+    "resources",
+    "objective",
+    "agent",
+    "map",
+    "observations",
+    "rules",
+    "valid_actions",
+    "action_hints",
+    "score",
+    "score_breakdown",
+    "metrics"
+  ],
+  "properties": {
+    "protocol": { "const": "echogrid.state.v1" },
+    "seed": { "type": "string" },
+    "mode": { "type": "string" },
+    "coordinate_system": { "const": "zero_based" },
+    "turn": {
+      "type": "object",
+      "required": ["current", "limit", "terminal"],
+      "properties": {
+        "current": { "type": "integer", "minimum": 0 },
+        "limit": { "type": "integer", "minimum": 1 },
+        "terminal": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["status", "reason", "score", "hidden_rule"],
+              "properties": {
+                "status": { "enum": ["success", "failure"] },
+                "reason": { "type": "string" },
+                "score": { "type": "number" },
+                "hidden_rule": { "type": "string" },
+                "hidden_rule_name": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "resources": {
+      "type": "object",
+      "required": ["energy", "integrity"],
+      "properties": {
+        "energy": { "type": "number" },
+        "integrity": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "objective": {
+      "type": "object",
+      "required": ["text", "artifacts_required", "artifacts_collected", "exit"],
+      "properties": {
+        "text": { "type": "string" },
+        "artifacts_required": { "type": "integer", "minimum": 0 },
+        "artifacts_collected": { "type": "integer", "minimum": 0 },
+        "exit": { "$ref": "#/$defs/coord" }
+      },
+      "additionalProperties": true
+    },
+    "agent": {
+      "type": "object",
+      "required": ["position", "current_cell", "adjacent"],
+      "properties": {
+        "position": { "$ref": "#/$defs/coord" },
+        "current_cell": { "$ref": "#/$defs/cell" },
+        "adjacent": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["direction", "coord", "in_bounds", "recommended_actions"],
+            "properties": {
+              "direction": { "enum": ["N", "S", "E", "W"] },
+              "coord": { "$ref": "#/$defs/coord" },
+              "in_bounds": { "type": "boolean" },
+              "recommended_actions": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "map": {
+      "type": "object",
+      "required": ["size", "legend", "rows", "cells"],
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "legend": { "type": "array" },
+        "rows": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cells": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cell" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "observations": {
+      "type": "object",
+      "required": ["recent"],
+      "properties": {
+        "recent": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "rules": {
+      "type": "object",
+      "required": ["claim", "catalog"],
+      "properties": {
+        "claim": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["id", "correct", "turn"],
+              "properties": {
+                "id": { "type": "string" },
+                "correct": { "type": "boolean" },
+                "turn": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": true
+            }
+          ]
+        },
+        "catalog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "valid_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "action_hints": {
+      "type": "object",
+      "required": ["safe_recommended", "warning"],
+      "properties": {
+        "safe_recommended": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warning": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "score": { "type": "number" },
+    "score_breakdown": {
+      "type": "object",
+      "required": ["total"],
+      "properties": {
+        "total": { "type": "number" }
+      },
+      "additionalProperties": { "type": "number" }
+    },
+    "metrics": { "type": "object" },
+    "answer": { "type": "object" }
+  },
+  "$defs": {
+    "coord": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 0 }
+      ],
+      "items": false,
+      "minItems": 2
+    },
+    "cell": {
+      "type": "object",
+      "required": ["coord", "visible", "terrain", "mark"],
+      "properties": {
+        "coord": { "$ref": "#/$defs/coord" },
+        "visible": { "type": "boolean" },
+        "terrain": {
+          "enum": ["unknown", "empty", "wall", "hazard", "artifact", "exit"]
+        },
+        "mark": {
+          "anyOf": [
+            { "type": "null" },
+            { "enum": ["hazard", "safe", "artifact", "entity"] }
+          ]
+        },
+        "observation": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "object" }
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -88,6 +88,7 @@ claim_rule rule_id
 ```
 
 For batch evaluation, EchoGrid runs the agent once per turn and sends the full `STATE` JSON on stdin. The first non-empty stdout line is used as the action.
+Protocol schemas are published in `schemas/state.schema.json`, `schemas/event.schema.json`, and `schemas/summary.schema.json`.
 
 Agents that support line-by-line operation can use persistent mode:
 

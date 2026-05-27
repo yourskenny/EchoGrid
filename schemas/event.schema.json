@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/echogrid/event.schema.json",
+  "title": "EchoGrid JSONL Event",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type", "runner", "state"],
+      "properties": {
+        "type": { "const": "start" },
+        "runner": { "type": "string" },
+        "agent": { "type": "string" },
+        "agent_mode": { "type": "string" },
+        "state": { "$ref": "state.schema.json" }
+      },
+      "additionalProperties": true
+    },
+    {
+      "type": "object",
+      "required": ["type", "command", "event", "state"],
+      "properties": {
+        "type": { "const": "action" },
+        "command": { "type": "string" },
+        "agent_diagnostic": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "object" }
+          ]
+        },
+        "event": {
+          "type": "object",
+          "required": ["turn", "command", "outcome", "score"],
+          "properties": {
+            "turn": { "type": "integer", "minimum": 0 },
+            "command": { "type": "string" },
+            "outcome": {
+              "type": "object",
+              "required": ["ok", "type"],
+              "properties": {
+                "ok": { "type": "boolean" },
+                "type": { "type": "string" }
+              },
+              "additionalProperties": true
+            },
+            "score": { "type": "number" },
+            "terminal": {
+              "anyOf": [
+                { "type": "null" },
+                { "type": "object" }
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "state": { "$ref": "state.schema.json" }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

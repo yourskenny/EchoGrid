@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/echogrid/summary.schema.json",
+  "title": "EchoGrid Evaluation Summary",
+  "type": "object",
+  "required": ["aggregate", "results"],
+  "properties": {
+    "aggregate": {
+      "type": "object",
+      "required": ["seeds", "successes", "success_rate", "average_score", "average_turns"],
+      "properties": {
+        "seeds": { "type": "integer", "minimum": 0 },
+        "successes": { "type": "integer", "minimum": 0 },
+        "success_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "average_score": { "type": "number" },
+        "average_turns": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "seed",
+          "status",
+          "reason",
+          "score",
+          "turns",
+          "energy",
+          "integrity",
+          "artifacts_collected",
+          "artifacts_required",
+          "rule_claim",
+          "hidden_rule"
+        ],
+        "properties": {
+          "seed": { "type": "string" },
+          "status": { "type": "string" },
+          "reason": { "type": "string" },
+          "score": { "type": "number" },
+          "turns": { "type": "integer", "minimum": 0 },
+          "energy": { "type": "number" },
+          "integrity": { "type": "number" },
+          "artifacts_collected": { "type": "integer", "minimum": 0 },
+          "artifacts_required": { "type": "integer", "minimum": 0 },
+          "rule_claim": {
+            "anyOf": [
+              { "type": "null" },
+              { "type": "object" }
+            ]
+          },
+          "hidden_rule": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

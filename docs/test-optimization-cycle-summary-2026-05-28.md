@@ -175,6 +175,33 @@ Interpretation:
 
 Pure model scores and hybrid integration scores are now separated at the harness and log-analysis levels. This prevents model quality claims from being inflated by fallback success while preserving the practical diagnostic path for provider/API failures.
 
+## Loop 8: Published Protocol Schemas
+
+Finding:
+
+Codex and external model harnesses can inspect README prose, but a mature agent-first benchmark also needs machine-readable contracts for the state, JSONL event log, and evaluation summary.
+
+Optimization:
+
+- added `schemas/state.schema.json`
+- added `schemas/event.schema.json`
+- added `schemas/summary.schema.json`
+- documented schema locations in README and the agent authoring guide
+- added schema alignment tests against current engine and CLI output
+
+Verification:
+
+```text
+schema files parse as JSON Schema draft 2020-12
+current public state contains every required state schema field
+evaluate JSONL start/action events match the documented event surfaces
+evaluate --summary-file output contains every required summary/result field
+```
+
+Interpretation:
+
+EchoGrid now exposes its protocol as a contract rather than only as examples. This helps Codex-style isolated agents, LLM wrappers, and future third-party agents validate assumptions before running full games.
+
 ## Current Verification Snapshot
 
 Latest local verification:
@@ -202,8 +229,8 @@ EchoGrid is now more mature as an agent-first testbed:
 
 ## Next Recommended Iterations
 
-1. Add JSON schema files for `STATE`, `EVENT`, and run summaries.
-2. Add a small HTML replay viewer for judges.
-3. Add stronger rule-discovery seeds where model planning matters more than baseline routing.
-4. Add persistent-mode support to the LLM bridge when provider latency makes process reuse useful.
-5. Add reasoned action output for optional model explanations.
+1. Add a small HTML replay viewer for judges.
+2. Add stronger rule-discovery seeds where model planning matters more than baseline routing.
+3. Add persistent-mode support to the LLM bridge when provider latency makes process reuse useful.
+4. Add reasoned action output for optional model explanations.
+5. Add stricter schema validation with a bundled validator if dependencies become acceptable.
