@@ -166,8 +166,19 @@
     },
     "action_hints": {
       "type": "object",
-      "required": ["next_action", "safe_recommended", "warning"],
+      "required": ["goal", "next_action", "safe_recommended", "warning"],
       "properties": {
+        "goal": {
+          "type": "object",
+          "required": ["source", "coord", "reason"],
+          "properties": {
+            "source": { "enum": ["trace", "exit"] },
+            "trace": { "type": "string" },
+            "coord": { "$ref": "#/$defs/coord" },
+            "reason": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
         "next_action": {
           "anyOf": [
             { "type": "string" },

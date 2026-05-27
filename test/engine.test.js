@@ -38,6 +38,7 @@ test('probe and scan produce structured observations without exposing the answer
   assert.equal(state.score_breakdown.total, state.score);
   assert.equal(state.metrics.visible_cells, 2);
   assert.ok(Array.isArray(state.agent.adjacent));
+  assert.equal(typeof state.action_hints.goal.source, 'string');
   assert.equal(typeof state.action_hints.next_action, 'string');
   assert.ok(Array.isArray(state.action_hints.preferred));
   assert.ok(Array.isArray(state.action_hints.safe_recommended));
@@ -66,11 +67,13 @@ test('next action names the first preferred movement hint', () => {
 
   assert.ok(state.action_hints.safe_recommended.includes('move S'));
   assert.ok(state.action_hints.safe_recommended.includes('probe 1 0'));
+  assert.equal(state.action_hints.goal.source, 'trace');
+  assert.equal(state.action_hints.goal.trace, 'south-biased');
   assert.equal(state.action_hints.preferred[0], 'move S');
   assert.equal(state.action_hints.next_action, 'move S');
 });
 
-test('preferred movement tie-breaks toward the public exit coordinate', () => {
+test('preferred actions follow public trace before exit completion', () => {
   const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
   game.step('probe 0 1');
   game.step('probe 1 0');
@@ -85,8 +88,38 @@ test('preferred movement tie-breaks toward the public exit coordinate', () => {
   const state = game.state();
 
   assert.deepEqual(state.agent.position, [1, 2]);
+  assert.equal(state.action_hints.goal.source, 'trace');
+  assert.equal(state.action_hints.goal.trace, 'east-biased');
   assert.ok(state.action_hints.preferred.includes('move N'));
-  assert.equal(state.action_hints.next_action, 'probe 1 3');
+  assert.equal(state.action_hints.next_action, 'probe 2 2');
+});
+
+test('preferred actions target the public exit after artifacts are collected', () => {
+  const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
+  game.step('probe 0 1');
+  game.step('probe 1 0');
+  game.step('move S');
+  game.step('probe 0 2');
+  game.step('probe 1 1');
+  game.step('move S');
+  game.step('probe 0 3');
+  game.step('probe 1 2');
+  game.step('move E');
+  game.step('probe 1 3');
+  game.step('move S');
+  game.step('probe 1 4');
+  game.step('move S');
+  game.step('probe 1 5');
+  game.step('move S');
+  game.step('probe 1 6');
+  game.step('probe 2 5');
+  game.step('move E');
+  game.collected.add('test-artifact');
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [2, 5]);
+  assert.equal(state.action_hints.goal.source, 'exit');
+  assert.equal(state.action_hints.next_action, 'probe 2 6');
 });
 
 test('invalid actions are penalized and preserve a parseable state', () => {

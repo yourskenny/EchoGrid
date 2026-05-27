@@ -330,6 +330,40 @@ deepseek-v4-pro:
 
 Both models produced valid final actions until the configured model-turn budget was exhausted. This shifts the current bottleneck from output-channel reliability back to game progress and task completion.
 
+## Trace-Aware Hint Goal
+
+The current public hint target is now explicit:
+
+```json
+"action_hints": {
+  "goal": {
+    "source": "trace",
+    "trace": "east-biased",
+    "coord": [4, 2],
+    "reason": "artifacts remain; follow the public trace signal before routing to exit"
+  }
+}
+```
+
+While artifacts remain, preferred actions are ranked against the public trace goal. After the artifact requirement is satisfied, the goal switches back to the exit. This avoids making LLMs infer why `next_action` sometimes searches sideways instead of reducing exit distance.
+
+Strict pure follow-up:
+
+```text
+deepseek-v4-flash max_model_turns=16:
+  model_actions=16
+  unique_positions=7
+  min_distance_to_exit=8
+
+deepseek-v4-flash max_model_turns=32:
+  model_actions=32
+  unique_positions=12
+  visible_cells=19
+  artifacts=0/1
+```
+
+Trace-aware ranking moved the model through the public trace corridor, but the next failure mode is local artifact search around heat signals. Future analysis should add artifact-proximity metrics and a heat-aware hint before judging this as an LLM-only planning failure.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

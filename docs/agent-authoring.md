@@ -58,6 +58,7 @@ Important fields:
 - `map.cells`: structured visible cells and marks.
 - `observations.recent`: recent probe, scan, move, extract, and rule-claim events.
 - `rules.catalog`: claimable hidden-rule ids.
+- `action_hints.goal`: public target used to rank hints; follows artifact trace before artifacts are collected, then exit.
 - `action_hints.next_action`: the single first-choice public action, equivalent to `action_hints.preferred[0]` when available.
 - `action_hints.preferred`: first-choice actions after local safety and repeat filtering.
 - `action_hints.safe_recommended`: locally safe or useful actions.

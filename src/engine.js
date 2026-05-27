@@ -494,6 +494,7 @@ class EchoGridGame {
       .sort((a, b) => this.comparePreferredActions(a, b));
     const preferredActions = preferred.length ? preferred : deduped;
     return {
+      goal: this.actionHintGoal(),
       next_action: preferredActions[0] || null,
       preferred: preferredActions,
       safe_recommended: deduped,
@@ -509,27 +510,56 @@ class EchoGridGame {
   }
 
   comparePreferredActions(a, b) {
-    const progress = this.publicGoalProgressRank(a) - this.publicGoalProgressRank(b);
+    const goal = this.publicHintGoal();
+    const progress = this.publicGoalProgressRank(a, goal) - this.publicGoalProgressRank(b, goal);
     if (progress !== 0) return progress;
     const priority = actionPriority(a) - actionPriority(b);
     if (priority !== 0) return priority;
-    return this.publicGoalDistance(a) - this.publicGoalDistance(b);
+    return this.publicGoalDistance(a, goal) - this.publicGoalDistance(b, goal);
   }
 
-  publicGoalProgressRank(action) {
+  publicGoalProgressRank(action, goal) {
     if (action === 'extract') return 0;
-    const targetDistance = this.publicGoalDistance(action);
+    const targetDistance = this.publicGoalDistance(action, goal);
     if (!Number.isFinite(targetDistance)) return 3;
-    const currentDistance = manhattan(this.position, this.world.exit);
+    const currentDistance = manhattan(this.position, goal);
     if (targetDistance < currentDistance) return 0;
     if (targetDistance === currentDistance) return 1;
     return 2;
   }
 
-  publicGoalDistance(action) {
+  publicGoalDistance(action, goal) {
     const target = actionTarget(action, this.position);
     if (!target) return Number.POSITIVE_INFINITY;
-    return manhattan(target, this.world.exit);
+    return manhattan(target, goal);
+  }
+
+  publicHintGoal() {
+    return this.actionHintGoal().coord;
+  }
+
+  actionHintGoal() {
+    if (this.collected.size >= this.world.config.artifactsRequired) {
+      return {
+        source: 'exit',
+        coord: [...this.world.exit],
+        reason: 'required artifacts are collected; route to exit',
+      };
+    }
+    const trace = this.publicCell(this.position[0], this.position[1]).observation?.trace;
+    if (!trace || trace === 'local') {
+      return {
+        source: 'exit',
+        coord: [...this.world.exit],
+        reason: 'no public artifact trace is available',
+      };
+    }
+    return {
+      source: 'trace',
+      trace,
+      coord: traceGoal(this.world.size, this.position, trace, this.world.exit),
+      reason: 'artifacts remain; follow the public trace signal before routing to exit',
+    };
   }
 
   previousPosition() {
@@ -831,6 +861,15 @@ function actionTarget(action, position) {
   const probe = action.match(/^probe (\d+) (\d+)$/);
   if (probe) return [Number(probe[1]), Number(probe[2])];
   return null;
+}
+
+function traceGoal(size, position, trace, fallback) {
+  const [x, y] = position;
+  if (trace === 'east-biased') return [Math.min(size - 1, x + 3), y];
+  if (trace === 'west-biased') return [Math.max(0, x - 3), y];
+  if (trace === 'south-biased') return [x, Math.min(size - 1, y + 3)];
+  if (trace === 'north-biased') return [x, Math.max(0, y - 3)];
+  return fallback;
 }
 
 function markMatchesTerrain(mark, terrain) {

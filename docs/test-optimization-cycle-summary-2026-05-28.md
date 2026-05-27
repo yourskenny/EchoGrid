@@ -548,6 +548,49 @@ Interpretation:
 
 This keeps repeat-avoidance authoritative in the engine state and removes a self-inflicted final-output reliability problem for DeepSeek. Both strict pure models now run to the configured model-turn budget with valid final actions instead of failing at turn 2 with empty final content.
 
+## Loop 19: Trace-Aware Hint Goal
+
+Finding:
+
+After output reliability improved, strict pure models followed public hints but treated route progress as exit progress. On micro seed `9001`, the nearest artifact is guided by the public `trace` signal before the exit matters. Ranking hints only by exit distance made the model move down/right without exposing why the preferred action was still searching for an artifact.
+
+Optimization:
+
+- changed preferred-action ranking to use the current public trace direction while artifacts remain
+- kept exit-distance ranking after the artifact requirement is satisfied
+- added `action_hints.goal` with `source`, `coord`, and `reason` so agents can see whether the current hint target comes from `trace` or `exit`
+- updated state schema, README, and agent authoring docs
+- added tests for trace-goal ranking before artifact completion and exit-goal ranking after completion
+
+Verification:
+
+```text
+npm test: 24 pass / 0 fail
+npm run demo:verify: pass
+
+deepseek-v4-flash strict pure, max_model_turns=16:
+  model_actions=16
+  model_error_actions=1
+  unique_positions=7
+  min_distance_to_exit=8
+  movement_oscillations=0
+
+deepseek-v4-pro strict pure, max_model_turns=16:
+  model_actions=1
+  model_error_actions=1
+  early empty final output
+
+deepseek-v4-flash strict pure, max_model_turns=32:
+  model_actions=32
+  unique_positions=12
+  visible_cells=19
+  artifacts=0/1
+```
+
+Interpretation:
+
+The public hint now explains the intended target source and follows artifact trace before exit routing. The 32-turn Flash run shows the next bottleneck: once heat becomes `low` or `high`, the model needs a stronger local artifact-search affordance or metric. It explored more cells but still did not reveal/extract the artifact within the model budget.
+
 ## Current Verification Snapshot
 
 Latest local verification:
