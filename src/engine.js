@@ -546,6 +546,8 @@ class EchoGridGame {
         reason: 'required artifacts are collected; route to exit',
       };
     }
+    const heatGoal = this.publicHeatGoal();
+    if (heatGoal) return heatGoal;
     const trace = this.publicCell(this.position[0], this.position[1]).observation?.trace;
     if (!trace || trace === 'local') {
       return {
@@ -560,6 +562,30 @@ class EchoGridGame {
       coord: traceGoal(this.world.size, this.position, trace, this.world.exit),
       reason: 'artifacts remain; follow the public trace signal before routing to exit',
     };
+  }
+
+  publicHeatGoal() {
+    const candidates = this.knownCells()
+      .filter((cell) => cell.visible && cell.observation?.heat === 'high')
+      .sort((a, b) => manhattan(this.position, a.coord) - manhattan(this.position, b.coord));
+    const hot = candidates[0];
+    if (!hot) return null;
+    const trace = hot.observation?.trace;
+    return {
+      source: 'heat',
+      heat: 'high',
+      trace,
+      heat_coord: [...hot.coord],
+      coord: traceGoal(this.world.size, hot.coord, trace, hot.coord),
+      reason: 'artifacts remain; search from public high heat toward its trace signal',
+    };
+  }
+
+  knownCells() {
+    return [...this.visible].map((key) => {
+      const [x, y] = key.split(',').map(Number);
+      return this.publicCell(x, y);
+    });
   }
 
   previousPosition() {

@@ -591,12 +591,59 @@ Interpretation:
 
 The public hint now explains the intended target source and follows artifact trace before exit routing. The 32-turn Flash run shows the next bottleneck: once heat becomes `low` or `high`, the model needs a stronger local artifact-search affordance or metric. It explored more cells but still did not reveal/extract the artifact within the model budget.
 
+## Loop 20: Heat-Aware Artifact Search Goal
+
+Finding:
+
+The 32-turn Flash trace reached low/high heat cells but did not prioritize the unknown cells most likely to reveal the artifact. The previous `goal.source=trace` kept following directional trace even after public heat made the local artifact-search area clear.
+
+Optimization:
+
+- added `goal.source="heat"` when public high heat is visible and artifacts remain
+- set `goal.heat_coord` to the public high-heat cell
+- set `goal.coord` by following the high-heat cell's public trace direction
+- updated the state schema, README, and agent authoring guide for `heat|trace|exit`
+- added a regression test where seed `9001` must prefer `probe 0 5` around a high-heat cell instead of drifting back to trace-only routing
+
+Verification:
+
+```text
+npm test: 25 pass / 0 fail
+npm run demo:verify: pass
+Codex isolated verification: pass
+
+deepseek-v4-flash strict pure, max_model_turns=32:
+  artifacts=1/1
+  score=299
+  model_actions=32
+  unique_positions=13
+  movement_oscillations=0
+
+deepseek-v4-pro strict pure, max_model_turns=32:
+  artifacts=1/1
+  score=299
+  model_actions=32
+  movement_oscillations=0
+
+deepseek-v4-flash strict pure, max_model_turns=64:
+  status=success
+  score=604
+  turns=58
+  artifacts=1/1
+  invalid_actions=0
+  fallback_actions=0
+```
+
+Interpretation:
+
+Heat-aware goals turned the micro DeepSeek run from "explores but never extracts" into "finds and extracts the artifact." With enough strict pure model budget, Flash now completes the micro task end-to-end without fallback. Pro also reaches artifact extraction but remains vulnerable to empty final output after the artifact is collected.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 23 pass / 0 fail
+npm test: 25 pass / 0 fail
 npm run demo:verify: pass
 ```
 

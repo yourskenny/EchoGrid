@@ -122,6 +122,48 @@ test('preferred actions target the public exit after artifacts are collected', (
   assert.equal(state.action_hints.next_action, 'probe 2 6');
 });
 
+test('preferred actions search around public high heat before trace', () => {
+  const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
+  for (const action of [
+    'probe 0 1',
+    'move S',
+    'probe 0 2',
+    'move S',
+    'probe 0 3',
+    'probe 1 2',
+    'move E',
+    'probe 2 2',
+    'move E',
+    'probe 3 2',
+    'probe 2 1',
+    'probe 2 3',
+    'move S',
+    'probe 3 3',
+    'move E',
+    'probe 4 3',
+    'probe 3 4',
+    'move S',
+    'probe 4 4',
+    'probe 3 5',
+    'probe 2 4',
+    'move W',
+    'probe 2 5',
+    'move S',
+    'probe 1 5',
+    'move W',
+    'probe 1 6',
+  ]) {
+    game.step(action);
+  }
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [1, 5]);
+  assert.equal(state.action_hints.goal.source, 'heat');
+  assert.deepEqual(state.action_hints.goal.heat_coord, [1, 6]);
+  assert.deepEqual(state.action_hints.goal.coord, [0, 6]);
+  assert.equal(state.action_hints.next_action, 'probe 0 5');
+});
+
 test('invalid actions are penalized and preserve a parseable state', () => {
   const game = new EchoGridGame({ seed: 48129 });
   const event = game.step('jump north');

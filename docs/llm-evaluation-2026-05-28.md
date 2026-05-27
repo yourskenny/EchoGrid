@@ -364,6 +364,47 @@ deepseek-v4-flash max_model_turns=32:
 
 Trace-aware ranking moved the model through the public trace corridor, but the next failure mode is local artifact search around heat signals. Future analysis should add artifact-proximity metrics and a heat-aware hint before judging this as an LLM-only planning failure.
 
+## Heat-Aware Artifact Search
+
+The public hint target now switches from `trace` to `heat` when a high-heat cell has been revealed and artifacts remain:
+
+```json
+"action_hints": {
+  "goal": {
+    "source": "heat",
+    "heat": "high",
+    "trace": "west-biased",
+    "heat_coord": [1, 6],
+    "coord": [0, 6],
+    "reason": "artifacts remain; search from public high heat toward its trace signal"
+  }
+}
+```
+
+This uses only public observations. It tells the agent to search around the hot local artifact area rather than continuing broad trace routing.
+
+Strict pure follow-up:
+
+```text
+deepseek-v4-flash max_model_turns=32:
+  artifacts=1/1
+  score=299
+  unique_positions=13
+
+deepseek-v4-pro max_model_turns=32:
+  artifacts=1/1
+  score=299
+
+deepseek-v4-flash max_model_turns=64:
+  status=success
+  score=604
+  turns=58
+  invalid_actions=0
+  fallback_actions=0
+```
+
+This is the first strict pure DeepSeek completion of the micro task in the recorded loop. The remaining gap is full MVP performance and Pro's occasional empty final-output instability.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.
