@@ -129,6 +129,7 @@ For a guided explanation, see [docs/competition-demo.md](./docs/competition-demo
 For scoring details, see [docs/scoring.md](./docs/scoring.md).
 For representative report output, see [docs/sample-report.md](./docs/sample-report.md).
 For the first LLM evaluation loop, see [docs/llm-evaluation-2026-05-28.md](./docs/llm-evaluation-2026-05-28.md).
+For the repeated test/optimization cycle summary, see [docs/test-optimization-cycle-summary-2026-05-28.md](./docs/test-optimization-cycle-summary-2026-05-28.md).
 
 ## Project Direction
 
