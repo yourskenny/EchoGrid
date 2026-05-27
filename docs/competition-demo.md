@@ -36,6 +36,8 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Compare table: demonstrates that strategy quality changes results.
 
 Representative report output is stored in [sample-report.md](./sample-report.md).
+The full action and observation contract is in [protocol-reference.md](./protocol-reference.md).
+Judging boundaries and leaderboard modes are in [competition-rules.md](./competition-rules.md).
 
 ## Showcase Seed
 

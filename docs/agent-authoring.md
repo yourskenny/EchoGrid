@@ -45,6 +45,8 @@ Machine-readable protocol references live in:
 - `schemas/event.schema.json`
 - `schemas/summary.schema.json`
 
+The human-readable protocol reference is [protocol-reference.md](./protocol-reference.md). It lists action costs, validity rules, outcome types, observation fields, and scoring side effects.
+
 ## State Fields
 
 Important fields:
@@ -85,3 +87,5 @@ claim_rule rule_id
 ```
 
 Invalid actions consume a turn and reduce score.
+
+For competition boundaries such as forbidden answer inspection and LLM leaderboard modes, see [competition-rules.md](./competition-rules.md).

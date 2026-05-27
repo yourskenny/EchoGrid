@@ -50,6 +50,8 @@ node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 ```
 
+`inspect` is a local debugging command and may print hidden answer data. Do not use its output as evaluated agent input.
+
 LLM-compatible smoke testing can be run with an OpenAI-compatible endpoint:
 
 ```bash
@@ -89,6 +91,7 @@ claim_rule rule_id
 
 For batch evaluation, EchoGrid runs the agent once per turn and sends the full `STATE` JSON on stdin. The first non-empty stdout line is used as the action.
 Protocol schemas are published in `schemas/state.schema.json`, `schemas/event.schema.json`, and `schemas/summary.schema.json`.
+For action costs, outcome types, observations, and event-log semantics, see [docs/protocol-reference.md](./docs/protocol-reference.md).
 
 Agents that support line-by-line operation can use persistent mode:
 
@@ -138,6 +141,8 @@ npm run demo:full
 The showcase seed is `9001`. It demonstrates the full loop: structured observations, rule-aware action, artifact collection, extraction, scoring, report, and replay.
 
 For a guided explanation, see [docs/competition-demo.md](./docs/competition-demo.md).
+For the full agent protocol, see [docs/protocol-reference.md](./docs/protocol-reference.md).
+For judging boundaries and official evaluation modes, see [docs/competition-rules.md](./docs/competition-rules.md).
 For scoring details, see [docs/scoring.md](./docs/scoring.md).
 For representative report output, see [docs/sample-report.md](./docs/sample-report.md).
 For the first LLM evaluation loop, see [docs/llm-evaluation-2026-05-28.md](./docs/llm-evaluation-2026-05-28.md).
