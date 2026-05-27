@@ -169,6 +169,14 @@ node ./scripts/summarize-llm-logs.js ./logs/llm
 
 It prints success status, score, turns, artifacts, invalid actions, waits, model actions, fallback actions, local policy actions, and top fallback reasons. This makes repeated model-test loops auditable without manually reading JSONL.
 
+For a single run, use:
+
+```bash
+node ./scripts/analyze-run.js ./logs/llm/deepseek-v4-flash/9001.jsonl
+```
+
+This returns JSON quality flags such as `not_successful`, `high_wait_rate`, `fallback_dominant`, `low_model_contribution`, and `movement_oscillation`.
+
 Example diagnostic row from a micro Flash run:
 
 ```text

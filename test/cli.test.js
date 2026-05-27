@@ -104,3 +104,29 @@ test('compare script prints agent comparison table', () => {
   assert.match(result.stdout, /ECHO GRID AGENT COMPARISON/);
   assert.match(result.stdout, /agents\/random\.js/);
 });
+
+test('analyze-run reports quality flags for JSONL logs', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const logFile = path.join(tmp, 'run.jsonl');
+    const lines = [
+      '{"type":"start","state":{"seed":"1","mode":"mvp"}}',
+      '{"type":"action","command":"wait","agent_diagnostic":{"model":"model-a","fallback":true,"reason":"empty_model_action"},"event":{"outcome":{"ok":true,"type":"wait"}},"state":{"seed":"1","turn":{"current":1,"terminal":null},"agent":{"position":[0,0]},"score":1,"objective":{"artifacts_collected":0,"artifacts_required":1}}}',
+      '{"type":"action","command":"wait","agent_diagnostic":{"model":"model-a","fallback":true,"reason":"empty_model_action"},"event":{"outcome":{"ok":true,"type":"wait"}},"state":{"seed":"1","turn":{"current":2,"terminal":{"status":"failure","reason":"turn_limit","score":0}},"agent":{"position":[0,0]},"score":0,"objective":{"artifacts_collected":0,"artifacts_required":1}}}',
+    ];
+    fs.writeFileSync(logFile, `${lines.join('\n')}\n`, 'utf8');
+
+    const result = spawnSync(process.execPath, ['./scripts/analyze-run.js', logFile], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const analysis = JSON.parse(result.stdout);
+    assert.equal(analysis.status, 'failure');
+    assert.equal(analysis.fallback_actions, 2);
+    assert.ok(analysis.flags.includes('high_wait_rate'));
+    assert.ok(analysis.flags.includes('fallback_dominant'));
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

@@ -55,6 +55,7 @@ LLM-compatible smoke testing can be run with an OpenAI-compatible endpoint:
 set ECHOGRID_LLM_API_KEY=...
 node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro
 node ./scripts/summarize-llm-logs.js ./logs/llm
+node ./scripts/analyze-run.js ./logs/llm/deepseek-v4-flash/9001.jsonl
 ```
 
 The key is read only from the environment and should never be committed.
