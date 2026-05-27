@@ -185,3 +185,7 @@ top_reasons=baseline_after_model_budget:62, model:5, empty_model_action:3
 ```
 
 Interpretation: the protocol avoided invalid and idle actions, but early model choices still left the fallback policy unable to complete the micro objective. This is useful benchmark information rather than an engine failure.
+
+## Test Loop Maintenance
+
+The compare smoke test was shortened to a single-agent table check, reducing `npm test` feedback from roughly 28 seconds to roughly 13 seconds on this machine. Full three-agent comparison remains covered by `npm run demo:verify`.

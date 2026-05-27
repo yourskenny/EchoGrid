@@ -16,6 +16,14 @@ This command proves the demo end to end:
 4. Generates a battle report.
 5. Prints a replay timeline.
 
+For faster local verification during judging or development:
+
+```bash
+npm run demo:verify
+```
+
+This runs tests, the rule-aware showcase, and the three-agent showcase comparison without printing the full replay timeline.
+
 ## What To Look For
 
 EchoGrid is designed around agent behavior, not a visual board. The important artifacts are:
