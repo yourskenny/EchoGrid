@@ -29,6 +29,12 @@ npm run demo:full
 4. battle report
 5. replay timeline
 
+For a shorter verification path, run:
+
+```bash
+npm run demo:verify
+```
+
 ## Useful Commands
 
 ```bash

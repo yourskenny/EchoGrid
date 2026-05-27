@@ -102,6 +102,27 @@ Codex was run in a separate non-interactive session without this thread context.
 
 It specifically confirmed README, package scripts, competition demo docs, sample report, `rule-aware` agent behavior, and test coverage.
 
+Follow-up Codex isolation was run with local command execution enabled and still without this thread context. It executed:
+
+```text
+npm test
+node ./bin/echogrid.js evaluate --agent ./agents/rule-aware.js --seed 9001 --json
+node ./scripts/compare.js --seeds ./seeds/showcase.txt
+```
+
+Results:
+
+```text
+npm test: 8 passed, 0 failed
+rule-aware showcase: success, score=977, turns=86, artifacts=3/3, rule_claim=sector_c_two_unstable
+compare showcase:
+  random success=0 score=138
+  baseline success=1 score=862
+  rule-aware success=1 score=977
+```
+
+Codex's isolated assessment after execution: understandable yes, verifiable yes, agent-friendly yes.
+
 ## Optimizations Implemented
 
 1. Added OpenAI-compatible LLM agent:
