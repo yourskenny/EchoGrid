@@ -33,6 +33,8 @@ for (const model of models) {
       './agents/llm-openai-compatible.js',
       '--seeds',
       seeds,
+      '--mode',
+      options.mode || 'mvp',
       '--json',
       '--timeout',
       String(options.timeout || 45000),
@@ -68,10 +70,11 @@ for (const model of models) {
   process.stdout.write(`${model}: ${JSON.stringify(parsed.aggregate)}\n`);
 }
 
-const summaryPath = path.join(outDir, 'summary.json');
+  const summaryPath = path.join(outDir, 'summary.json');
 fs.writeFileSync(summaryPath, JSON.stringify({
   baseUrl,
   seeds,
+  mode: options.mode || 'mvp',
   generatedAt: new Date().toISOString(),
   summaries,
 }, null, 2), 'utf8');
@@ -90,6 +93,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (arg === '--out-dir') {
       parsed.outDir = argv[i + 1];
+      i += 1;
+    } else if (arg === '--mode') {
+      parsed.mode = argv[i + 1];
       i += 1;
     } else if (arg === '--base-url') {
       parsed.baseUrl = argv[i + 1];

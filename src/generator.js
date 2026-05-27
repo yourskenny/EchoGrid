@@ -44,6 +44,14 @@ function generateWorld(options = {}) {
       ...(options.costs || {}),
     },
   };
+  if (options.mode === 'micro') {
+    config.energy = options.energy || 110;
+    config.turnLimit = options.turnLimit || 70;
+    config.artifactsRequired = options.artifactsRequired || 1;
+    config.wallCount = options.wallCount || 6;
+    config.hazardCount = options.hazardCount || 7;
+    config.artifactCount = options.artifactCount || 2;
+  }
   const rng = createRng(seed);
   const hiddenRule = selectHiddenRule(rng);
   const start = [0, 0];

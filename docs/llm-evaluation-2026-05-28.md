@@ -135,3 +135,7 @@ Next improvements should focus on:
 - faster persistent-agent evaluation
 - explicit per-turn legal/recommended action lists
 - separate "pure model" and "hybrid model+baseline" leaderboards
+
+## Follow-Up Change
+
+A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

@@ -47,10 +47,11 @@ LLM-compatible smoke testing can be run with an OpenAI-compatible endpoint:
 
 ```bash
 set ECHOGRID_LLM_API_KEY=...
-node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt
+node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro
 ```
 
 The key is read only from the environment and should never be committed.
+This command is an integration smoke test for model behavior and diagnostics; scores may vary by provider latency and model output quality.
 
 ## Game Loop
 
