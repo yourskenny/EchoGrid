@@ -44,6 +44,29 @@ test('baseline agent can complete a known public seed through evaluate', () => {
   assert.equal(output.results[0].status, 'success');
 });
 
+test('evaluate can write summary file', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const summaryFile = path.join(tmp, 'summary.json');
+    const result = spawnSync(
+      process.execPath,
+      [cli, 'evaluate', '--agent', './agents/baseline.js', '--seed', '9001', '--mode', 'micro', '--json', '--summary-file', summaryFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 30000,
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const summary = JSON.parse(fs.readFileSync(summaryFile, 'utf8'));
+    assert.equal(summary.aggregate.seeds, 1);
+    assert.equal(summary.results[0].seed, '9001');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('report command summarizes a JSONL run log', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {

@@ -45,6 +45,7 @@ npm run showcase
 node ./bin/echogrid.js inspect --seed 48129
 node ./bin/echogrid.js run --seed 48129 --pretty
 node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt --log-dir ./logs
+node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt --summary-file ./logs/summary.json
 node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 ```

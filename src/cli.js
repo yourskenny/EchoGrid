@@ -138,6 +138,11 @@ async function evaluate(argv, io) {
   }
 
   const aggregate = aggregateResults(results);
+  if (options['summary-file']) {
+    const summaryFile = resolvePath(io.cwd, options['summary-file']);
+    fs.mkdirSync(path.dirname(summaryFile), { recursive: true });
+    fs.writeFileSync(summaryFile, `${JSON.stringify({ aggregate, results }, null, 2)}\n`, 'utf8');
+  }
   if (options.json) {
     io.stdout.write(`${JSON.stringify({ aggregate, results }, null, 2)}\n`);
   } else {
