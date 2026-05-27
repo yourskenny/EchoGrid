@@ -515,6 +515,7 @@ function buildReport(events) {
     modelActions: 0,
     fallbackActions: 0,
     localActions: 0,
+    modelErrors: 0,
     reasons: {},
   };
 
@@ -585,6 +586,7 @@ function buildReport(events) {
           `- Model actions: ${diagnostics.modelActions}`,
           `- Fallback actions: ${diagnostics.fallbackActions}`,
           `- Local policy actions: ${diagnostics.localActions}`,
+          `- Model errors: ${diagnostics.modelErrors}`,
           `- Diagnostic reasons: ${formatReasons(diagnostics.reasons)}`,
         ]
       : []),
@@ -603,7 +605,11 @@ function buildReport(events) {
 
 function collectDiagnostic(summary, diagnostic) {
   if (!diagnostic) return;
-  if (diagnostic.local_policy) {
+  if (diagnostic.model_error) {
+    summary.modelErrors += 1;
+    const reason = diagnostic.reason || 'model_error';
+    summary.reasons[reason] = (summary.reasons[reason] || 0) + 1;
+  } else if (diagnostic.local_policy) {
     summary.localActions += 1;
     summary.reasons.local = (summary.reasons.local || 0) + 1;
   } else if (diagnostic.fallback) {
@@ -617,7 +623,7 @@ function collectDiagnostic(summary, diagnostic) {
 }
 
 function hasDiagnostics(summary) {
-  return summary.modelActions > 0 || summary.fallbackActions > 0 || summary.localActions > 0;
+  return summary.modelActions > 0 || summary.fallbackActions > 0 || summary.localActions > 0 || summary.modelErrors > 0;
 }
 
 function formatReasons(reasons) {

@@ -145,6 +145,36 @@ Interpretation:
 
 Persistent mode is opt-in and keeps the existing one-shot agent protocol as the default compatibility path. It prepares EchoGrid for larger benchmark loops and lower-overhead external agent testing without changing game mechanics or score semantics.
 
+## Loop 7: Pure vs Hybrid LLM Leaderboards
+
+Finding:
+
+Budgeted DeepSeek runs were useful integration tests, but final success scores could be misread because baseline fallback sometimes rescued the run after limited model-controlled turns.
+
+Optimization:
+
+- added `--leaderboard pure|hybrid|both` to `scripts/run-llm-eval.js`
+- added `ECHOGRID_LLM_FALLBACK_MODE=none` for pure-model runs
+- disabled local obvious-action handling in pure mode with `ECHOGRID_LLM_LOCAL_POLICY=0`
+- updated LLM summaries and per-run analysis with `leaderboard` and `model_error_actions`
+- kept hybrid mode for model-plus-baseline integration diagnostics
+
+Verification:
+
+```text
+pure mode without API key: fallback_actions=0, model_error_actions>0, leaderboard=pure
+LLM summary table: includes Board and Errors columns
+DeepSeek micro run, max_model_turns=4:
+  pure/deepseek-v4-flash: failure, score=-1168, model_errors=70, fallback=0
+  pure/deepseek-v4-pro:   failure, score=-1168, model_errors=70, fallback=0
+  hybrid/deepseek-v4-flash: success, score=606, model_actions=1, fallback=56
+  hybrid/deepseek-v4-pro:   success, score=606, model_actions=0, fallback=57
+```
+
+Interpretation:
+
+Pure model scores and hybrid integration scores are now separated at the harness and log-analysis levels. This prevents model quality claims from being inflated by fallback success while preserving the practical diagnostic path for provider/API failures.
+
 ## Current Verification Snapshot
 
 Latest local verification:
@@ -172,8 +202,8 @@ EchoGrid is now more mature as an agent-first testbed:
 
 ## Next Recommended Iterations
 
-1. Add pure-model leaderboard separate from hybrid fallback leaderboard.
-2. Add JSON schema files for `STATE`, `EVENT`, and run summaries.
-3. Add a small HTML replay viewer for judges.
-4. Add stronger rule-discovery seeds where model planning matters more than baseline routing.
-5. Add persistent-mode support to the LLM bridge when provider latency makes process reuse useful.
+1. Add JSON schema files for `STATE`, `EVENT`, and run summaries.
+2. Add a small HTML replay viewer for judges.
+3. Add stronger rule-discovery seeds where model planning matters more than baseline routing.
+4. Add persistent-mode support to the LLM bridge when provider latency makes process reuse useful.
+5. Add reasoned action output for optional model explanations.

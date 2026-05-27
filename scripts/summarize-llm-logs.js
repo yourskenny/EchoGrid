@@ -17,13 +17,15 @@ for (const file of walk(logRoot)) {
   if (!file.endsWith('.jsonl')) continue;
   const relative = path.relative(logRoot, file).replace(/\\/g, '/');
   if (path.basename(file) === 'summary.json') continue;
-  const events = fs.readFileSync(file, 'utf8').trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);
+  const events = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '').trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);
   const actions = events.filter((event) => event.type === 'action');
   if (!actions.length) continue;
   const final = actions.at(-1).state;
+  const parts = relative.split('/');
   const model = actions.find((event) => event.agent_diagnostic?.model)?.agent_diagnostic?.model || relative.split('/')[0];
   const diagnostics = summarizeDiagnostics(actions);
   rows.push({
+    leaderboard: inferLeaderboard(parts, actions),
     model,
     seed: final?.seed || path.basename(file, '.jsonl'),
     status: final?.turn?.terminal?.status || 'unknown',
@@ -36,6 +38,7 @@ for (const file of walk(logRoot)) {
     model_actions: diagnostics.modelActions,
     fallback_actions: diagnostics.fallbackActions,
     local_actions: diagnostics.localActions,
+    model_errors: diagnostics.modelErrors,
     top_reasons: Object.entries(diagnostics.reasons)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
@@ -51,10 +54,15 @@ function summarizeDiagnostics(actions) {
   let modelActions = 0;
   let fallbackActions = 0;
   let localActions = 0;
+  let modelErrors = 0;
   for (const action of actions) {
     const diagnostic = action.agent_diagnostic;
     if (!diagnostic) continue;
-    if (diagnostic.local_policy) {
+    if (diagnostic.model_error) {
+      modelErrors += 1;
+      const reason = diagnostic.reason || 'model_error';
+      reasons[reason] = (reasons[reason] || 0) + 1;
+    } else if (diagnostic.local_policy) {
       localActions += 1;
       reasons.local = (reasons.local || 0) + 1;
     } else if (diagnostic.fallback) {
@@ -66,7 +74,7 @@ function summarizeDiagnostics(actions) {
       reasons.model = (reasons.model || 0) + 1;
     }
   }
-  return { fallbackActions, localActions, modelActions, reasons };
+  return { fallbackActions, localActions, modelActions, modelErrors, reasons };
 }
 
 function printTable(items) {
@@ -75,6 +83,7 @@ function printTable(items) {
     return;
   }
   const columns = [
+    ['leaderboard', 'Board'],
     ['model', 'Model'],
     ['seed', 'Seed'],
     ['status', 'Status'],
@@ -86,6 +95,7 @@ function printTable(items) {
     ['model_actions', 'Model'],
     ['fallback_actions', 'Fallback'],
     ['local_actions', 'Local'],
+    ['model_errors', 'Errors'],
     ['top_reasons', 'Top Reasons'],
   ];
   const widths = Object.fromEntries(
@@ -101,6 +111,14 @@ function printTable(items) {
     process.stdout.write(columns.map(([key]) => String(row[key]).padEnd(widths[key])).join('  '));
     process.stdout.write('\n');
   }
+}
+
+function inferLeaderboard(parts, actions) {
+  const diagnostic = actions.find((event) => event.agent_diagnostic)?.agent_diagnostic;
+  if (diagnostic?.fallback_mode === 'none') return 'pure';
+  if (diagnostic?.fallback_mode) return 'hybrid';
+  if (parts[0] === 'pure' || parts[0] === 'hybrid') return parts[0];
+  return 'legacy';
 }
 
 function walk(dir) {

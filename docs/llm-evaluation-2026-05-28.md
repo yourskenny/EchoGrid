@@ -157,6 +157,33 @@ Next improvements should focus on:
 - explicit per-turn legal/recommended action lists
 - separate "pure model" and "hybrid model+baseline" leaderboards
 
+## Leaderboard Separation
+
+The LLM runner now supports explicit leaderboard modes:
+
+```bash
+node ./scripts/run-llm-eval.js --leaderboard pure
+node ./scripts/run-llm-eval.js --leaderboard hybrid
+node ./scripts/run-llm-eval.js --leaderboard both
+```
+
+`pure` disables local obvious-action handling and baseline fallback. If the model cannot produce a valid action, the action is logged as a model error and the game receives an invalid `__model_unavailable__ ...` command. This makes pure-model scores honest.
+
+`hybrid` keeps the baseline fallback and local obvious-action handling. It is still useful for integration and latency diagnostics, but should not be mixed with pure-model leaderboard results.
+
+The summarizer now prints a `Board` column plus model error counts, so reports can distinguish model contribution from fallback rescue.
+
+Short verification run:
+
+```text
+pure/deepseek-v4-flash: failure, score=-1168, model_errors=70, fallback=0
+pure/deepseek-v4-pro:   failure, score=-1168, model_errors=70, fallback=0
+hybrid/deepseek-v4-flash: success, score=606, model_actions=1, fallback=56
+hybrid/deepseek-v4-pro:   success, score=606, model_actions=0, fallback=57
+```
+
+This confirms the split is working: pure mode honestly records model inability to produce valid actions under the short budget, while hybrid mode remains useful for exercising the full game loop through fallback.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

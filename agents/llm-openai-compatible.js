@@ -12,23 +12,22 @@ const model = process.env.ECHOGRID_LLM_MODEL || process.env.DEEPSEEK_MODEL || 'd
 const timeoutMs = Number(process.env.ECHOGRID_LLM_TIMEOUT_MS || 30000);
 const maxTokens = Number(process.env.ECHOGRID_LLM_MAX_TOKENS || 256);
 const maxModelTurns = Number(process.env.ECHOGRID_LLM_MAX_MODEL_TURNS || 12);
+const fallbackMode = process.env.ECHOGRID_LLM_FALLBACK_MODE || 'baseline';
+const localPolicyEnabled = process.env.ECHOGRID_LLM_LOCAL_POLICY !== '0' && fallbackMode !== 'none';
 
 if (!apiKey) {
   fallback('missing_api_key', { source: 'env' });
 }
 
-const localAction = obviousAction();
+const localAction = localPolicyEnabled ? obviousAction() : null;
 if (localAction) {
-  emitDiagnostic({ model, base_url: baseUrl, fallback: false, local_policy: true, action: localAction });
+  emitDiagnostic(baseDiagnostic({ fallback: false, local_policy: true, action: localAction }));
   console.log(localAction);
   process.exit(0);
 }
 
 if ((state.turn?.current || 0) >= maxModelTurns) {
-  const action = baselineAction() || 'wait';
-  emitDiagnostic({ model, base_url: baseUrl, fallback: true, fallback_policy: 'baseline_after_model_budget', action });
-  console.log(action);
-  process.exit(0);
+  fallback('model_turn_budget_exhausted', { fallback_policy: 'baseline_after_model_budget' });
 }
 
 const prompt = [
@@ -97,7 +96,7 @@ async function main() {
     finish_reason: finishReason,
     reasoning_preview: redact(reasoning).slice(0, 300),
   });
-  emitDiagnostic({ model, base_url: baseUrl, fallback: false, action, finish_reason: finishReason });
+  emitDiagnostic(baseDiagnostic({ fallback: false, action, finish_reason: finishReason }));
   console.log(action);
 }
 
@@ -171,8 +170,19 @@ function sanitizeAction(content) {
 }
 
 function fallback(reason, detail = {}) {
-  const baseline = baselineAction();
-  emitDiagnostic({ model, base_url: baseUrl, fallback: true, fallback_policy: baseline ? 'baseline' : 'minimal', reason, ...detail });
+  if (fallbackMode === 'none') {
+    emitDiagnostic(baseDiagnostic({ fallback: false, model_error: true, reason, ...detail }));
+    console.log(`__model_unavailable__ ${reason}`);
+    process.exit(0);
+  }
+
+  const baseline = fallbackMode === 'baseline' ? baselineAction() : null;
+  emitDiagnostic(baseDiagnostic({
+    fallback: true,
+    fallback_policy: baseline ? (detail.fallback_policy || 'baseline') : 'minimal',
+    reason,
+    ...detail,
+  }));
   if (baseline) {
     console.log(baseline);
     process.exit(0);
@@ -227,6 +237,16 @@ function knownMap() {
 
 function emitDiagnostic(diagnostic) {
   process.stderr.write(`ECHOGRID_AGENT_DIAG ${JSON.stringify(diagnostic)}\n`);
+}
+
+function baseDiagnostic(extra) {
+  return {
+    model,
+    base_url: baseUrl,
+    fallback_mode: fallbackMode,
+    local_policy_enabled: localPolicyEnabled,
+    ...extra,
+  };
 }
 
 function redact(value) {
