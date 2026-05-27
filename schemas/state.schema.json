@@ -172,6 +172,10 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "avoid_repeating": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "warning": { "type": "string" }
       },
       "additionalProperties": true

@@ -39,8 +39,20 @@ test('probe and scan produce structured observations without exposing the answer
   assert.equal(state.metrics.visible_cells, 2);
   assert.ok(Array.isArray(state.agent.adjacent));
   assert.ok(Array.isArray(state.action_hints.safe_recommended));
+  assert.ok(Array.isArray(state.action_hints.avoid_repeating));
   assert.ok(Array.isArray(state.observations.recent));
   assert.ok(state.observations.recent.length >= 2);
+});
+
+test('state exposes repeat-avoidance action hints without hidden information', () => {
+  const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
+  game.step('probe 0 1');
+  game.step('move S');
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [0, 1]);
+  assert.ok(state.action_hints.safe_recommended.includes('move N'));
+  assert.ok(state.action_hints.avoid_repeating.includes('move N'));
 });
 
 test('invalid actions are penalized and preserve a parseable state', () => {

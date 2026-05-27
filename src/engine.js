@@ -490,8 +490,27 @@ class EchoGridGame {
     const deduped = [...new Set(hints)];
     return {
       safe_recommended: deduped,
+      avoid_repeating: this.repeatAvoidanceHints(),
       warning: 'Prefer these actions unless you have a specific reason to scan, mark, wait, or claim_rule.',
     };
+  }
+
+  repeatAvoidanceHints() {
+    const previous = this.previousPosition();
+    if (!previous) return [];
+    return [moveFromTo(this.position, previous)];
+  }
+
+  previousPosition() {
+    for (const event of [...this.events].reverse()) {
+      if (event.outcome?.type !== 'move') continue;
+      const direction = event.outcome.direction;
+      const delta = DIRECTIONS[direction];
+      const coord = event.outcome.coord;
+      if (!delta || !Array.isArray(coord)) continue;
+      return [coord[0] - delta[0], coord[1] - delta[1]];
+    }
+    return null;
   }
 
   knownMap() {
@@ -767,6 +786,13 @@ function markMatchesTerrain(mark, terrain) {
   if (mark === 'hazard') return terrain === 'hazard';
   if (mark === 'artifact') return terrain === 'artifact';
   return false;
+}
+
+function moveFromTo(from, to) {
+  if (to[0] > from[0]) return 'move E';
+  if (to[0] < from[0]) return 'move W';
+  if (to[1] > from[1]) return 'move S';
+  return 'move N';
 }
 
 function terrainChar(terrain) {

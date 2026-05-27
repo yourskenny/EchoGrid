@@ -51,7 +51,8 @@ const prompt = [
   '2. Extract at exit after enough artifacts are collected.',
   '3. Prefer one action from action_hints.safe_recommended.',
   '4. Never move into an adjacent wall or hazard.',
-  '5. Use scans or claim_rule only when directly supported by recent observations.',
+  '5. Avoid actions listed in avoid_actions unless no other safe action exists.',
+  '6. Use scans or claim_rule only when directly supported by recent observations.',
   '',
   `STATE SUMMARY:\n${buildStateSummary(state)}`,
 ].join('\n');
@@ -125,6 +126,12 @@ function compactState(input) {
 function buildStateSummary(input) {
   const visibleCells = input.map?.cells || [];
   const position = input.agent?.position || [0, 0];
+  const recentObservations = input.observations?.recent || [];
+  const lastCell = [...recentObservations]
+    .reverse()
+    .find((item) => item.type === 'cell' && Array.isArray(item.coord));
+  const previousPosition = lastCell && !sameCoord(lastCell.coord, position) ? lastCell.coord : null;
+  const avoidActions = previousPosition ? [moveTo(position, previousPosition)] : [];
   const adjacent = adjacentCoords(position, input.map?.size || 0).map((coord) => {
     const cell = visibleCells.find((item) => sameCoord(item.coord, coord));
     return {
@@ -146,12 +153,14 @@ function buildStateSummary(input) {
     resources: input.resources,
     objective: input.objective,
     action_hints: input.action_hints,
+    avoid_actions: avoidActions,
     position,
+    previous_position: previousPosition,
     agent: input.agent,
     rows: input.map?.rows,
     current: visibleCells.find((cell) => sameCoord(cell.coord, position)),
     adjacent,
-    recent_observations: (input.observations?.recent || []).slice(-5),
+    recent_observations: recentObservations.slice(-5),
     rule_claim: input.rules?.claim,
     rule_catalog: input.rules?.catalog,
     metrics: input.metrics,

@@ -184,6 +184,17 @@ hybrid/deepseek-v4-pro:   success, score=606, model_actions=0, fallback=57
 
 This confirms the split is working: pure mode honestly records model inability to produce valid actions and now aborts quickly, while hybrid mode remains useful for exercising the full game loop through fallback.
 
+Follow-up pure-model probe with `max_tokens=512` showed that `deepseek-v4-pro` can produce several valid actions before an empty final response:
+
+```text
+model_actions=3
+model_error_actions=1
+movement_oscillations=0
+model_contribution_rate=0.75
+```
+
+The public state now includes `action_hints.avoid_repeating`, and the LLM summary prompt includes `avoid_actions`. This reduced immediate backtracking without exposing hidden map information.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

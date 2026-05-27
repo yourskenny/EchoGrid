@@ -259,12 +259,41 @@ Interpretation:
 
 Pure model runs now fail fast when the model cannot produce a usable action, while still logging the exact model diagnostic reason. This makes repeated model smoke loops faster and easier to interpret without weakening the pure-vs-hybrid separation.
 
+## Loop 11: Repeat-Avoidance Hints For Model Planning
+
+Finding:
+
+With a higher token budget, `deepseek-v4-pro` produced multiple valid pure-model actions, but one run oscillated between adjacent cells (`move S`, then `move N`). The model needed a public, local hint that identifies immediate backtracking without revealing hidden terrain.
+
+Optimization:
+
+- added `action_hints.avoid_repeating` to public state
+- added repeat-avoidance to `schemas/state.schema.json`
+- added repeat-avoidance guidance to the LLM prompt summary
+- documented the field in the agent authoring guide
+
+Verification:
+
+```text
+npm test: 19 pass / 0 fail
+npm run demo:verify: pass
+deepseek-v4-pro pure micro, max_tokens=512, max_model_turns=6:
+  model_actions=3
+  model_error_actions=1
+  movement_oscillations=0
+  model_contribution_rate=0.75
+```
+
+Interpretation:
+
+The new field gives LLMs a cheap way to avoid one-step backtracking. It does not leak hidden information because it is derived only from the agent's previous public move.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 18 pass / 0 fail
+npm test: 19 pass / 0 fail
 npm run demo:verify: pass
 ```
 

@@ -32,6 +32,7 @@ test('state schema required fields match current public state output', () => {
   assert.equal(state.coordinate_system, schema.properties.coordinate_system.const);
   assert.equal(Array.isArray(state.agent.adjacent), true);
   assert.equal(Array.isArray(state.action_hints.safe_recommended), true);
+  assert.equal(Array.isArray(state.action_hints.avoid_repeating), true);
 });
 
 test('event and summary schemas align with CLI log and summary output', () => {
