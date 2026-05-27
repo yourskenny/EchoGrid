@@ -16,6 +16,7 @@
     "compare": "node ./scripts/compare.js --seeds ./seeds/demo.txt",
     "showcase": "node ./bin/echogrid.js evaluate --agent ./agents/rule-aware.js --seed 9001 --log-dir ./logs/showcase",
     "llm:smoke": "node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro --max-model-turns 12",
+    "llm:summary": "node ./scripts/summarize-llm-logs.js ./logs/llm",
     "run:sample": "node ./bin/echogrid.js run --seed 48129 --script ./scripts/sample.eg --log ./logs/sample.48129.jsonl",
     "replay:sample": "node ./bin/echogrid.js replay ./logs/sample.48129.jsonl",
     "report:sample": "node ./bin/echogrid.js report ./logs/sample.48129.jsonl"

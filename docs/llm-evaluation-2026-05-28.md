@@ -160,3 +160,28 @@ Next improvements should focus on:
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.
+
+An LLM log summarizer was added:
+
+```bash
+node ./scripts/summarize-llm-logs.js ./logs/llm
+```
+
+It prints success status, score, turns, artifacts, invalid actions, waits, model actions, fallback actions, local policy actions, and top fallback reasons. This makes repeated model-test loops auditable without manually reading JSONL.
+
+Example diagnostic row from a micro Flash run:
+
+```text
+model=deepseek-v4-flash
+seed=9001
+status=failure
+score=192
+artifacts=0/1
+invalid=0
+waits=0
+model_actions=5
+fallback_actions=65
+top_reasons=baseline_after_model_budget:62, model:5, empty_model_action:3
+```
+
+Interpretation: the protocol avoided invalid and idle actions, but early model choices still left the fallback policy unable to complete the micro objective. This is useful benchmark information rather than an engine failure.
