@@ -214,6 +214,26 @@ deepseek-v4-flash: model_actions=6, recovered_reasoning_actions=2, movement_osci
 
 Interpretation: both models sometimes know a valid action but fail to place it in the final answer field. The strict pure leaderboard still treats that as a model-output failure; the recovery mode is useful for separating reasoning capability from final-channel formatting reliability.
 
+## Preferred Action Hints
+
+The public state now includes `action_hints.preferred`, which applies local safety and repeat-avoidance filtering before presenting the model with first-choice actions. The LLM prompt tells the model to output the first preferred action exactly when present.
+
+Strict pure follow-up without reasoning recovery:
+
+```text
+deepseek-v4-pro:
+  model_actions=4
+  model_error_actions=1
+  movement_oscillations=0
+
+deepseek-v4-flash:
+  model_actions=6
+  model_error_actions=1
+  movement_oscillations=0
+```
+
+This keeps the strict leaderboard honest while reducing action-selection friction in the public protocol.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

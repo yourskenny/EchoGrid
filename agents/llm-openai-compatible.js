@@ -50,7 +50,7 @@ const prompt = [
   'Priorities:',
   '1. Extract immediately when standing on an artifact.',
   '2. Extract at exit after enough artifacts are collected.',
-  '3. Prefer one action from action_hints.safe_recommended.',
+  '3. If action_hints.preferred has actions, output the first preferred action exactly.',
   '4. Never move into an adjacent wall or hazard.',
   '5. Avoid actions listed in avoid_actions unless no other safe action exists.',
   '6. Use scans or claim_rule only when directly supported by recent observations.',

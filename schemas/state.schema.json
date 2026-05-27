@@ -168,6 +168,10 @@
       "type": "object",
       "required": ["safe_recommended", "warning"],
       "properties": {
+        "preferred": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "safe_recommended": {
           "type": "array",
           "items": { "type": "string" }

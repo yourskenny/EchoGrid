@@ -38,6 +38,7 @@ test('probe and scan produce structured observations without exposing the answer
   assert.equal(state.score_breakdown.total, state.score);
   assert.equal(state.metrics.visible_cells, 2);
   assert.ok(Array.isArray(state.agent.adjacent));
+  assert.ok(Array.isArray(state.action_hints.preferred));
   assert.ok(Array.isArray(state.action_hints.safe_recommended));
   assert.ok(Array.isArray(state.action_hints.avoid_repeating));
   assert.ok(Array.isArray(state.observations.recent));
@@ -53,6 +54,7 @@ test('state exposes repeat-avoidance action hints without hidden information', (
   assert.deepEqual(state.agent.position, [0, 1]);
   assert.ok(state.action_hints.safe_recommended.includes('move N'));
   assert.ok(state.action_hints.avoid_repeating.includes('move N'));
+  assert.equal(state.action_hints.preferred.includes('move N'), false);
 });
 
 test('invalid actions are penalized and preserve a parseable state', () => {

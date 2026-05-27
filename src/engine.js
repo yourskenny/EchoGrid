@@ -488,9 +488,12 @@ class EchoGridGame {
       for (const action of adjacent.recommended_actions) hints.push(action);
     }
     const deduped = [...new Set(hints)];
+    const avoidRepeating = this.repeatAvoidanceHints();
+    const preferred = deduped.filter((action) => !avoidRepeating.includes(action));
     return {
+      preferred: preferred.length ? preferred : deduped,
       safe_recommended: deduped,
-      avoid_repeating: this.repeatAvoidanceHints(),
+      avoid_repeating: avoidRepeating,
       warning: 'Prefer these actions unless you have a specific reason to scan, mark, wait, or claim_rule.',
     };
   }

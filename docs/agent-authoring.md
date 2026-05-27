@@ -58,6 +58,7 @@ Important fields:
 - `map.cells`: structured visible cells and marks.
 - `observations.recent`: recent probe, scan, move, extract, and rule-claim events.
 - `rules.catalog`: claimable hidden-rule ids.
+- `action_hints.preferred`: first-choice actions after local safety and repeat filtering.
 - `action_hints.safe_recommended`: locally safe or useful actions.
 - `action_hints.avoid_repeating`: actions that immediately return to the previous cell.
 - `score_breakdown`: auditable score components.

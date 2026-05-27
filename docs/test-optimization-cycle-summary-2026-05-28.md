@@ -319,6 +319,42 @@ Interpretation:
 
 Reasoning recovery is diagnostic only. It shows that both DeepSeek models sometimes identify valid actions in reasoning but fail to emit them in the final answer. This separates planning capability from output-channel reliability without inflating the strict pure leaderboard.
 
+## Loop 13: Preferred Action Hints
+
+Finding:
+
+Even after repeat-avoidance hints, LLMs still had to choose among safe actions, avoided actions, and adjacent cell descriptions. This added prompt load and sometimes caused empty final answers after several valid actions.
+
+Optimization:
+
+- added `action_hints.preferred`
+- filtered immediate backtracking out of `preferred`
+- updated the LLM prompt to output the first preferred action exactly when available
+- documented `preferred` in the agent authoring guide and state schema
+
+Verification:
+
+```text
+deepseek-v4-pro strict pure micro:
+  model_actions=4
+  model_error_actions=1
+  movement_oscillations=0
+  model_contribution_rate=0.80
+
+deepseek-v4-flash strict pure micro:
+  model_actions=6
+  model_error_actions=1
+  movement_oscillations=0
+  model_contribution_rate=0.857
+
+npm test: 20 pass / 0 fail
+npm run demo:verify: pass
+```
+
+Interpretation:
+
+Preferred hints make the public protocol more executable for LLM agents while preserving uncertainty. Flash reached the configured six model turns in strict pure mode without reasoning recovery or fallback, which is a clearer pure-model diagnostic signal.
+
 ## Current Verification Snapshot
 
 Latest local verification:
