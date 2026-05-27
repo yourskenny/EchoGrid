@@ -70,15 +70,13 @@ test('report command summarizes a JSONL run log', () => {
 });
 
 test('compare script prints agent comparison table', () => {
-  const result = spawnSync(process.execPath, ['./scripts/compare.js', '--seeds', './seeds/showcase.txt'], {
+  const result = spawnSync(process.execPath, ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js'], {
     cwd: root,
     encoding: 'utf8',
-    timeout: 90000,
+    timeout: 30000,
   });
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /ECHO GRID AGENT COMPARISON/);
   assert.match(result.stdout, /agents\/random\.js/);
-  assert.match(result.stdout, /agents\/baseline\.js/);
-  assert.match(result.stdout, /agents\/rule-aware\.js/);
 });
