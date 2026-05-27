@@ -1,0 +1,21 @@
+{
+  "name": "echogrid",
+  "version": "0.1.0",
+  "description": "Agent-first CLI-native inference and planning game demo.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bin": {
+    "echogrid": "./bin/echogrid.js"
+  },
+  "scripts": {
+    "start": "node ./bin/echogrid.js",
+    "test": "node --test",
+    "demo": "node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt",
+    "run:sample": "node ./bin/echogrid.js run --seed 48129 --script ./scripts/sample.eg --log ./logs/sample.48129.jsonl",
+    "replay:sample": "node ./bin/echogrid.js replay ./logs/sample.48129.jsonl",
+    "report:sample": "node ./bin/echogrid.js report ./logs/sample.48129.jsonl"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

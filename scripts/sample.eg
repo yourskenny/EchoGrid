@@ -1,0 +1,7 @@
+# Minimal scripted run used by npm run run:sample.
+scan row 0
+probe 1 0
+probe 0 1
+move E
+scan sector A
+wait
