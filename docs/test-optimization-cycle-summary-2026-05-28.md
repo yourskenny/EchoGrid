@@ -471,12 +471,47 @@ Interpretation:
 
 This does not add new hidden knowledge. It makes the existing preferred ordering easier for LLM agents to execute by exposing the intended first action as a single field instead of relying on array-order obedience. Flash made one additional forward move compared with Loop 15 (`unique_positions` 3 -> 4, `min_distance_to_exit` 12 -> 11). Pro remained blocked by empty final output behavior.
 
+## Loop 17: Goal-Progress Preferred Ordering
+
+Finding:
+
+With a larger Flash budget, the explicit `next_action` exposed a second ranking problem. Preferred actions still prioritized all known safe moves before probes, so at `[1,2]` the model was guided toward `move N`, which increased distance to the public exit and eventually brought it back toward the start.
+
+Optimization:
+
+- changed preferred-action sorting to rank actions that reduce public Manhattan distance to the exit before neutral or regressive actions
+- kept action-type priority as a tie-breaker after public goal progress
+- added a regression test for the `[1,2]` state where `move N` should not be the next action
+
+Verification:
+
+```text
+npm test: 22 pass / 0 fail
+npm run demo:verify: pass
+
+deepseek-v4-flash strict pure, max_model_turns=16:
+  first run: empty final output at turn 2
+  retry: empty final output at turn 2
+
+deepseek-v4-flash diagnostic recovery, max_model_turns=16:
+  model_actions=16
+  recovered_reasoning_actions=1
+  unique_positions=7
+  min_distance_to_exit=8
+  distance_to_exit_delta=6
+  movement_oscillations=0
+```
+
+Interpretation:
+
+The strict pure leaderboard remains honest about empty final-output failures. The recovery diagnostic shows the protocol-level ranking improved: Flash followed the route past the prior local trap and reduced public exit distance from 14 to 8 instead of returning to the start area.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 21 pass / 0 fail
+npm test: 22 pass / 0 fail
 npm run demo:verify: pass
 ```
 

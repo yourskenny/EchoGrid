@@ -286,6 +286,24 @@ deepseek-v4-pro:
 
 Compared with the move-first run, Flash followed the single-action hint more reliably and advanced one additional cell before the configured model-turn budget was exhausted. Pro still failed on empty final output, so its bottleneck remains provider response formatting rather than state affordance.
 
+## Goal-Progress Ordering
+
+A larger Flash budget showed that action type alone is not enough for preferred ordering. At `[1,2]`, all candidate actions were locally safe, but `move N` increased distance to the public exit while probes to the south/east preserved route progress. Preferred ordering now ranks candidates that reduce public Manhattan distance to the exit before neutral or regressive actions, then uses action type as a tie-breaker.
+
+Strict pure follow-ups were dominated by empty final-output failures at turn 2, so they were not useful for measuring the ranking change. The diagnostic recovery run did show the intended route effect:
+
+```text
+deepseek-v4-flash recovery diagnostic:
+  model_actions=16
+  recovered_reasoning_actions=1
+  unique_positions=7
+  min_distance_to_exit=8
+  distance_to_exit_delta=6
+  movement_oscillations=0
+```
+
+This is not counted as a strict leaderboard success, but it confirms that the public hint ordering no longer guides the model back toward the start in the observed trace.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

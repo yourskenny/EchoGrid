@@ -70,6 +70,25 @@ test('next action names the first preferred movement hint', () => {
   assert.equal(state.action_hints.next_action, 'move S');
 });
 
+test('preferred movement tie-breaks toward the public exit coordinate', () => {
+  const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
+  game.step('probe 0 1');
+  game.step('probe 1 0');
+  game.step('move S');
+  game.step('probe 0 2');
+  game.step('probe 1 1');
+  game.step('move S');
+  game.step('probe 0 3');
+  game.step('probe 1 2');
+  game.step('move E');
+  game.step('probe 1 1');
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [1, 2]);
+  assert.ok(state.action_hints.preferred.includes('move N'));
+  assert.equal(state.action_hints.next_action, 'probe 1 3');
+});
+
 test('invalid actions are penalized and preserve a parseable state', () => {
   const game = new EchoGridGame({ seed: 48129 });
   const event = game.step('jump north');

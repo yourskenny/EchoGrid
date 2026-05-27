@@ -491,7 +491,7 @@ class EchoGridGame {
     const avoidRepeating = this.repeatAvoidanceHints();
     const preferred = deduped
       .filter((action) => !avoidRepeating.includes(action))
-      .sort(comparePreferredActions);
+      .sort((a, b) => this.comparePreferredActions(a, b));
     const preferredActions = preferred.length ? preferred : deduped;
     return {
       next_action: preferredActions[0] || null,
@@ -506,6 +506,30 @@ class EchoGridGame {
     const previous = this.previousPosition();
     if (!previous) return [];
     return [moveFromTo(this.position, previous)];
+  }
+
+  comparePreferredActions(a, b) {
+    const progress = this.publicGoalProgressRank(a) - this.publicGoalProgressRank(b);
+    if (progress !== 0) return progress;
+    const priority = actionPriority(a) - actionPriority(b);
+    if (priority !== 0) return priority;
+    return this.publicGoalDistance(a) - this.publicGoalDistance(b);
+  }
+
+  publicGoalProgressRank(action) {
+    if (action === 'extract') return 0;
+    const targetDistance = this.publicGoalDistance(action);
+    if (!Number.isFinite(targetDistance)) return 3;
+    const currentDistance = manhattan(this.position, this.world.exit);
+    if (targetDistance < currentDistance) return 0;
+    if (targetDistance === currentDistance) return 1;
+    return 2;
+  }
+
+  publicGoalDistance(action) {
+    const target = actionTarget(action, this.position);
+    if (!target) return Number.POSITIVE_INFINITY;
+    return manhattan(target, this.world.exit);
   }
 
   previousPosition() {
@@ -788,10 +812,6 @@ function band(count) {
   return 'high';
 }
 
-function comparePreferredActions(a, b) {
-  return actionPriority(a) - actionPriority(b);
-}
-
 function actionPriority(action) {
   if (action === 'extract') return 0;
   if (action.startsWith('move ')) return 1;
@@ -800,6 +820,17 @@ function actionPriority(action) {
   if (action.startsWith('claim_rule ')) return 4;
   if (action === 'wait') return 6;
   return 5;
+}
+
+function actionTarget(action, position) {
+  const move = action.match(/^move ([NSEW])$/);
+  if (move) {
+    const delta = DIRECTIONS[move[1]];
+    return [position[0] + delta[0], position[1] + delta[1]];
+  }
+  const probe = action.match(/^probe (\d+) (\d+)$/);
+  if (probe) return [Number(probe[1]), Number(probe[2])];
+  return null;
 }
 
 function markMatchesTerrain(mark, terrain) {
