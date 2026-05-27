@@ -206,7 +206,11 @@ class EchoGridGame {
   extract() {
     const [x, y] = this.position;
     const cell = this.cellAt(x, y);
-    if (cell.terrain === 'artifact' && !this.collected.has(keyOf(x, y))) {
+    if (
+      cell.terrain === 'artifact' &&
+      !this.collected.has(keyOf(x, y)) &&
+      this.collected.size < this.world.config.artifactsRequired
+    ) {
       this.spend('extract');
       this.collected.add(keyOf(x, y));
       const observation = {
@@ -482,17 +486,16 @@ class EchoGridGame {
   actionHints() {
     const hints = [];
     const current = this.publicCell(this.position[0], this.position[1]);
-    if (current.terrain === 'artifact') hints.push('extract');
+    if (current.terrain === 'artifact' && this.collected.size < this.world.config.artifactsRequired) hints.push('extract');
     if (current.terrain === 'exit' && this.collected.size >= this.world.config.artifactsRequired) hints.push('extract');
+    const avoidRepeating = this.repeatAvoidanceHints();
+    const routeHint = this.routeHintAction(avoidRepeating);
+    if (routeHint) hints.push(routeHint);
     for (const adjacent of this.adjacentCells()) {
       for (const action of adjacent.recommended_actions) hints.push(action);
     }
     const deduped = [...new Set(hints)];
-    const avoidRepeating = this.repeatAvoidanceHints();
-    const preferred = deduped
-      .filter((action) => !avoidRepeating.includes(action))
-      .sort((a, b) => this.comparePreferredActions(a, b));
-    const preferredActions = preferred.length ? preferred : deduped;
+    const preferredActions = deduped.sort((a, b) => this.comparePreferredActions(a, b, { avoidRepeating, routeHint }));
     return {
       goal: this.actionHintGoal(),
       next_action: preferredActions[0] || null,
@@ -504,13 +507,131 @@ class EchoGridGame {
   }
 
   repeatAvoidanceHints() {
-    const previous = this.previousPosition();
-    if (!previous) return [];
-    return [moveFromTo(this.position, previous)];
+    const recent = this.recentMovePositions();
+    return adjacentMoveActions(this.position)
+      .filter(({ target }) => recent.some((coord) => sameCoord(coord, target)))
+      .map(({ action }) => action);
   }
 
-  comparePreferredActions(a, b) {
+  recentMovePositions(limit = 6) {
+    const result = [];
+    for (const event of [...this.events].reverse()) {
+      if (event.outcome?.type !== 'move' || !Array.isArray(event.outcome.coord)) continue;
+      const delta = DIRECTIONS[event.outcome.direction];
+      result.push(event.outcome.coord);
+      if (delta) {
+        result.push([event.outcome.coord[0] - delta[0], event.outcome.coord[1] - delta[1]]);
+      }
+      if (result.length >= limit) break;
+    }
+    return result;
+  }
+
+  routeHintAction(avoidActions = []) {
+    const goal = this.actionHintGoal();
+    if (goal.source !== 'exit') return null;
+    const known = new Map(this.knownCells().map((cell) => [keyOf(cell.coord[0], cell.coord[1]), cell]));
+    const exitKey = keyOf(this.world.exit[0], this.world.exit[1]);
+    const exitCell = known.get(exitKey);
+    if (exitCell && passablePublicCell(exitCell)) {
+      const directPath = this.publicPathTo([this.world.exit], known, new Set());
+      const action = actionFromPathOrFrontier(this.position, directPath);
+      if (action) return action;
+    }
+
+    const frontier = this.exitFrontierRoute(known, avoidActions);
+    if (frontier) {
+      if (frontier.path.length <= 1) return `probe ${frontier.probe[0]} ${frontier.probe[1]}`;
+      return actionFromPathOrFrontier(this.position, frontier.path);
+    }
+
+    return null;
+  }
+
+  exitFrontierRoute(known, avoidActions = []) {
+    const avoidTargets = new Set(
+      avoidActions
+        .map((action) => actionTarget(action, this.position))
+        .filter(Boolean)
+        .map(([x, y]) => keyOf(x, y)),
+    );
+    const queue = [this.position];
+    const startKey = keyOf(this.position[0], this.position[1]);
+    const seen = new Set([startKey]);
+    const parent = new Map();
+    const candidates = [];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const path = rebuildPublicPath(current, parent);
+      for (const probe of this.publicUnknownNeighbors(current, known)) {
+        candidates.push({
+          path,
+          probe,
+          score: frontierRouteScore(path, probe, this.world.exit, avoidTargets),
+        });
+      }
+      for (const [direction, [dx, dy]] of Object.entries(DIRECTIONS)) {
+        const next = [current[0] + dx, current[1] + dy];
+        const nextKey = keyOf(next[0], next[1]);
+        if (seen.has(nextKey)) continue;
+        const cell = known.get(nextKey);
+        if (!cell || !passablePublicCell(cell)) continue;
+        seen.add(nextKey);
+        parent.set(nextKey, keyOf(current[0], current[1]));
+        queue.push(next);
+      }
+    }
+
+    return candidates.sort((a, b) => a.score - b.score)[0] || null;
+  }
+
+  publicPathTo(goals, known, avoidTargets = new Set()) {
+    const goalKeys = new Set(goals.map(([x, y]) => keyOf(x, y)));
+    const startKey = keyOf(this.position[0], this.position[1]);
+    const queue = [this.position];
+    const seen = new Set([startKey]);
+    const parent = new Map();
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const currentKey = keyOf(current[0], current[1]);
+      if (goalKeys.has(currentKey)) return rebuildPublicPath(current, parent);
+      for (const [direction, [dx, dy]] of Object.entries(DIRECTIONS)) {
+        const next = [current[0] + dx, current[1] + dy];
+        const nextKey = keyOf(next[0], next[1]);
+        if (seen.has(nextKey)) continue;
+        if (avoidTargets.has(nextKey) && !goalKeys.has(nextKey)) continue;
+        const cell = known.get(nextKey);
+        if (!cell || !passablePublicCell(cell)) continue;
+        seen.add(nextKey);
+        parent.set(nextKey, currentKey);
+        queue.push(next);
+      }
+    }
+    return null;
+  }
+
+  publicUnknownNeighbors(coord, known) {
+    const result = [];
+    for (const [dx, dy] of Object.values(DIRECTIONS)) {
+      const next = [coord[0] + dx, coord[1] + dy];
+      if (!inBounds(this.world.size, next[0], next[1])) continue;
+      const cell = known.get(keyOf(next[0], next[1]));
+      if (!cell || !cell.visible) result.push(next);
+    }
+    return result;
+  }
+
+  comparePreferredActions(a, b, context = {}) {
+    if (a === 'extract' || b === 'extract') return actionPriority(a) - actionPriority(b);
+    if (context.routeHint) {
+      if (a === context.routeHint && b !== context.routeHint) return -1;
+      if (b === context.routeHint && a !== context.routeHint) return 1;
+    }
     const goal = this.publicHintGoal();
+    const repeatPenalty = repeatPenaltyFor(a, context.avoidRepeating) - repeatPenaltyFor(b, context.avoidRepeating);
+    if (repeatPenalty !== 0) return repeatPenalty;
     const progress = this.publicGoalProgressRank(a, goal) - this.publicGoalProgressRank(b, goal);
     if (progress !== 0) return progress;
     const priority = actionPriority(a) - actionPriority(b);
@@ -878,6 +999,10 @@ function actionPriority(action) {
   return 5;
 }
 
+function repeatPenaltyFor(action, avoidRepeating = []) {
+  return avoidRepeating.includes(action) ? 1 : 0;
+}
+
 function actionTarget(action, position) {
   const move = action.match(/^move ([NSEW])$/);
   if (move) {
@@ -887,6 +1012,43 @@ function actionTarget(action, position) {
   const probe = action.match(/^probe (\d+) (\d+)$/);
   if (probe) return [Number(probe[1]), Number(probe[2])];
   return null;
+}
+
+function adjacentMoveActions(position) {
+  return Object.entries(DIRECTIONS).map(([direction, [dx, dy]]) => ({
+    action: `move ${direction}`,
+    target: [position[0] + dx, position[1] + dy],
+  }));
+}
+
+function sameCoord(a, b) {
+  return a?.[0] === b?.[0] && a?.[1] === b?.[1];
+}
+
+function passablePublicCell(cell) {
+  return ['empty', 'artifact', 'exit'].includes(cell.terrain);
+}
+
+function actionFromPathOrFrontier(position, path) {
+  if (!path || path.length < 2) return null;
+  return moveFromTo(position, path[1]);
+}
+
+function frontierRouteScore(path, probe, goal, avoidTargets = new Set()) {
+  if (!path?.length) return Number.POSITIVE_INFINITY;
+  const firstStep = path[1];
+  const avoidPenalty = firstStep && avoidTargets.has(keyOf(firstStep[0], firstStep[1])) ? 0.5 : 0;
+  return manhattan(probe, goal) * 4 + path.length + avoidPenalty;
+}
+
+function rebuildPublicPath(end, parent) {
+  const result = [end];
+  let cursor = keyOf(end[0], end[1]);
+  while (parent.has(cursor)) {
+    cursor = parent.get(cursor);
+    result.push(cursor.split(',').map(Number));
+  }
+  return result.reverse();
 }
 
 function traceGoal(size, position, trace, fallback) {

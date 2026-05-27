@@ -434,6 +434,72 @@ deepseek-v4-pro recovery diagnostic MVP:
 
 This establishes a clean milestone: `deepseek-v4-flash` can complete the full MVP seed in strict pure mode. `deepseek-v4-pro` appears capable of the same route, but its final answer channel is still less reliable; recovery remains diagnostic rather than leaderboard-default behavior.
 
+## MVP Public3 Regression
+
+The next public set used seeds `48129`, `1024`, and `7331` in MVP mode with `max_model_turns=96`, no baseline fallback, and no local policy. This set exposed route-loop and artifact-loop failures that were not visible on the single showcase seed.
+
+### Before the latest routing changes
+
+```text
+deepseek-v4-flash public3 recovery:
+  successes=1/3
+  48129: success
+  1024: failed after 3/3 artifacts, model_turn_budget_exhausted
+  7331: failed after 3/3 artifacts, model_turn_budget_exhausted
+```
+
+The model generally followed the public `next_action`, but `next_action` was itself cycling through known cells after the objective switched to the exit.
+
+### After exit-frontier routing and soft repeat ranking
+
+```text
+deepseek-v4-flash public3 recovery:
+  successes=3/3
+  average_score=869.3
+  average_turns=62.3
+  1024:  success, score=882, turns=37, artifacts=3/3
+  48129: success, score=870, turns=63, artifacts=3/3
+  7331:  success, score=856, turns=87, artifacts=3/3
+
+deepseek-v4-flash public3 strict pure:
+  successes=2/3
+  1024:  success, score=882, turns=37
+  48129: success, score=870, turns=63
+  7331:  failed on empty_model_action after reaching 3/3 artifacts
+
+deepseek-v4-pro public3 recovery:
+  1024:  success, score=882, turns=37
+  48129: success, score=870, turns=63
+  7331:  success on isolated rerun, score=835, turns=91
+```
+
+The `deepseek-v4-pro` three-seed batch produced completed logs for `1024` and `48129`, but the `7331` log stopped at turn 20 without a terminal record when the outer process exited. A single-seed rerun completed successfully, so the documented Pro result uses the single-seed rerun as the authoritative `7331` evidence.
+
+### Current interpretation
+
+- The game-side failure mode was real: public hints previously generated loops.
+- The latest hint ranking and frontier routing keep all information public and schema-backed.
+- `deepseek-v4-flash` can complete all three public MVP seeds with reasoning-action recovery and no fallback.
+- Strict pure Flash still has one provider-output failure, so leaderboard reports must distinguish `strict pure` from `recovery diagnostic`.
+- Pro remains capable but slower and more prone to empty final content; recovery is useful for diagnosis but should not be hidden inside strict leaderboard results.
+
+## Isolated Codex Review
+
+Codex was rerun in a separate agent without this thread context. It inspected the repository, ran:
+
+```text
+npm test
+npm run demo:verify
+```
+
+Both passed: `27/27` tests and a successful `demo:verify` run with `rule-aware` scoring `977` on seed `9001`. From a first-time agent-author / judge perspective, the review identified these next documentation and protocol gaps:
+
+- action semantics need a single reference for costs, failure cases, outcomes, and scoring effects
+- observation fields such as `heat`, `echo`, `trace`, `noise`, and `sector` need clearer value semantics
+- JSON schemas are useful but still broad in several event and observation objects
+- demo output should surface a minimal state/action/log/report path for judges
+- competition rules should define official commands, seed groups, timeouts, and forbidden answer-inspection paths
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

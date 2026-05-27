@@ -56,7 +56,7 @@ test('state exposes repeat-avoidance action hints without hidden information', (
   assert.deepEqual(state.agent.position, [0, 1]);
   assert.ok(state.action_hints.safe_recommended.includes('move N'));
   assert.ok(state.action_hints.avoid_repeating.includes('move N'));
-  assert.equal(state.action_hints.preferred.includes('move N'), false);
+  assert.ok(state.action_hints.preferred.includes('move N'));
   assert.equal(state.action_hints.next_action, state.action_hints.preferred[0]);
 });
 
@@ -163,6 +163,125 @@ test('preferred actions search around public high heat before trace', () => {
   assert.deepEqual(state.action_hints.goal.coord, [0, 6]);
   assert.equal(state.action_hints.next_action, 'probe 0 5');
 });
+
+test('exit route hint escapes recent loops after artifacts are collected', () => {
+  const game = new EchoGridGame({ seed: 1024, mode: 'mvp' });
+  for (const action of [
+    'probe 1 0',
+    'move E',
+    'probe 2 0',
+    'move E',
+    'probe 2 1',
+    'move S',
+    'probe 3 1',
+    'move E',
+    'extract',
+    'probe 4 1',
+    'move E',
+    'extract',
+    'probe 4 2',
+    'move S',
+    'probe 3 2',
+    'move W',
+    'extract',
+    'probe 3 3',
+    'move S',
+    'probe 3 4',
+    'move S',
+    'probe 3 5',
+    'move S',
+    'probe 3 6',
+    'probe 4 5',
+    'probe 2 5',
+    'move W',
+    'probe 2 6',
+    'probe 2 4',
+    'move N',
+    'move E',
+    'move S',
+    'move W',
+    'move N',
+    'move E',
+    'move S',
+  ]) {
+    game.step(action);
+  }
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [3, 5]);
+  assert.equal(state.action_hints.goal.source, 'exit');
+  assert.ok(state.action_hints.avoid_repeating.includes('move W'));
+  assert.ok(state.action_hints.avoid_repeating.includes('move N'));
+  assert.equal(state.action_hints.next_action, 'move N');
+  assertExitHintPolicyCompletes(game);
+});
+
+test('exit route hint can route around blocked public approaches', () => {
+  const game = new EchoGridGame({ seed: 7331, mode: 'mvp' });
+  for (const action of [
+    'probe 1 0',
+    'move E',
+    'probe 1 1',
+    'move S',
+    'probe 2 1',
+    'move E',
+    'extract',
+    'probe 3 1',
+    'move E',
+    'probe 3 0',
+    'probe 4 1',
+    'move E',
+    'probe 4 0',
+    'move N',
+    'extract',
+    'probe 5 0',
+    'move E',
+    'probe 5 1',
+    'move S',
+    'probe 6 1',
+    'move E',
+    'extract',
+    'probe 6 2',
+    'move S',
+    'probe 6 3',
+    'probe 7 2',
+    'probe 5 2',
+    'move W',
+    'probe 5 3',
+    'move N',
+    'move E',
+    'move S',
+    'move W',
+    'move N',
+    'move E',
+    'move S',
+  ]) {
+    game.step(action);
+  }
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [6, 2]);
+  assert.equal(state.action_hints.goal.source, 'exit');
+  assert.ok(state.action_hints.avoid_repeating.includes('move W'));
+  assert.ok(state.action_hints.avoid_repeating.includes('move N'));
+  assert.equal(state.action_hints.next_action, 'move N');
+  assertExitHintPolicyCompletes(game);
+});
+
+function assertExitHintPolicyCompletes(game) {
+  const seen = new Set();
+  for (let i = 0; i < 80; i += 1) {
+    const state = game.state();
+    const action = state.action_hints.next_action;
+    const signature = `${state.agent.position.join(',')}|${action}|${state.map.rows.join('/')}`;
+    assert.equal(seen.has(signature), false, `exit route hint looped at ${signature}`);
+    seen.add(signature);
+    assert.ok(action, 'exit route hint should keep suggesting actions');
+    const event = game.step(action);
+    if (event.outcome.type === 'extract_exit') return;
+  }
+  assert.fail('exit route hint policy did not complete within 80 turns');
+}
 
 test('invalid actions are penalized and preserve a parseable state', () => {
   const game = new EchoGridGame({ seed: 48129 });

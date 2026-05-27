@@ -677,12 +677,99 @@ Interpretation:
 
 Flash now completes the full MVP seed as a strict pure model with no fallback. Pro can also solve the task, but only when reasoning recovery is enabled, confirming that its remaining blocker is final-channel action emission rather than EchoGrid navigation or artifact-search affordances.
 
+## Loop 22: Exit Frontier Routing And Soft Loop Avoidance
+
+Finding:
+
+The first full-MVP public seed set exposed a different failure mode after all artifacts were collected. DeepSeek Flash with reasoning-action recovery collected `3/3` artifacts on seeds `1024` and `7331`, but exhausted the 96-turn model budget while orbiting known public cells instead of opening a route to the exit. Inspecting the JSONL showed the model was mostly following `action_hints.next_action`; the hint itself was producing route loops, so this was an engine affordance problem rather than a model-only failure.
+
+Optimization:
+
+- changed repeat avoidance from a hard preferred-action filter into a soft ranking penalty
+- added public-map exit frontier routing that searches known safe cells and probes the frontier closest to the public exit
+- kept direct known exit paths available even when the first move was recently visited
+- ensured `extract` outranks route hints when the agent is already on the exit
+- prevented artifact extraction after the required artifact count has already been reached
+- added regression tests that execute the hint policy from the previous `1024` and `7331` loop states and require it to complete without repeating a public-state signature
+
+Verification:
+
+```text
+npm test: 27 pass / 0 fail
+npm run demo:verify: pass
+
+Before this fix, Flash public3 recovery:
+  seeds=3
+  successes=1
+  success_rate=0.333
+  failures=1024,7331
+
+After exit-frontier routing only:
+  seeds=3
+  successes=2
+  success_rate=0.667
+  1024: success, score=882, turns=37
+  7331: success, score=856, turns=87
+  48129: failed at 2/3 artifacts due to a trace/heat loop
+```
+
+Interpretation:
+
+The exit-stage loop was fixed without exposing hidden map data. The remaining failure moved back to artifact search, which was a better-localized and earlier-stage issue.
+
+## Loop 23: Artifact-Stage Soft Repeat Ranking
+
+Finding:
+
+After exit-frontier routing, seed `48129` failed at `2/3` artifacts. The public `trace` and `heat` cues pointed across a partially blocked pocket. The previous ranking compared goal progress before recent-route repetition, so `move N` / `move S` oscillation outranked a useful public probe such as `probe 5 4`.
+
+Optimization:
+
+- moved the soft repeat penalty ahead of goal-distance progress for ordinary hints
+- kept `extract` and explicit route hints as stronger priorities
+- verified with a local hint-policy simulation that the previously stuck `48129` state now probes the side branch, reveals the final artifact, then reaches the exit
+
+Verification:
+
+```text
+npm test: 27 pass / 0 fail
+npm run demo:verify: pass
+
+deepseek-v4-flash public3 recovery, max_model_turns=96:
+  seeds=3
+  successes=3
+  success_rate=1.000
+  1024:  success, score=882, turns=37, artifacts=3/3, invalid=0
+  48129: success, score=870, turns=63, artifacts=3/3, invalid=0
+  7331:  success, score=856, turns=87, artifacts=3/3, invalid=0
+  fallback_actions=0 for all runs
+
+deepseek-v4-flash public3 strict pure, max_model_turns=96:
+  seeds=3
+  successes=2
+  success_rate=0.667
+  1024:  success, score=882, turns=37
+  48129: success, score=870, turns=63
+  7331:  failure, empty_model_action after 3/3 artifacts
+
+deepseek-v4-pro public3 recovery:
+  1024:  success, score=882, turns=37
+  48129: success, score=870, turns=63
+  7331:  success on isolated rerun, score=835, turns=91
+```
+
+Codex isolated verification was also rerun without this thread context. It passed `npm test` and `npm run demo:verify`, and identified the next non-engine priorities: a protocol reference, tighter observation/event schemas, a judge-friendly demo output, and competition rules documentation.
+
+Interpretation:
+
+The public-state hint system is now strong enough for both DeepSeek models to complete the three-seed MVP public set when reasoning-action recovery is enabled and no baseline fallback is used. Strict pure Flash still exposes provider final-output reliability as a leaderboard-relevant failure mode, so recovery should stay diagnostic unless the leaderboard explicitly permits it.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 25 pass / 0 fail
+npm test: 27 pass / 0 fail
 npm run demo:verify: pass
 ```
 
