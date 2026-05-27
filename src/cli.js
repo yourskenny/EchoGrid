@@ -193,7 +193,7 @@ function readScript(file) {
 }
 
 function readJsonl(file) {
-  return fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(Boolean).map((line, index) => {
+  return fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean).map((line, index) => {
     try {
       return JSON.parse(line);
     } catch (error) {
@@ -363,10 +363,17 @@ function buildReport(events) {
   const resources = finalState?.resources || {};
   const keyEvents = [];
   const risks = [];
+  const diagnostics = {
+    modelActions: 0,
+    fallbackActions: 0,
+    localActions: 0,
+    reasons: {},
+  };
 
   for (const entry of actionEvents) {
     const outcome = entry.event.outcome;
     const turn = entry.event.turn;
+    collectDiagnostic(diagnostics, entry.agent_diagnostic);
     if (outcome.type === 'extract_artifact') {
       const total = outcome.observation?.artifacts_collected;
       keyEvents.push(`- Turn ${turn}: extracted artifact; total=${total}.`);
@@ -425,6 +432,14 @@ function buildReport(events) {
     `- Damage events: ${metrics.damage_events ?? 0}`,
     `- Invalid actions: ${metrics.invalid_actions ?? 0}`,
     `- Wasted actions: ${metrics.wasted_actions ?? 0}`,
+    ...(hasDiagnostics(diagnostics)
+      ? [
+          `- Model actions: ${diagnostics.modelActions}`,
+          `- Fallback actions: ${diagnostics.fallbackActions}`,
+          `- Local policy actions: ${diagnostics.localActions}`,
+          `- Diagnostic reasons: ${formatReasons(diagnostics.reasons)}`,
+        ]
+      : []),
     '',
     'KEY EVENTS',
     ...(keyEvents.length ? keyEvents.slice(0, 8) : ['- No major milestones recorded.']),
@@ -436,6 +451,32 @@ function buildReport(events) {
     `- ${lessonForRule(hiddenRule)}`,
     '',
   ].join('\n');
+}
+
+function collectDiagnostic(summary, diagnostic) {
+  if (!diagnostic) return;
+  if (diagnostic.local_policy) {
+    summary.localActions += 1;
+    summary.reasons.local = (summary.reasons.local || 0) + 1;
+  } else if (diagnostic.fallback) {
+    summary.fallbackActions += 1;
+    const reason = diagnostic.reason || diagnostic.fallback_policy || 'fallback';
+    summary.reasons[reason] = (summary.reasons[reason] || 0) + 1;
+  } else {
+    summary.modelActions += 1;
+    summary.reasons.model = (summary.reasons.model || 0) + 1;
+  }
+}
+
+function hasDiagnostics(summary) {
+  return summary.modelActions > 0 || summary.fallbackActions > 0 || summary.localActions > 0;
+}
+
+function formatReasons(reasons) {
+  return Object.entries(reasons)
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, value]) => `${key}:${value}`)
+    .join(', ') || 'none';
 }
 
 function lessonForRule(ruleId) {

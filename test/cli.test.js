@@ -69,6 +69,30 @@ test('report command summarizes a JSONL run log', () => {
   }
 });
 
+test('report command handles BOM JSONL and LLM diagnostics', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const logFile = path.join(tmp, 'llm.jsonl');
+    const lines = [
+      '{"type":"start","agent":"agents/llm-openai-compatible.js","state":{"seed":"1","mode":"mvp"}}',
+      '{"type":"action","command":"probe 1 0","agent_diagnostic":{"model":"model-a","fallback":false,"action":"probe 1 0"},"event":{"turn":1,"outcome":{"ok":true,"type":"probe"},"score":10},"state":{"seed":"1","mode":"mvp","turn":{"current":1,"limit":10,"terminal":{"status":"failure","reason":"turn_limit","score":10,"hidden_rule":"unknown"}},"score":10,"score_breakdown":{"total":10},"metrics":{},"objective":{"artifacts_collected":0,"artifacts_required":1},"resources":{"energy":1,"integrity":3}}}',
+      '{"type":"action","command":"wait","agent_diagnostic":{"model":"model-a","fallback":true,"reason":"empty_model_action"},"event":{"turn":2,"outcome":{"ok":true,"type":"wait"},"score":9},"state":{"seed":"1","mode":"mvp","turn":{"current":2,"limit":10,"terminal":{"status":"failure","reason":"turn_limit","score":9,"hidden_rule":"unknown"}},"score":9,"score_breakdown":{"total":9},"metrics":{},"objective":{"artifacts_collected":0,"artifacts_required":1},"resources":{"energy":0,"integrity":3}}}',
+    ];
+    fs.writeFileSync(logFile, `\uFEFF${lines.join('\n')}\n`, 'utf8');
+
+    const report = spawnSync(process.execPath, [cli, 'report', logFile], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    assert.equal(report.status, 0, report.stderr);
+    assert.match(report.stdout, /Model actions: 1/);
+    assert.match(report.stdout, /Fallback actions: 1/);
+    assert.match(report.stdout, /Diagnostic reasons: model:1, empty_model_action:1/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('compare script prints agent comparison table', () => {
   const result = spawnSync(process.execPath, ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js'], {
     cwd: root,

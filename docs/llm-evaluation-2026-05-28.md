@@ -189,3 +189,12 @@ Interpretation: the protocol avoided invalid and idle actions, but early model c
 ## Test Loop Maintenance
 
 The compare smoke test was shortened to a single-agent table check, reducing `npm test` feedback from roughly 28 seconds to roughly 13 seconds on this machine. Full three-agent comparison remains covered by `npm run demo:verify`.
+
+Battle reports now include LLM diagnostic counts when a log contains model diagnostics:
+
+- model actions
+- fallback actions
+- local policy actions
+- diagnostic reasons
+
+This lets a single `report` output explain whether a run was mostly model-driven or fallback-driven.
