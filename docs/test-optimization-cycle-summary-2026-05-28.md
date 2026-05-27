@@ -429,6 +429,48 @@ Interpretation:
 
 The analyzer can now distinguish "the model did not oscillate" from "the model actually explored and reduced distance to the exit." This gives the next optimization loop a better signal for route progress without changing game mechanics or exposing hidden information.
 
+## Loop 16: Explicit Next Action Hint
+
+Finding:
+
+The move-first strict pure trace showed that `deepseek-v4-flash` did not always follow the first item in `action_hints.preferred`. It treated the array like a candidate set and spent extra turns on probes even when a known safe movement action was ranked first.
+
+Optimization:
+
+- added `action_hints.next_action` as a scalar alias for the first preferred public action
+- updated the LLM bridge prompt to prioritize `next_action`
+- updated the state schema and agent authoring guide
+- added tests that `next_action` matches the first preferred hint
+
+Verification:
+
+```text
+node --test test/engine.test.js test/schema.test.js: 9 pass / 0 fail
+inspect --seed 9001 --mode micro --json: action_hints.next_action="probe 0 1"
+
+deepseek-v4-flash strict pure micro:
+  model_actions=8
+  model_error_actions=1
+  unique_positions=4
+  min_distance_to_exit=11
+  distance_to_exit_delta=3
+  exploration_rate=0.444
+
+deepseek-v4-pro strict pure micro:
+  model_actions=1
+  model_error_actions=1
+  unique_positions=1
+  min_distance_to_exit=14
+
+npm test: 21 pass / 0 fail
+npm run demo:verify: pass
+Codex isolated verification: pass
+```
+
+Interpretation:
+
+This does not add new hidden knowledge. It makes the existing preferred ordering easier for LLM agents to execute by exposing the intended first action as a single field instead of relying on array-order obedience. Flash made one additional forward move compared with Loop 15 (`unique_positions` 3 -> 4, `min_distance_to_exit` 12 -> 11). Pro remained blocked by empty final output behavior.
+
 ## Current Verification Snapshot
 
 Latest local verification:

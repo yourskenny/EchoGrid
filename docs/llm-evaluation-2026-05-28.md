@@ -261,6 +261,31 @@ deepseek-v4-pro:
 
 This separates "the model avoided backtracking" from "the model made measurable route progress." It is now easier to identify runs where prompt or state changes improve action validity but not navigation.
 
+## Next Action Hint
+
+Follow-up inspection of the move-first strict pure trace showed that a preferred-action array still leaves room for model choice. `deepseek-v4-flash` sometimes selected the second preferred action or continued probing even when the first action was the intended safe move.
+
+The public state now includes `action_hints.next_action`, a scalar alias for `action_hints.preferred[0]`. The LLM bridge prompt now says to output `next_action` exactly when present. This keeps the uncertainty model unchanged but reduces protocol friction for LLM agents that are less reliable at respecting ordered arrays.
+
+Strict pure follow-up:
+
+```text
+deepseek-v4-flash:
+  model_actions=8
+  model_error_actions=1
+  unique_positions=4
+  min_distance_to_exit=11
+  distance_to_exit_delta=3
+
+deepseek-v4-pro:
+  model_actions=1
+  model_error_actions=1
+  unique_positions=1
+  min_distance_to_exit=14
+```
+
+Compared with the move-first run, Flash followed the single-action hint more reliably and advanced one additional cell before the configured model-turn budget was exhausted. Pro still failed on empty final output, so its bottleneck remains provider response formatting rather than state affordance.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

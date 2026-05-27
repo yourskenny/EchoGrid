@@ -166,8 +166,14 @@
     },
     "action_hints": {
       "type": "object",
-      "required": ["safe_recommended", "warning"],
+      "required": ["next_action", "safe_recommended", "warning"],
       "properties": {
+        "next_action": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
         "preferred": {
           "type": "array",
           "items": { "type": "string" }

@@ -38,6 +38,7 @@ test('probe and scan produce structured observations without exposing the answer
   assert.equal(state.score_breakdown.total, state.score);
   assert.equal(state.metrics.visible_cells, 2);
   assert.ok(Array.isArray(state.agent.adjacent));
+  assert.equal(typeof state.action_hints.next_action, 'string');
   assert.ok(Array.isArray(state.action_hints.preferred));
   assert.ok(Array.isArray(state.action_hints.safe_recommended));
   assert.ok(Array.isArray(state.action_hints.avoid_repeating));
@@ -55,9 +56,10 @@ test('state exposes repeat-avoidance action hints without hidden information', (
   assert.ok(state.action_hints.safe_recommended.includes('move N'));
   assert.ok(state.action_hints.avoid_repeating.includes('move N'));
   assert.equal(state.action_hints.preferred.includes('move N'), false);
+  assert.equal(state.action_hints.next_action, state.action_hints.preferred[0]);
 });
 
-test('preferred hints prioritize movement through known safe cells', () => {
+test('next action names the first preferred movement hint', () => {
   const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
   game.step('probe 0 1');
   const state = game.state();
@@ -65,6 +67,7 @@ test('preferred hints prioritize movement through known safe cells', () => {
   assert.ok(state.action_hints.safe_recommended.includes('move S'));
   assert.ok(state.action_hints.safe_recommended.includes('probe 1 0'));
   assert.equal(state.action_hints.preferred[0], 'move S');
+  assert.equal(state.action_hints.next_action, 'move S');
 });
 
 test('invalid actions are penalized and preserve a parseable state', () => {

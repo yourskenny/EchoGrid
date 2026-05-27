@@ -104,7 +104,7 @@ Persistent mode starts the agent once per seed, sends one state JSON line per tu
 - Terrain: unknown, safe, hazard, wall, artifact, exit.
 - Resources: `energy`, `integrity`, `turn_limit`.
 - Observations: adjacent hazard count, heat, echo, trace, noise, sector.
-- Public action hints: preferred actions, safe recommended actions, and repeat-avoidance hints.
+- Public action hints: a single next action, preferred actions, safe recommended actions, and repeat-avoidance hints.
 - Hidden rule pool: artifact suppression, wall echo inversion, exit radius safety, sector-C unstable cells, row count disclosure.
 - Scoring: mission completion, artifact yield, map certainty, rule claim, unused resources, damage, false marks, invalid actions, wasted actions.
 - JSONL logs plus replay and standard battle reports.

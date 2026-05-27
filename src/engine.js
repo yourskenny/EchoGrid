@@ -492,8 +492,10 @@ class EchoGridGame {
     const preferred = deduped
       .filter((action) => !avoidRepeating.includes(action))
       .sort(comparePreferredActions);
+    const preferredActions = preferred.length ? preferred : deduped;
     return {
-      preferred: preferred.length ? preferred : deduped,
+      next_action: preferredActions[0] || null,
+      preferred: preferredActions,
       safe_recommended: deduped,
       avoid_repeating: avoidRepeating,
       warning: 'Prefer these actions unless you have a specific reason to scan, mark, wait, or claim_rule.',
