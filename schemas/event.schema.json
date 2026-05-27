@@ -55,6 +55,22 @@
         "state": { "$ref": "state.schema.json" }
       },
       "additionalProperties": true
+    },
+    {
+      "type": "object",
+      "required": ["type", "reason", "state"],
+      "properties": {
+        "type": { "const": "abort" },
+        "reason": { "type": "string" },
+        "agent_diagnostic": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "object" }
+          ]
+        },
+        "state": { "$ref": "state.schema.json" }
+      },
+      "additionalProperties": true
     }
   ]
 }

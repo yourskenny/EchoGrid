@@ -71,6 +71,7 @@ test('event and summary schemas align with CLI log and summary output', () => {
     const actionEvent = JSON.parse(actionLine);
     assert.equal(startEvent.type, eventSchema.oneOf[0].properties.type.const);
     assert.equal(actionEvent.type, eventSchema.oneOf[1].properties.type.const);
+    assert.equal(eventSchema.oneOf[2].properties.type.const, 'abort');
     for (const field of eventSchema.oneOf[1].required) {
       assert.ok(Object.hasOwn(actionEvent, field), `missing action event field: ${field}`);
     }

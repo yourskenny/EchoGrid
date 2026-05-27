@@ -202,12 +202,69 @@ Interpretation:
 
 EchoGrid now exposes its protocol as a contract rather than only as examples. This helps Codex-style isolated agents, LLM wrappers, and future third-party agents validate assumptions before running full games.
 
+## Loop 9: Codex Isolation Recheck
+
+Codex was run again in an isolated `codex exec` session with no thread context. It was instructed to run fixed local commands and inspect only repository files.
+
+Commands executed:
+
+```text
+npm test
+node ./bin/echogrid.js evaluate --agent ./agents/rule-aware.js --seed 9001 --json
+node ./scripts/compare.js --seeds ./seeds/showcase.txt
+node ./scripts/summarize-llm-logs.js ./logs/llm
+```
+
+Results:
+
+```text
+npm test: 18 passed, 0 failed
+rule-aware showcase: success, score=977, turns=86
+compare showcase: random failed; baseline and rule-aware succeeded
+LLM summary: hybrid runs succeeded; pure runs failed separately
+```
+
+Codex assessment:
+
+- understandable: yes
+- testable: yes
+- agent-friendly: yes
+- pure vs hybrid LLM separation: yes
+
+## Loop 10: Fast Abort For Pure Model Errors
+
+Finding:
+
+Pure leaderboard mode correctly avoided fallback, but model failures consumed the full game budget as repeated invalid `__model_unavailable__` actions. This made smoke tests noisy and slow, and inflated invalid-action counts.
+
+Optimization:
+
+- added `abort_evaluation` diagnostics for pure LLM model errors
+- added evaluator-level abort records in JSONL logs
+- updated replay, summary, analysis, and schema handling for `abort` events
+- kept hybrid behavior unchanged
+
+Verification:
+
+```text
+pure missing-key smoke: failure, reason=model_missing_api_key, turns=1, fallback=0, model_error_actions=1
+DeepSeek micro run, max_model_turns=4:
+  pure/deepseek-v4-flash: failure, score=212, turns=2, errors=1, abort=yes
+  pure/deepseek-v4-pro:   failure, score=212, turns=1, errors=1, abort=yes
+  hybrid/deepseek-v4-flash: success, score=606, turns=59, fallback=56
+  hybrid/deepseek-v4-pro:   success, score=606, turns=59, fallback=57
+```
+
+Interpretation:
+
+Pure model runs now fail fast when the model cannot produce a usable action, while still logging the exact model diagnostic reason. This makes repeated model smoke loops faster and easier to interpret without weakening the pure-vs-hybrid separation.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 12 pass / 0 fail
+npm test: 18 pass / 0 fail
 npm run demo:verify: pass
 ```
 

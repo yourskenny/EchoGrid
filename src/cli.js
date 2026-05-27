@@ -77,6 +77,11 @@ async function replay(argv, io) {
     );
     if (options.states) writeState(io.stdout, event.state, Boolean(options.pretty));
   }
+  const abort = events.find((event) => event.type === 'abort');
+  if (abort) {
+    io.stdout.write(`ABORT ${abort.reason}\n`);
+    if (options.states) writeState(io.stdout, abort.state, Boolean(options.pretty));
+  }
   const lastState = [...events].reverse().find((event) => event.state)?.state;
   if (lastState && lastState.turn.terminal) {
     io.stdout.write(`RESULT ${formatJson(lastState.turn.terminal, Boolean(options.pretty))}\n`);
@@ -105,6 +110,7 @@ async function evaluate(argv, io) {
   for (const seed of seeds) {
     const game = new EchoGridGame({ seed, mode: options.mode || 'mvp' });
     const log = logDir ? createJsonlLogger(path.join(logDir, `${sanitize(seed)}.jsonl`)) : null;
+    let abortedResult = null;
     const agentRunner = createAgentRunner(agentPath, {
       cwd: io.cwd,
       timeoutMs: Number(options.timeout || 2000),
@@ -127,6 +133,37 @@ async function evaluate(argv, io) {
         const event = game.step(command);
         const nextState = game.state();
         if (log) log.write({ type: 'action', command: displayCommand(command), agent_diagnostic: command.diagnostic || null, event, state: nextState });
+        if (shouldAbortEvaluation(command.diagnostic, options)) {
+          const abortedState = game.state();
+          const abortTerminal = {
+            status: 'failure',
+            reason: command.diagnostic.abort_reason || command.diagnostic.reason || 'agent_abort',
+            score: abortedState.score,
+            hidden_rule: abortedState.turn.terminal?.hidden_rule || 'unrevealed',
+          };
+          if (log) {
+            log.write({
+              type: 'abort',
+              reason: abortTerminal.reason,
+              agent_diagnostic: command.diagnostic,
+              state: {
+                ...abortedState,
+                turn: {
+                  ...abortedState.turn,
+                  terminal: abortTerminal,
+                },
+              },
+            });
+          }
+          abortedResult = summarizeResult({
+            ...abortedState,
+            turn: {
+              ...abortedState.turn,
+              terminal: abortTerminal,
+            },
+          });
+          break;
+        }
         if (nextState.turn.terminal) break;
       }
     } finally {
@@ -134,6 +171,15 @@ async function evaluate(argv, io) {
     }
 
     if (log) log.close();
+    if (abortedResult) {
+      results.push(abortedResult);
+      if (!options.json) {
+        io.stdout.write(
+          `SEED ${abortedResult.seed} ${abortedResult.status}/${abortedResult.reason} score=${abortedResult.score} turns=${abortedResult.turns} artifacts=${abortedResult.artifacts_collected}/${abortedResult.artifacts_required}\n`,
+        );
+      }
+      continue;
+    }
     const finalState = game.state({ includeAnswer: Boolean(options.answer) });
     const result = summarizeResult(finalState);
     results.push(result);
@@ -155,6 +201,12 @@ async function evaluate(argv, io) {
   } else {
     io.stdout.write(`SUMMARY ${formatJson(aggregate, true)}\n`);
   }
+}
+
+function shouldAbortEvaluation(diagnostic, options) {
+  if (!diagnostic) return false;
+  if (options['abort-on-agent-error'] === false) return false;
+  return Boolean(diagnostic.abort_evaluation);
 }
 
 function agentMode(options) {

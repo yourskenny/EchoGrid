@@ -20,7 +20,7 @@ for (const file of walk(logRoot)) {
   const events = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '').trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);
   const actions = events.filter((event) => event.type === 'action');
   if (!actions.length) continue;
-  const final = actions.at(-1).state;
+  const final = [...events].reverse().find((event) => event.state)?.state || actions.at(-1).state;
   const parts = relative.split('/');
   const model = actions.find((event) => event.agent_diagnostic?.model)?.agent_diagnostic?.model || relative.split('/')[0];
   const diagnostics = summarizeDiagnostics(actions);
@@ -39,6 +39,7 @@ for (const file of walk(logRoot)) {
     fallback_actions: diagnostics.fallbackActions,
     local_actions: diagnostics.localActions,
     model_errors: diagnostics.modelErrors,
+    aborted: events.some((event) => event.type === 'abort') ? 'yes' : 'no',
     top_reasons: Object.entries(diagnostics.reasons)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
@@ -96,6 +97,7 @@ function printTable(items) {
     ['fallback_actions', 'Fallback'],
     ['local_actions', 'Local'],
     ['model_errors', 'Errors'],
+    ['aborted', 'Abort'],
     ['top_reasons', 'Top Reasons'],
   ];
   const widths = Object.fromEntries(

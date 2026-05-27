@@ -205,6 +205,8 @@ test('LLM pure mode records model errors without baseline fallback', () => {
     assert.equal(result.status, 0, result.stderr);
     const output = JSON.parse(result.stdout);
     assert.equal(output.aggregate.successes, 0);
+    assert.equal(output.results[0].reason, 'model_missing_api_key');
+    assert.equal(output.results[0].turns, 1);
 
     const analysis = spawnSync(process.execPath, ['./scripts/analyze-run.js', path.join(logDir, '9001.jsonl')], {
       cwd: root,
@@ -213,8 +215,9 @@ test('LLM pure mode records model errors without baseline fallback', () => {
     assert.equal(analysis.status, 0, analysis.stderr);
     const parsed = JSON.parse(analysis.stdout);
     assert.equal(parsed.leaderboard, 'pure');
+    assert.equal(parsed.aborted, true);
     assert.equal(parsed.fallback_actions, 0);
-    assert.ok(parsed.model_error_actions > 0);
+    assert.equal(parsed.model_error_actions, 1);
     assert.ok(parsed.top_diagnostic_reasons.some((item) => item.reason === 'missing_api_key'));
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -241,6 +244,7 @@ test('LLM log summary separates pure model errors', () => {
     assert.match(summary.stdout, /Board/);
     assert.match(summary.stdout, /pure/);
     assert.match(summary.stdout, /Errors/);
+    assert.match(summary.stdout, /Abort/);
     assert.match(summary.stdout, /missing_api_key:1/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

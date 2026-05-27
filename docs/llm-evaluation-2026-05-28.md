@@ -176,13 +176,13 @@ The summarizer now prints a `Board` column plus model error counts, so reports c
 Short verification run:
 
 ```text
-pure/deepseek-v4-flash: failure, score=-1168, model_errors=70, fallback=0
-pure/deepseek-v4-pro:   failure, score=-1168, model_errors=70, fallback=0
+pure/deepseek-v4-flash: failure, score=212, turns=2, model_errors=1, abort=yes
+pure/deepseek-v4-pro:   failure, score=212, turns=1, model_errors=1, abort=yes
 hybrid/deepseek-v4-flash: success, score=606, model_actions=1, fallback=56
 hybrid/deepseek-v4-pro:   success, score=606, model_actions=0, fallback=57
 ```
 
-This confirms the split is working: pure mode honestly records model inability to produce valid actions under the short budget, while hybrid mode remains useful for exercising the full game loop through fallback.
+This confirms the split is working: pure mode honestly records model inability to produce valid actions and now aborts quickly, while hybrid mode remains useful for exercising the full game loop through fallback.
 
 ## Follow-Up Change
 

@@ -44,6 +44,7 @@ function analyze(actionEvents, finalState) {
     wait_actions: waits,
     repeated_commands: repeatedCommands,
     movement_oscillations: oscillations,
+    aborted: eventsIncludeAbort(actionEvents, finalState),
     model_actions: diagnostics.modelActions,
     fallback_actions: diagnostics.fallbackActions,
     local_policy_actions: diagnostics.localActions,
@@ -61,6 +62,11 @@ function analyze(actionEvents, finalState) {
     },
     flags: flags({ success, invalid, waits, turns, diagnostics, oscillations }),
   };
+}
+
+function eventsIncludeAbort(actionEvents, finalState) {
+  return Boolean(finalState.turn?.terminal?.reason && String(finalState.turn.terminal.reason).startsWith('model_')) &&
+    actionEvents.some((event) => event.agent_diagnostic?.abort_evaluation);
 }
 
 function countRepeated(commands) {

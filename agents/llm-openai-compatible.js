@@ -171,7 +171,14 @@ function sanitizeAction(content) {
 
 function fallback(reason, detail = {}) {
   if (fallbackMode === 'none') {
-    emitDiagnostic(baseDiagnostic({ fallback: false, model_error: true, reason, ...detail }));
+    emitDiagnostic(baseDiagnostic({
+      fallback: false,
+      model_error: true,
+      abort_evaluation: true,
+      abort_reason: `model_${reason}`,
+      reason,
+      ...detail,
+    }));
     console.log(`__model_unavailable__ ${reason}`);
     process.exit(0);
   }
