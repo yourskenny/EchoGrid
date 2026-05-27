@@ -6,6 +6,8 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
+const { EchoGridGame } = require('../src/engine');
+const { buildStateSummary } = require('../agents/llm-openai-compatible');
 
 const root = path.resolve(__dirname, '..');
 const cli = path.join(root, 'bin', 'echogrid.js');
@@ -224,6 +226,17 @@ test('LLM pure mode records model errors without baseline fallback', () => {
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('LLM state summary does not invent avoid actions from probe observations', () => {
+  const game = new EchoGridGame({ seed: 9001, mode: 'micro' });
+  game.step('probe 0 1');
+  const summary = JSON.parse(buildStateSummary(game.state()));
+
+  assert.equal(summary.action_hints.next_action, 'move S');
+  assert.equal(summary.action_hints.avoid_repeating.length, 0);
+  assert.equal(Object.hasOwn(summary, 'avoid_actions'), false);
+  assert.equal(Object.hasOwn(summary, 'previous_position'), false);
 });
 
 test('LLM log summary separates pure model errors', () => {

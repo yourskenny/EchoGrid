@@ -506,12 +506,54 @@ Interpretation:
 
 The strict pure leaderboard remains honest about empty final-output failures. The recovery diagnostic shows the protocol-level ranking improved: Flash followed the route past the prior local trap and reduced public exit distance from 14 to 8 instead of returning to the start area.
 
+## Loop 18: Remove LLM Prompt Avoid-Action Conflict
+
+Finding:
+
+DeepSeek empty-final traces showed a contradiction in the LLM bridge summary. The engine state had `action_hints.next_action="move S"`, but the bridge inferred a separate `avoid_actions=["move S"]` from the latest probe observation. This was not true repeat avoidance; it confused a probed cell with a previous agent position and caused the model to spend tokens resolving conflicting instructions.
+
+Optimization:
+
+- removed private `avoid_actions` and `previous_position` inference from the LLM bridge summary
+- updated the prompt to reference only the engine-provided `action_hints.avoid_repeating`
+- exported `buildStateSummary` behind a CommonJS module guard for regression testing
+- added a test proving that a probe observation does not invent a conflicting avoid action
+
+Verification:
+
+```text
+node --test test/cli.test.js: 13 pass / 0 fail
+module import check: buildStateSummary exported without running the agent
+
+deepseek-v4-flash strict pure, max_model_turns=16:
+  model_actions=16
+  model_error_actions=1
+  unique_positions=8
+  min_distance_to_exit=7
+  distance_to_exit_delta=7
+  movement_oscillations=0
+
+deepseek-v4-pro strict pure, max_model_turns=16:
+  model_actions=16
+  model_error_actions=1
+  unique_positions=8
+  min_distance_to_exit=7
+  distance_to_exit_delta=7
+  movement_oscillations=0
+
+npm test: 23 pass / 0 fail
+```
+
+Interpretation:
+
+This keeps repeat-avoidance authoritative in the engine state and removes a self-inflicted final-output reliability problem for DeepSeek. Both strict pure models now run to the configured model-turn budget with valid final actions instead of failing at turn 2 with empty final content.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 22 pass / 0 fail
+npm test: 23 pass / 0 fail
 npm run demo:verify: pass
 ```
 

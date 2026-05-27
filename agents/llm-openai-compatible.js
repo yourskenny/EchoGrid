@@ -5,6 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+if (require.main !== module) {
+  module.exports = {
+    buildStateSummary,
+  };
+  return;
+}
+
 const state = JSON.parse(fs.readFileSync(0, 'utf8').trim() || '{}');
 const apiKey = process.env.ECHOGRID_LLM_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
 const baseUrl = (process.env.ECHOGRID_LLM_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
@@ -53,7 +60,7 @@ const prompt = [
   '3. If action_hints.next_action is present, output that exact action.',
   '4. Otherwise, if action_hints.preferred has actions, output the first preferred action exactly.',
   '5. Never move into an adjacent wall or hazard.',
-  '6. Avoid actions listed in avoid_actions unless no other safe action exists.',
+  '6. Avoid actions listed in action_hints.avoid_repeating unless no other safe action exists.',
   '7. Use scans or claim_rule only when directly supported by recent observations.',
   '',
   `STATE SUMMARY:\n${buildStateSummary(state)}`,
@@ -141,11 +148,6 @@ function buildStateSummary(input) {
   const visibleCells = input.map?.cells || [];
   const position = input.agent?.position || [0, 0];
   const recentObservations = input.observations?.recent || [];
-  const lastCell = [...recentObservations]
-    .reverse()
-    .find((item) => item.type === 'cell' && Array.isArray(item.coord));
-  const previousPosition = lastCell && !sameCoord(lastCell.coord, position) ? lastCell.coord : null;
-  const avoidActions = previousPosition ? [moveTo(position, previousPosition)] : [];
   const adjacent = adjacentCoords(position, input.map?.size || 0).map((coord) => {
     const cell = visibleCells.find((item) => sameCoord(item.coord, coord));
     return {
@@ -167,9 +169,7 @@ function buildStateSummary(input) {
     resources: input.resources,
     objective: input.objective,
     action_hints: input.action_hints,
-    avoid_actions: avoidActions,
     position,
-    previous_position: previousPosition,
     agent: input.agent,
     rows: input.map?.rows,
     current: visibleCells.find((cell) => sameCoord(cell.coord, position)),
@@ -306,13 +306,6 @@ function adjacentCoords([x, y], size) {
     [x, y + 1],
     [x - 1, y],
   ].filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < size && ny < size);
-}
-
-function moveTo(from, to) {
-  if (to[0] > from[0]) return 'move E';
-  if (to[0] < from[0]) return 'move W';
-  if (to[1] > from[1]) return 'move S';
-  return 'move N';
 }
 
 function sameCoord(a, b) {

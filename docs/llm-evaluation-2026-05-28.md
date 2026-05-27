@@ -193,7 +193,7 @@ movement_oscillations=0
 model_contribution_rate=0.75
 ```
 
-The public state now includes `action_hints.avoid_repeating`, and the LLM summary prompt includes `avoid_actions`. This reduced immediate backtracking without exposing hidden map information.
+The public state now includes `action_hints.avoid_repeating`, and the LLM prompt uses that public field directly. This reduced immediate backtracking without exposing hidden map information.
 
 ## Reasoning Recovery Diagnostic
 
@@ -303,6 +303,32 @@ deepseek-v4-flash recovery diagnostic:
 ```
 
 This is not counted as a strict leaderboard success, but it confirms that the public hint ordering no longer guides the model back toward the start in the observed trace.
+
+## Prompt Conflict Fix
+
+Empty-final traces showed a prompt-level contradiction: the LLM bridge inferred a private `avoid_actions` list from the most recent cell observation. After a probe, that inferred list could contain the same action as `action_hints.next_action`, for example `next_action="move S"` and `avoid_actions=["move S"]`. DeepSeek then spent tokens resolving the contradiction and sometimes stopped with `finish_reason=length` before emitting a final action.
+
+The bridge now relies only on the engine-provided `action_hints.avoid_repeating` field and no longer invents `avoid_actions` or `previous_position` from probe observations. A regression test checks that probing `[0,1]` on seed `9001` leaves `next_action="move S"` without any conflicting private avoid list.
+
+Strict pure follow-up after removing the conflict:
+
+```text
+deepseek-v4-flash:
+  model_actions=16
+  model_error_actions=1
+  unique_positions=8
+  min_distance_to_exit=7
+  distance_to_exit_delta=7
+
+deepseek-v4-pro:
+  model_actions=16
+  model_error_actions=1
+  unique_positions=8
+  min_distance_to_exit=7
+  distance_to_exit_delta=7
+```
+
+Both models produced valid final actions until the configured model-turn budget was exhausted. This shifts the current bottleneck from output-channel reliability back to game progress and task completion.
 
 ## Follow-Up Change
 
