@@ -120,19 +120,44 @@ These changes turn model runs into reusable evidence:
 - invalid/wait/oscillation rates
 - aggregate summary JSON
 
+## Loop 6: Persistent Agent Protocol
+
+Finding:
+
+The default evaluation path spawned a fresh agent process every turn. This is simple and compatible, but it adds avoidable overhead for longer benchmark runs and makes future external-agent harnesses harder to scale.
+
+Optimization:
+
+- added `evaluate --agent-mode persistent`
+- added `agents/baseline-policy.js` so one-shot and persistent baseline agents share the same policy
+- added `agents/baseline-persistent.js` as a reference persistent line-protocol agent
+- documented persistent mode in README and the agent authoring guide
+
+Verification:
+
+```text
+node --test test/cli.test.js: 8 pass / 0 fail
+baseline-persistent seed 48129: success, score=856, turns=92, artifacts=3/3
+persistent baseline seed 9001: JSON result matches one-shot baseline
+```
+
+Interpretation:
+
+Persistent mode is opt-in and keeps the existing one-shot agent protocol as the default compatibility path. It prepares EchoGrid for larger benchmark loops and lower-overhead external agent testing without changing game mechanics or score semantics.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 11 pass / 0 fail
+npm test: 12 pass / 0 fail
 npm run demo:verify: pass
 ```
 
-Latest pushed commit at the time of this summary:
+Previous pushed commit before the persistent-agent iteration:
 
 ```text
-cc98ea7 Add evaluation summary file output
+73015dd Summarize test optimization cycles
 ```
 
 ## Current Assessment
@@ -147,8 +172,8 @@ EchoGrid is now more mature as an agent-first testbed:
 
 ## Next Recommended Iterations
 
-1. Add persistent-agent mode to avoid one process spawn per turn.
-2. Add pure-model leaderboard separate from hybrid fallback leaderboard.
-3. Add JSON schema files for `STATE`, `EVENT`, and run summaries.
-4. Add a small HTML replay viewer for judges.
-5. Add stronger rule-discovery seeds where model planning matters more than baseline routing.
+1. Add pure-model leaderboard separate from hybrid fallback leaderboard.
+2. Add JSON schema files for `STATE`, `EVENT`, and run summaries.
+3. Add a small HTML replay viewer for judges.
+4. Add stronger rule-discovery seeds where model planning matters more than baseline routing.
+5. Add persistent-mode support to the LLM bridge when provider latency makes process reuse useful.

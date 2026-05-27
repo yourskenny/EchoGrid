@@ -105,25 +105,32 @@ async function evaluate(argv, io) {
   for (const seed of seeds) {
     const game = new EchoGridGame({ seed, mode: options.mode || 'mvp' });
     const log = logDir ? createJsonlLogger(path.join(logDir, `${sanitize(seed)}.jsonl`)) : null;
+    const agentRunner = createAgentRunner(agentPath, {
+      cwd: io.cwd,
+      timeoutMs: Number(options.timeout || 2000),
+      mode: agentMode(options),
+    });
     if (log) {
       log.write({
         type: 'start',
         runner: 'evaluate',
         agent: path.relative(io.cwd, agentPath).replace(/\\/g, '/'),
+        agent_mode: agentRunner.mode,
         state: game.state(),
       });
     }
 
-    while (!game.state().turn.terminal) {
-      const state = game.state();
-      const command = await runAgent(agentPath, state, {
-        cwd: io.cwd,
-        timeoutMs: Number(options.timeout || 2000),
-      });
-      const event = game.step(command);
-      const nextState = game.state();
-      if (log) log.write({ type: 'action', command: displayCommand(command), agent_diagnostic: command.diagnostic || null, event, state: nextState });
-      if (nextState.turn.terminal) break;
+    try {
+      while (!game.state().turn.terminal) {
+        const state = game.state();
+        const command = await agentRunner.run(state);
+        const event = game.step(command);
+        const nextState = game.state();
+        if (log) log.write({ type: 'action', command: displayCommand(command), agent_diagnostic: command.diagnostic || null, event, state: nextState });
+        if (nextState.turn.terminal) break;
+      }
+    } finally {
+      agentRunner.close();
     }
 
     if (log) log.close();
@@ -148,6 +155,11 @@ async function evaluate(argv, io) {
   } else {
     io.stdout.write(`SUMMARY ${formatJson(aggregate, true)}\n`);
   }
+}
+
+function agentMode(options) {
+  if (options['persistent-agent']) return 'persistent';
+  return options['agent-mode'] || 'oneshot';
 }
 
 async function inspect(argv, io) {
@@ -262,6 +274,137 @@ async function runAgent(agentPath, state, options) {
   const commandLine = stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line && !line.startsWith('#'));
   const diagnostic = parseAgentDiagnostic(stderr);
   return actionWithDiagnostic(commandLine || '__agent_empty__', diagnostic);
+}
+
+function createAgentRunner(agentPath, options) {
+  const mode = options.mode === 'persistent' ? 'persistent' : 'oneshot';
+  if (mode !== 'persistent') {
+    return {
+      mode,
+      run(state) {
+        return runAgent(agentPath, state, options);
+      },
+      close() {},
+    };
+  }
+  return createPersistentAgentRunner(agentPath, options);
+}
+
+function createPersistentAgentRunner(agentPath, options) {
+  const { command, args } = commandForAgent(agentPath);
+  const child = spawn(command, args, {
+    cwd: options.cwd,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+  const stdout = readline.createInterface({
+    input: child.stdout,
+    crlfDelay: Infinity,
+  });
+  const queuedActions = [];
+  const waiters = [];
+  let stderr = '';
+  let stderrSinceLastAction = '';
+  let exitInfo = null;
+
+  stdout.on('line', (line) => {
+    const action = line.trim();
+    if (!action || action.startsWith('#')) return;
+    const waiter = waiters.shift();
+    if (waiter) {
+      clearTimeout(waiter.timer);
+      waiter.resolve({ action });
+    } else {
+      queuedActions.push(action);
+    }
+  });
+  child.stderr.on('data', (chunk) => {
+    const text = chunk.toString();
+    stderr += text;
+    stderrSinceLastAction += text;
+  });
+  child.on('exit', (code, signal) => {
+    exitInfo = { code, signal };
+    while (waiters.length > 0) {
+      const waiter = waiters.shift();
+      clearTimeout(waiter.timer);
+      waiter.resolve({ exit: exitInfo });
+    }
+  });
+
+  return {
+    mode: 'persistent',
+    async run(state) {
+      if (exitInfo) {
+        return actionWithDiagnostic('__agent_error__ persistent agent exited', {
+          agent_mode: 'persistent',
+          exit_code: exitInfo.code,
+          signal: exitInfo.signal,
+          stderr: truncate(stderr),
+        });
+      }
+
+      try {
+        child.stdin.write(`${JSON.stringify(state)}\n`);
+      } catch (error) {
+        return actionWithDiagnostic('__agent_error__ persistent stdin write failed', {
+          agent_mode: 'persistent',
+          error: error.message,
+          stderr: truncate(stderr),
+        });
+      }
+
+      const result = await waitForPersistentAction({
+        queuedActions,
+        waiters,
+        timeoutMs: options.timeoutMs,
+        exitInfo,
+      });
+      const diagnostic = parseAgentDiagnostic(stderrSinceLastAction);
+      stderrSinceLastAction = '';
+
+      if (result.timedOut) {
+        child.kill();
+        return actionWithDiagnostic('__agent_timeout__', {
+          agent_mode: 'persistent',
+          timed_out: true,
+          diagnostic,
+        });
+      }
+      if (result.exit) {
+        return actionWithDiagnostic('__agent_error__ persistent agent exited', {
+          agent_mode: 'persistent',
+          exit_code: result.exit.code,
+          signal: result.exit.signal,
+          stderr: truncate(stderr),
+          diagnostic,
+        });
+      }
+      return actionWithDiagnostic(result.action || '__agent_empty__', diagnostic);
+    },
+    close() {
+      stdout.close();
+      if (child.stdin.writable) child.stdin.end();
+      if (!exitInfo) child.kill();
+    },
+  };
+}
+
+function waitForPersistentAction({ queuedActions, waiters, timeoutMs, exitInfo }) {
+  if (queuedActions.length > 0) return Promise.resolve({ action: queuedActions.shift() });
+  if (exitInfo) return Promise.resolve({ exit: exitInfo });
+  return new Promise((resolve) => {
+    const waiter = {
+      resolve,
+      timer: null,
+    };
+    waiter.timer = setTimeout(() => {
+      const index = waiters.indexOf(waiter);
+      if (index !== -1) waiters.splice(index, 1);
+      resolve({ timedOut: true });
+    }, timeoutMs);
+    waiters.push(waiter);
+  });
 }
 
 function actionWithDiagnostic(command, diagnostic) {

@@ -44,6 +44,31 @@ test('baseline agent can complete a known public seed through evaluate', () => {
   assert.equal(output.results[0].status, 'success');
 });
 
+test('persistent agent mode matches one-shot baseline results', () => {
+  const oneShot = spawnSync(
+    process.execPath,
+    [cli, 'evaluate', '--agent', './agents/baseline.js', '--seed', '9001', '--json'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 30000,
+    },
+  );
+  const persistent = spawnSync(
+    process.execPath,
+    [cli, 'evaluate', '--agent', './agents/baseline-persistent.js', '--seed', '9001', '--agent-mode', 'persistent', '--json'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 30000,
+    },
+  );
+
+  assert.equal(oneShot.status, 0, oneShot.stderr);
+  assert.equal(persistent.status, 0, persistent.stderr);
+  assert.deepEqual(JSON.parse(persistent.stdout), JSON.parse(oneShot.stdout));
+});
+
 test('evaluate can write summary file', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {

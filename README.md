@@ -88,6 +88,14 @@ claim_rule rule_id
 
 For batch evaluation, EchoGrid runs the agent once per turn and sends the full `STATE` JSON on stdin. The first non-empty stdout line is used as the action.
 
+Agents that support line-by-line operation can use persistent mode:
+
+```bash
+node ./bin/echogrid.js evaluate --agent ./agents/baseline-persistent.js --seed 48129 --agent-mode persistent
+```
+
+Persistent mode starts the agent once per seed, sends one state JSON line per turn, and reads one action line per turn. The default one-shot mode remains the compatibility path for simple agents.
+
 ## MVP Features
 
 - 8x8 deterministic maps from fixed seeds.
@@ -102,6 +110,7 @@ For batch evaluation, EchoGrid runs the agent once per turn and sends the full `
 
 - `agents/random.js`: weak deterministic random policy; included to prove the game is not solved by arbitrary movement.
 - `agents/baseline.js`: conservative explorer that uses visible terrain, trace, and path planning.
+- `agents/baseline-persistent.js`: same baseline policy over the persistent line protocol.
 - `agents/rule-aware.js`: showcase agent that actively checks a hidden-rule signal before delegating to baseline.
 - `agents/llm-openai-compatible.js`: OpenAI-compatible LLM bridge for DeepSeek/OpenAI-style chat completion APIs.
 

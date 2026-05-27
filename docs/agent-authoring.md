@@ -31,6 +31,14 @@ node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seed 48129
 node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt --log-dir ./logs
 ```
 
+By default, evaluation starts the agent once per turn. Agents that can stay alive across turns may opt into persistent mode:
+
+```bash
+node ./bin/echogrid.js evaluate --agent ./agents/baseline-persistent.js --seed 48129 --agent-mode persistent
+```
+
+In persistent mode, EchoGrid starts the agent once per seed, writes one compact state JSON line to stdin on each turn, and reads the first non-empty stdout line as that turn's action. This reduces process startup overhead while keeping the same action protocol.
+
 ## State Fields
 
 Important fields:
