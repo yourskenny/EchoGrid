@@ -29,6 +29,7 @@ function analyze(actionEvents, finalState) {
   const waits = commands.filter((command) => command === 'wait').length;
   const repeatedCommands = countRepeated(commands);
   const oscillations = countOscillations(actionEvents);
+  const movement = movementProgress(actionEvents, finalState);
   const diagnostics = summarizeDiagnostics(actionEvents);
   const terminal = finalState.turn?.terminal || {};
   const turns = finalState.turn?.current || actionEvents.length;
@@ -44,6 +45,10 @@ function analyze(actionEvents, finalState) {
     wait_actions: waits,
     repeated_commands: repeatedCommands,
     movement_oscillations: oscillations,
+    unique_positions: movement.uniquePositions,
+    final_distance_to_exit: movement.finalDistanceToExit,
+    min_distance_to_exit: movement.minDistanceToExit,
+    distance_to_exit_delta: movement.distanceToExitDelta,
     aborted: eventsIncludeAbort(actionEvents, finalState),
     model_actions: diagnostics.modelActions,
     fallback_actions: diagnostics.fallbackActions,
@@ -61,8 +66,9 @@ function analyze(actionEvents, finalState) {
       model_error_rate: round(diagnostics.modelErrors / turns),
       recovered_reasoning_rate: round(diagnostics.recoveredActions / turns),
       oscillation_rate: round(oscillations / turns),
+      exploration_rate: round(movement.uniquePositions / turns),
     },
-    flags: flags({ success, invalid, waits, turns, diagnostics, oscillations }),
+    flags: flags({ success, invalid, waits, turns, diagnostics, oscillations, movement }),
   };
 }
 
@@ -89,6 +95,22 @@ function countOscillations(actionEvents) {
     if (positions[i] === positions[i - 2] && positions[i] !== positions[i - 1]) count += 1;
   }
   return count;
+}
+
+function movementProgress(actionEvents, finalState) {
+  const positions = actionEvents
+    .map((event) => event.state?.agent?.position)
+    .filter((position) => Array.isArray(position));
+  if (Array.isArray(finalState.agent?.position)) positions.push(finalState.agent.position);
+  const exit = finalState.objective?.exit;
+  const uniquePositions = new Set(positions.map((position) => position.join(','))).size;
+  const distances = Array.isArray(exit) ? positions.map((position) => manhattan(position, exit)) : [];
+  return {
+    uniquePositions,
+    finalDistanceToExit: distances.length ? distances.at(-1) : null,
+    minDistanceToExit: distances.length ? Math.min(...distances) : null,
+    distanceToExitDelta: distances.length ? distances[0] - distances.at(-1) : null,
+  };
 }
 
 function summarizeDiagnostics(actionEvents) {
@@ -130,7 +152,7 @@ function topReasons(reasons) {
     .map(([reason, count]) => ({ reason, count }));
 }
 
-function flags({ success, invalid, waits, turns, diagnostics, oscillations }) {
+function flags({ success, invalid, waits, turns, diagnostics, oscillations, movement }) {
   const result = [];
   if (!success) result.push('not_successful');
   if (invalid > 0) result.push('invalid_actions_present');
@@ -138,9 +160,16 @@ function flags({ success, invalid, waits, turns, diagnostics, oscillations }) {
   if (diagnostics.fallbackActions / turns > 0.5) result.push('fallback_dominant');
   if (diagnostics.modelActions > 0 && diagnostics.modelActions / turns < 0.1) result.push('low_model_contribution');
   if (oscillations / turns > 0.15) result.push('movement_oscillation');
+  if (!success && movement.distanceToExitDelta !== null && movement.distanceToExitDelta <= 0 && turns > 3) {
+    result.push('no_exit_progress');
+  }
   return result;
 }
 
 function round(value) {
   return Number(value.toFixed(3));
+}
+
+function manhattan(a, b) {
+  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
 }

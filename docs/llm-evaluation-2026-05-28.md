@@ -246,6 +246,21 @@ deepseek-v4-flash:
 
 The same run still showed Pro failing early with an empty final response, so model-output reliability remains model-dependent.
 
+The analysis tools now report movement progress separately from oscillation. `analyze-run` includes `unique_positions`, `final_distance_to_exit`, `min_distance_to_exit`, `distance_to_exit_delta`, and `quality.exploration_rate`; `summarize-llm-logs` includes `Unique` and `MinExit` columns. On the same move-first strict pure run:
+
+```text
+deepseek-v4-flash:
+  unique_positions=3
+  min_distance_to_exit=12
+  distance_to_exit_delta=2
+
+deepseek-v4-pro:
+  unique_positions=1
+  min_distance_to_exit=14
+```
+
+This separates "the model avoided backtracking" from "the model made measurable route progress." It is now easier to identify runs where prompt or state changes improve action validity but not navigation.
+
 ## Follow-Up Change
 
 A `micro` mode was added after the first loop so LLM smoke tests can finish faster while still exercising the same public protocol. It uses a smaller objective and is meant for integration diagnostics, not the main competition score. Follow-up tests showed that micro outcomes are sensitive to early model detours, so the reliable competition signal remains the full MVP evaluation plus diagnostics such as invalid-action count, fallback count, and model-action count.

@@ -24,6 +24,7 @@ for (const file of walk(logRoot)) {
   const parts = relative.split('/');
   const model = actions.find((event) => event.agent_diagnostic?.model)?.agent_diagnostic?.model || relative.split('/')[0];
   const diagnostics = summarizeDiagnostics(actions);
+  const movement = movementProgress(actions, final);
   rows.push({
     leaderboard: inferLeaderboard(parts, actions),
     model,
@@ -35,6 +36,8 @@ for (const file of walk(logRoot)) {
     artifacts: `${final?.objective?.artifacts_collected ?? 0}/${final?.objective?.artifacts_required ?? 0}`,
     invalid: actions.filter((event) => !event.event.outcome.ok).length,
     waits: actions.filter((event) => String(event.command) === 'wait').length,
+    unique_positions: movement.uniquePositions,
+    min_exit_distance: movement.minDistanceToExit ?? 'n/a',
     model_actions: diagnostics.modelActions,
     fallback_actions: diagnostics.fallbackActions,
     local_actions: diagnostics.localActions,
@@ -96,6 +99,8 @@ function printTable(items) {
     ['artifacts', 'Artifacts'],
     ['invalid', 'Invalid'],
     ['waits', 'Waits'],
+    ['unique_positions', 'Unique'],
+    ['min_exit_distance', 'MinExit'],
     ['model_actions', 'Model'],
     ['fallback_actions', 'Fallback'],
     ['local_actions', 'Local'],
@@ -117,6 +122,23 @@ function printTable(items) {
     process.stdout.write(columns.map(([key]) => String(row[key]).padEnd(widths[key])).join('  '));
     process.stdout.write('\n');
   }
+}
+
+function movementProgress(actions, finalState) {
+  const positions = actions
+    .map((event) => event.state?.agent?.position)
+    .filter((position) => Array.isArray(position));
+  if (Array.isArray(finalState?.agent?.position)) positions.push(finalState.agent.position);
+  const exit = finalState?.objective?.exit;
+  const distances = Array.isArray(exit) ? positions.map((position) => manhattan(position, exit)) : [];
+  return {
+    uniquePositions: new Set(positions.map((position) => position.join(','))).size,
+    minDistanceToExit: distances.length ? Math.min(...distances) : null,
+  };
+}
+
+function manhattan(a, b) {
+  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
 }
 
 function inferLeaderboard(parts, actions) {

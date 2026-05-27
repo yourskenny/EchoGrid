@@ -173,6 +173,8 @@ test('analyze-run reports quality flags for JSONL logs', () => {
     const analysis = JSON.parse(result.stdout);
     assert.equal(analysis.status, 'failure');
     assert.equal(analysis.fallback_actions, 2);
+    assert.equal(analysis.unique_positions, 1);
+    assert.equal(analysis.distance_to_exit_delta, null);
     assert.ok(analysis.flags.includes('high_wait_rate'));
     assert.ok(analysis.flags.includes('fallback_dominant'));
   } finally {

@@ -389,6 +389,46 @@ Interpretation:
 
 Move-first ordering improved Flash's strict pure continuity and kept the agent moving away from the start. Pro remained dominated by empty final-output instability in this run, which supports keeping reasoning recovery as a diagnostic rather than a leaderboard setting.
 
+## Loop 15: Movement Progress Metrics
+
+Finding:
+
+After move-first ordering, `movement_oscillations=0` was no longer enough to explain model behavior. A model can avoid immediate backtracking while still failing to make meaningful route progress toward the exit.
+
+Optimization:
+
+- added `unique_positions` to single-run analysis
+- added `final_distance_to_exit`, `min_distance_to_exit`, and `distance_to_exit_delta`
+- added `quality.exploration_rate`
+- added a `no_exit_progress` quality flag for non-successful runs that do not reduce exit distance
+- added `Unique` and `MinExit` columns to the LLM log summary table
+
+Verification:
+
+```text
+deepseek-v4-flash strict pure micro:
+  model_actions=8
+  model_error_actions=1
+  movement_oscillations=0
+  unique_positions=3
+  final_distance_to_exit=12
+  min_distance_to_exit=12
+  distance_to_exit_delta=2
+  exploration_rate=0.333
+
+summary table:
+  deepseek-v4-flash Unique=3 MinExit=12
+  deepseek-v4-pro   Unique=1 MinExit=14
+
+node --test test/cli.test.js: 12 pass / 0 fail
+npm test: 21 pass / 0 fail
+npm run demo:verify: pass
+```
+
+Interpretation:
+
+The analyzer can now distinguish "the model did not oscillate" from "the model actually explored and reduced distance to the exit." This gives the next optimization loop a better signal for route progress without changing game mechanics or exposing hidden information.
+
 ## Current Verification Snapshot
 
 Latest local verification:
