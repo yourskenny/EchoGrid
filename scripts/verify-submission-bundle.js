@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 
 const REQUIRED_FILES = [
   'README.md',
+  'SUBMISSION_AUDIT.md',
   'SUBMISSION_CHECKLIST.md',
   'SUBMISSION_MANIFEST.json',
   'showcase/9001.jsonl',
@@ -64,6 +65,7 @@ function main(argv = process.argv.slice(2)) {
       verifyBundleStory(manifest, errors);
     }
     verifyVisualSmoke(bundleDir, errors);
+    verifyAuditReport(bundleDir, errors);
     verifyZipArchive(bundleDir, zipFile, errors);
   }
 
@@ -188,6 +190,25 @@ function verifyVisualSmoke(bundleDir, errors) {
     if (!expected.has(expectedName)) errors.push(`visual smoke has unexpected screenshot entry: ${expectedName}`);
     if (!Number.isFinite(item.width) || !Number.isFinite(item.height)) errors.push(`visual smoke entry missing dimensions: ${expectedName}`);
     if ((item.unique_colors ?? 0) < 24) errors.push(`visual smoke entry has too few colors: ${expectedName}`);
+  }
+}
+
+function verifyAuditReport(bundleDir, errors) {
+  const file = path.join(bundleDir, 'SUBMISSION_AUDIT.md');
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of [
+    'EchoGrid Submission Audit',
+    'Verification Matrix',
+    'Showcase artifact verifier',
+    'Hidden-rule inference',
+    'Visual smoke artifacts',
+    'Adversarial benchmark',
+    'Rule-signal benchmark',
+    'Bundle inventory',
+    'PASS',
+  ]) {
+    if (!text.includes(needle)) errors.push(`SUBMISSION_AUDIT.md missing "${needle}"`);
   }
 }
 

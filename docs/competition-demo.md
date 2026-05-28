@@ -54,7 +54,7 @@ If the logs already exist and only the final handoff package needs to be rebuilt
 npm run submission:bundle
 ```
 
-The bundle includes the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_CHECKLIST.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
+The bundle includes the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 To verify the handoff package without rebuilding it:
 

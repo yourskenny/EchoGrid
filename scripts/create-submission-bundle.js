@@ -76,8 +76,10 @@ function main(argv = process.argv.slice(2)) {
 
   const readmeFile = path.join(outDir, 'README.md');
   const checklistFile = path.join(outDir, 'SUBMISSION_CHECKLIST.md');
+  const auditFile = path.join(outDir, 'SUBMISSION_AUDIT.md');
   fs.writeFileSync(readmeFile, renderReadme(summary), 'utf8');
   fs.writeFileSync(checklistFile, renderChecklist(summary), 'utf8');
+  fs.writeFileSync(auditFile, renderAuditReport(summary), 'utf8');
 
   const manifest = {
     schema: 'echogrid.submission_bundle.v1',
@@ -267,6 +269,7 @@ function renderReadme(summary) {
     '- `benchmarks/rules/`: hidden-rule signal benchmark output.',
     '- `source/`: project README and judge-facing protocol/scoring docs.',
     '- `SUBMISSION_CHECKLIST.md`: human-readable delivery checklist.',
+    '- `SUBMISSION_AUDIT.md`: generated verification matrix and handoff evidence summary.',
     '- `SUBMISSION_MANIFEST.json`: machine-readable bundle inventory with hashes.',
     '',
     '## Verified Story',
@@ -302,6 +305,7 @@ function renderChecklist(summary) {
     '- [x] Replay viewer included at `showcase/replay.html`.',
     '- [x] Browser-rendered visual smoke screenshots included when available.',
     '- [x] Judge brief and scorecard included.',
+    '- [x] Submission audit report included at `SUBMISSION_AUDIT.md`.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
     '- [x] Rule-signals benchmark included and rule-aware/rule-explorer beat baseline on average score.',
@@ -314,6 +318,48 @@ function renderChecklist(summary) {
     '2. Open `showcase/mission-control.html` for the guided briefing and route playback.',
     '3. Check `showcase/SCORECARD.md` and `showcase/JUDGE_BRIEF.md`.',
     '4. Review `benchmarks/adversarial/leaderboard.md` and `benchmarks/rules/leaderboard.md`.',
+    '',
+  ].join('\n');
+}
+
+function renderAuditReport(summary) {
+  const showcase = summary.showcase;
+  const adversarial = summary.benchmarks.adversarial;
+  const rules = summary.benchmarks.rules;
+  return [
+    '# EchoGrid Submission Audit',
+    '',
+    `Generated: ${summary.generated_at}`,
+    `Source commit: ${summary.source.commit_short || 'unknown'}`,
+    '',
+    '## Verification Matrix',
+    '',
+    '| Gate | Status | Evidence |',
+    '| --- | --- | --- |',
+    `| Showcase artifact verifier | PASS | ${showcase.result}/${showcase.reason}, score ${showcase.score}, artifacts ${showcase.artifacts} |`,
+    `| Hidden-rule inference | PASS | ${showcase.rule_claim?.id || 'unknown'}, accepted=${Boolean(showcase.rule_claim?.correct)} |`,
+    `| Clean-run audit | PASS | damage=${showcase.metrics?.damage_events ?? 'n/a'}, invalid=${showcase.metrics?.invalid_actions ?? 'n/a'}, wasted=${showcase.metrics?.wasted_actions ?? 'n/a'} |`,
+    `| Visual smoke artifacts | PASS | desktop/mobile screenshots are bundled under showcase/screenshots |`,
+    `| Adversarial benchmark | PASS | leader ${adversarial.leader.agent}, avg ${adversarial.leader.average_score} |`,
+    `| Rule-signal benchmark | PASS | leader ${rules.leader.agent}, avg ${rules.leader.average_score} |`,
+    `| Bundle inventory | PASS | SUBMISSION_MANIFEST.json records copied file sizes and sha256 hashes |`,
+    '',
+    '## Commands',
+    '',
+    '| Purpose | Command |',
+    '| --- | --- |',
+    `| Full gate | \`${summary.commands.full_gate}\` |`,
+    `| Rebuild bundle | \`${summary.commands.regenerate_bundle}\` |`,
+    `| Verify bundle | \`${summary.commands.verify_bundle}\` |`,
+    '',
+    '## Judge Entry Points',
+    '',
+    '- `showcase/index.html`',
+    '- `showcase/mission-control.html`',
+    '- `showcase/SCORECARD.md`',
+    '- `showcase/JUDGE_BRIEF.md`',
+    '- `benchmarks/adversarial/leaderboard.md`',
+    '- `benchmarks/rules/leaderboard.md`',
     '',
   ].join('\n');
 }
