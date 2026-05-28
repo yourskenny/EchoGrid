@@ -19,6 +19,7 @@ const model = process.env.ECHOGRID_LLM_MODEL || process.env.DEEPSEEK_MODEL || 'd
 const timeoutMs = Number(process.env.ECHOGRID_LLM_TIMEOUT_MS || 30000);
 const maxTokens = Number(process.env.ECHOGRID_LLM_MAX_TOKENS || 256);
 const maxModelTurns = Number(process.env.ECHOGRID_LLM_MAX_MODEL_TURNS || 12);
+const retryEmptyAction = Math.max(0, Number(process.env.ECHOGRID_LLM_RETRY_EMPTY_ACTION ?? 1));
 const fallbackMode = process.env.ECHOGRID_LLM_FALLBACK_MODE || 'baseline';
 const localPolicyEnabled = process.env.ECHOGRID_LLM_LOCAL_POLICY !== '0' && fallbackMode !== 'none';
 const recoverReasoningAction = process.env.ECHOGRID_LLM_RECOVER_REASONING_ACTION === '1';
@@ -69,6 +70,41 @@ const prompt = [
 main().catch((error) => fallback('request_error', { message: redact(error.message) }));
 
 async function main() {
+  let result = await requestModel(prompt, maxTokens);
+  let action = sanitizeAction(result.content);
+  let recoveredAction = action ? null : recoverReasoningAction ? extractActionFromReasoning(result.reasoning) : null;
+  let retryAttempts = 0;
+
+  while (!action && !recoveredAction && retryAttempts < retryEmptyAction) {
+    retryAttempts += 1;
+    result = await requestModel(retryPrompt(), maxTokens);
+    action = sanitizeAction(result.content);
+    recoveredAction = action ? null : recoverReasoningAction ? extractActionFromReasoning(result.reasoning) : null;
+  }
+
+  if (recoveredAction) {
+    emitDiagnostic(baseDiagnostic({
+      fallback: false,
+      action: recoveredAction,
+      recovered_from_reasoning: true,
+      model_retry_attempts: retryAttempts,
+      finish_reason: result.finishReason,
+      empty_final_content: !result.content,
+    }));
+    console.log(recoveredAction);
+    return;
+  }
+  if (!action) fallback('empty_model_action', {
+    content: redact(result.content).slice(0, 300),
+    finish_reason: result.finishReason,
+    reasoning_preview: redact(result.reasoning).slice(0, 300),
+    model_retry_attempts: retryAttempts,
+  });
+  emitDiagnostic(baseDiagnostic({ fallback: false, action, finish_reason: result.finishReason, model_retry_attempts: retryAttempts }));
+  console.log(action);
+}
+
+async function requestModel(userPrompt, tokenBudget) {
   const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -78,7 +114,7 @@ async function main() {
     body: JSON.stringify({
       model,
       temperature: 0,
-      max_tokens: maxTokens,
+      max_tokens: tokenBudget,
       messages: [
         {
           role: 'system',
@@ -86,7 +122,7 @@ async function main() {
         },
         {
           role: 'user',
-          content: prompt,
+          content: userPrompt,
         },
       ],
     }),
@@ -97,29 +133,29 @@ async function main() {
     fallback(`http_${response.status}`, { body: redact(body).slice(0, 500) });
   }
   const payload = await response.json();
-  const content = payload?.choices?.[0]?.message?.content || '';
-  const finishReason = payload?.choices?.[0]?.finish_reason || null;
-  const reasoning = payload?.choices?.[0]?.message?.reasoning_content || '';
-  const action = sanitizeAction(content);
-  const recoveredAction = action ? null : recoverReasoningAction ? extractActionFromReasoning(reasoning) : null;
-  if (recoveredAction) {
-    emitDiagnostic(baseDiagnostic({
-      fallback: false,
-      action: recoveredAction,
-      recovered_from_reasoning: true,
-      finish_reason: finishReason,
-      empty_final_content: !content,
-    }));
-    console.log(recoveredAction);
-    return;
-  }
-  if (!action) fallback('empty_model_action', {
-    content: redact(content).slice(0, 300),
-    finish_reason: finishReason,
-    reasoning_preview: redact(reasoning).slice(0, 300),
-  });
-  emitDiagnostic(baseDiagnostic({ fallback: false, action, finish_reason: finishReason }));
-  console.log(action);
+  return {
+    content: payload?.choices?.[0]?.message?.content || '',
+    finishReason: payload?.choices?.[0]?.finish_reason || null,
+    reasoning: payload?.choices?.[0]?.message?.reasoning_content || '',
+  };
+}
+
+function retryPrompt() {
+  const hints = state.action_hints || {};
+  const recommended = [hints.next_action, ...(hints.preferred || []), ...(hints.safe_recommended || [])]
+    .filter(Boolean);
+  return [
+    'Your previous final answer was empty or not a valid EchoGrid action.',
+    'Return exactly one valid action line now. No reasoning, no markdown.',
+    'If a first action is listed below, copy that action exactly.',
+    '',
+    `First action to copy: ${recommended[0] || 'none'}`,
+    `First recommended actions: ${recommended.slice(0, 8).join(' | ') || 'none'}`,
+    `Current position: ${JSON.stringify(state.agent?.position || null)}`,
+    `Objective: ${JSON.stringify(state.objective || null)}`,
+    `Current cell: ${JSON.stringify(state.agent?.current_cell || null)}`,
+    `Action hints: ${JSON.stringify(hints)}`,
+  ].join('\n');
 }
 
 function compactState(input) {

@@ -483,6 +483,25 @@ The `deepseek-v4-pro` three-seed batch produced completed logs for `1024` and `4
 - Strict pure Flash still has one provider-output failure, so leaderboard reports must distinguish `strict pure` from `recovery diagnostic`.
 - Pro remains capable but slower and more prone to empty final content; recovery is useful for diagnosis but should not be hidden inside strict leaderboard results.
 
+### Empty-final retry follow-up
+
+The LLM bridge now retries an empty or unparsable final action once with the same model and no fallback. The retry prompt is short and asks the model to copy `action_hints.next_action` exactly. Diagnostics record `model_retry_attempts`, so reports can distinguish first-pass actions from retry-assisted model actions.
+
+```text
+deepseek-v4-flash public3 strict pure after retry prompt:
+  successes=3/3
+  average_score=869.3
+  average_turns=62.3
+  1024:  success, score=882, turns=37
+  48129: success, score=870, turns=63
+  7331:  success, score=856, turns=87
+  fallback_actions=0
+  recovered_reasoning_actions=0
+  model_error_actions=0
+```
+
+This keeps the run in pure model mode: no baseline fallback, no local policy, and no reasoning-content recovery. It only gives the same provider a second chance to place the already chosen action in the final answer channel.
+
 ## Isolated Codex Review
 
 Codex was rerun in a separate agent without this thread context. It inspected the repository, ran:

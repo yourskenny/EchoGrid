@@ -764,12 +764,54 @@ Interpretation:
 
 The public-state hint system is now strong enough for both DeepSeek models to complete the three-seed MVP public set when reasoning-action recovery is enabled and no baseline fallback is used. Strict pure Flash still exposes provider final-output reliability as a leaderboard-relevant failure mode, so recovery should stay diagnostic unless the leaderboard explicitly permits it.
 
+## Loop 24: Empty-Final Strict Pure Retry
+
+Finding:
+
+After route and artifact hints were fixed, `deepseek-v4-flash` still had a strict pure failure on seed `7331` from an empty final `message.content`. The reasoning preview contained the right context, but no parseable final action. A first retry implementation helped locally but still used a short token budget, and DeepSeek again ended with `finish_reason=length`.
+
+Optimization:
+
+- added `ECHOGRID_LLM_RETRY_EMPTY_ACTION`, defaulting to one retry
+- retried only empty or unparsable final actions
+- kept fallback disabled in pure mode; retry is another call to the same model, not a baseline action
+- made the retry prompt short and explicit: copy the first recommended action exactly
+- recorded `model_retry_attempts` in `agent_diagnostic`
+- added a local OpenAI-compatible fake-server test where the first response is empty and the retry returns a valid action
+
+Verification:
+
+```text
+npm test: 28 pass / 0 fail
+npm run demo:verify: pass
+
+deepseek-v4-flash seed 7331 strict pure after retry prompt:
+  status=success
+  score=856
+  turns=87
+  artifacts=3/3
+  fallback_actions=0
+  recovered_reasoning_actions=0
+
+deepseek-v4-flash public3 strict pure after retry prompt:
+  seeds=3
+  successes=3
+  success_rate=1.000
+  average_score=869.3
+  average_turns=62.3
+  model_error_actions=0
+```
+
+Interpretation:
+
+This closes the last observed Flash public3 strict pure gap without weakening leaderboard separation. A retry-assisted pure run is still fully model-driven, but diagnostics preserve whether any action needed a second final-answer attempt.
+
 ## Current Verification Snapshot
 
 Latest local verification:
 
 ```text
-npm test: 27 pass / 0 fail
+npm test: 28 pass / 0 fail
 npm run demo:verify: pass
 ```
 

@@ -2,8 +2,9 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const http = require('node:http');
 const os = require('node:os');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
 const { EchoGridGame } = require('../src/engine');
@@ -323,3 +324,118 @@ test('reasoning recovery diagnostics stay separate from model errors', () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('LLM bridge retries empty final output without fallback', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  const requests = [];
+  const server = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      requests.push(JSON.parse(body || '{}'));
+      const content = requests.length === 1 ? '' : 'move S';
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: {
+              content,
+              reasoning_content: requests.length === 1 ? 'The next action is move S.' : '',
+            },
+          },
+        ],
+      }));
+    });
+  });
+
+  try {
+    await listen(server);
+    const port = server.address().port;
+    const logDir = path.join(tmp, 'retry');
+    const result = await spawnProcess(
+      process.execPath,
+      [cli, 'evaluate', '--agent', './agents/llm-openai-compatible.js', '--seed', '9001', '--mode', 'micro', '--json', '--timeout', '3000', '--log-dir', logDir],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 30000,
+        env: {
+          ...process.env,
+          ECHOGRID_LLM_API_KEY: 'test-key',
+          ECHOGRID_LLM_BASE_URL: `http://127.0.0.1:${port}`,
+          ECHOGRID_LLM_MODEL: 'fake-retry',
+          ECHOGRID_LLM_FALLBACK_MODE: 'none',
+          ECHOGRID_LLM_LOCAL_POLICY: '0',
+          ECHOGRID_LLM_MAX_MODEL_TURNS: '1',
+          ECHOGRID_LLM_RETRY_EMPTY_ACTION: '1',
+          ECHOGRID_LLM_RECOVER_REASONING_ACTION: '0',
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(requests.length, 2);
+    assert.match(requests[1].messages[1].content, /previous final answer was empty/i);
+
+    const output = JSON.parse(result.stdout);
+    assert.notEqual(output.results[0].reason, 'model_empty_model_action');
+
+    const log = fs.readFileSync(path.join(logDir, '9001.jsonl'), 'utf8')
+      .trim()
+      .split(/\r?\n/)
+      .map(JSON.parse);
+    const action = log.find((entry) => entry.type === 'action');
+    assert.equal(action.command, 'move S');
+    assert.equal(action.agent_diagnostic.fallback, false);
+    assert.equal(action.agent_diagnostic.model_error, undefined);
+    assert.equal(action.agent_diagnostic.model_retry_attempts, 1);
+  } finally {
+    await closeServer(server);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+function listen(server) {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      server.off('error', reject);
+      resolve();
+    });
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve) => {
+    server.close(() => resolve());
+  });
+}
+
+function spawnProcess(command, args, options) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill();
+    }, options.timeout || 30000);
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('close', (status) => {
+      clearTimeout(timer);
+      resolve({ status, stdout, stderr });
+    });
+  });
+}
