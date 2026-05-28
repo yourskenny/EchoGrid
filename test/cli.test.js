@@ -9,7 +9,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { EchoGridGame } = require('../src/engine');
 const { buildStateSummary } = require('../agents/llm-openai-compatible');
-const { verifyLocalHtmlLinks } = require('../scripts/verify-submission-bundle');
+const { verifyLocalHtmlLinks, verifySourceCommit } = require('../scripts/verify-submission-bundle');
 
 const root = path.resolve(__dirname, '..');
 const cli = path.join(root, 'bin', 'echogrid.js');
@@ -733,6 +733,27 @@ test('submission bundle verifier checks local html links', () => {
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('submission bundle verifier catches stale source commit metadata', () => {
+  const errors = [];
+  verifySourceCommit({
+    source: {
+      commit: '0000000000000000000000000000000000000000',
+      commit_short: '0000000',
+    },
+  }, errors);
+
+  assert.match(errors.join('\n'), /manifest source commit 0000000 does not match current HEAD/);
+
+  const skipped = [];
+  verifySourceCommit({
+    source: {
+      commit: '0000000000000000000000000000000000000000',
+      commit_short: '0000000',
+    },
+  }, skipped, { 'skip-source-commit-check': true });
+  assert.deepEqual(skipped, []);
 });
 
 test('analyze-run reports quality flags for JSONL logs', () => {

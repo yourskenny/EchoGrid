@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 
@@ -64,6 +65,7 @@ function main(argv = process.argv.slice(2)) {
     verifyRequiredFiles(bundleDir, errors);
     const manifest = readJson(path.join(bundleDir, 'SUBMISSION_MANIFEST.json'), errors);
     if (manifest) {
+      verifySourceCommit(manifest, errors, options);
       verifyManifest(bundleDir, manifest, errors);
       verifyBundleStory(manifest, errors);
     }
@@ -107,6 +109,24 @@ function verifyRequiredFiles(bundleDir, errors) {
     const buffer = fs.readFileSync(file);
     if (buffer.length < 16) errors.push(`visual smoke screenshot too small: ${relative}`);
     if (buffer.toString('hex', 0, 8) !== '89504e470d0a1a0a') errors.push(`visual smoke screenshot is not a PNG: ${relative}`);
+  }
+}
+
+function verifySourceCommit(manifest, errors, options = {}) {
+  if (options['skip-source-commit-check']) return;
+  const manifestCommit = manifest.source?.commit;
+  if (!manifestCommit) {
+    errors.push('manifest source commit missing');
+    return;
+  }
+  const head = gitValue(['rev-parse', 'HEAD']);
+  if (!head) {
+    errors.push('could not read current git HEAD for source commit check');
+    return;
+  }
+  if (manifestCommit !== head) {
+    const manifestShort = manifest.source?.commit_short || manifestCommit.slice(0, 7);
+    errors.push(`manifest source commit ${manifestShort} does not match current HEAD ${head.slice(0, 7)}`);
   }
 }
 
@@ -424,6 +444,16 @@ function displayPath(file) {
   return relative && !relative.startsWith('..') && !path.isAbsolute(relative) ? relative.replace(/\\/g, '/') : file;
 }
 
+function gitValue(args) {
+  const result = spawnSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  if (result.status !== 0) return null;
+  return result.stdout.trim() || null;
+}
+
 if (require.main === module) {
   main();
 }
@@ -431,4 +461,5 @@ if (require.main === module) {
 module.exports = {
   readZipEntries,
   verifyLocalHtmlLinks,
+  verifySourceCommit,
 };

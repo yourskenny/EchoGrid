@@ -62,7 +62,7 @@ To verify the handoff package without rebuilding it:
 npm run submission:verify
 ```
 
-This checks required files, bundle-level hashes, visual smoke screenshots, benchmark outcomes, local links in the browser entry pages, and the zip central directory against the generated bundle directory.
+This checks required files, source commit freshness, bundle-level hashes, visual smoke screenshots, benchmark outcomes, local links in the browser entry pages, and the zip central directory against the generated bundle directory.
 
 ## What To Look For
 
