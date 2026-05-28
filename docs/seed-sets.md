@@ -14,6 +14,16 @@ EchoGrid seed files are deterministic benchmark surfaces. They are public by des
 | `seeds/targeted-oscillation.txt` | Regression seeds for recent loop-recovery fixes. |
 | `seeds/llm-smoke.txt` | Small external-model integration smoke set. |
 
+## Public Set
+
+`seeds/public.txt` is the broader public pressure set used by the submission bundle:
+
+```bash
+npm run benchmark:public
+```
+
+The command writes `logs/public/agent-comparison.json`, `logs/public/arena.html`, and `logs/public/leaderboard.md`. The set is intentionally broader than the single showcase path and includes a known-hard seed where the reference agents can fail. The bundle verifier therefore checks honest separation: random has 0% success, baseline remains at or above 90% success, and rule-aware matches or exceeds baseline success while beating baseline average score.
+
 ## Rule-Signal Set
 
 `seeds/rule-signals.txt` is a compact reasoning showcase for audited rule claims:

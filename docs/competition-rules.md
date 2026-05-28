@@ -31,9 +31,9 @@ For automated submission checks:
 npm run submission:check
 ```
 
-This command runs the full demo, verifies that the demo index, mission-control dashboard, scorecard, manifest, judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present, internally consistent, and hash-checkable, then runs the adversarial and rule-signals public benchmark sets.
+This command runs the full demo, verifies that the demo index, mission-control dashboard, scorecard, manifest, judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present, internally consistent, and hash-checkable, then runs the public, adversarial, and rule-signals benchmark sets.
 
-The GitHub Actions workflow runs the same submission gate on pushes, pull requests, and manual dispatch, then uploads the generated `logs` directory as `echogrid-evaluation-logs`.
+The GitHub Actions workflow runs the same submission gate on pushes, pull requests, and manual dispatch, then uploads the generated `logs` directory as `echogrid-evaluation-logs` and the final submission bundle as an evaluation artifact.
 
 ## Official Agent Evaluation
 

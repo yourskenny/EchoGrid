@@ -43,6 +43,7 @@ function main(argv = process.argv.slice(2)) {
   const zipFile = resolvePath(options.zip || `${outDir}.zip`);
   const dirs = {
     showcase: resolvePath(options.showcase || './logs/showcase'),
+    public: resolvePath(options.public || './logs/public'),
     adversarial: resolvePath(options.adversarial || './logs/adversarial'),
     rules: resolvePath(options.rules || './logs/rules'),
   };
@@ -51,6 +52,7 @@ function main(argv = process.argv.slice(2)) {
 
   const showcaseManifest = readJson(path.join(dirs.showcase, 'MANIFEST.json'));
   const benchmarks = {
+    public: loadBenchmark('public', dirs.public),
     adversarial: loadBenchmark('adversarial', dirs.adversarial),
     rules: loadBenchmark('rules', dirs.rules),
   };
@@ -63,6 +65,7 @@ function main(argv = process.argv.slice(2)) {
   const copied = [];
   copyNamedFiles(dirs.showcase, path.join(outDir, 'showcase'), SHOWCASE_FILES, copied);
   copyOptionalDirectory(path.join(dirs.showcase, 'screenshots'), path.join(outDir, 'showcase', 'screenshots'), copied);
+  copyNamedFiles(dirs.public, path.join(outDir, 'benchmarks', 'public'), BENCHMARK_FILES, copied);
   copyNamedFiles(dirs.adversarial, path.join(outDir, 'benchmarks', 'adversarial'), BENCHMARK_FILES, copied);
   copyNamedFiles(dirs.rules, path.join(outDir, 'benchmarks', 'rules'), BENCHMARK_FILES, copied);
   copySourceDocs(outDir, copied);
@@ -110,6 +113,7 @@ function main(argv = process.argv.slice(2)) {
   process.stdout.write(`Bundle: ${displayPath(outDir)}\n`);
   if (!options['no-zip']) process.stdout.write(`Archive: ${displayPath(zipFile)}\n`);
   process.stdout.write(`Showcase: ${summary.showcase.result}/${summary.showcase.reason} score=${summary.showcase.score}\n`);
+  process.stdout.write(`Public leader: ${summary.benchmarks.public.leader.agent} avg=${summary.benchmarks.public.leader.average_score}\n`);
   process.stdout.write(`Adversarial leader: ${summary.benchmarks.adversarial.leader.agent} avg=${summary.benchmarks.adversarial.leader.average_score}\n`);
   process.stdout.write(`Rule-signal leader: ${summary.benchmarks.rules.leader.agent} avg=${summary.benchmarks.rules.leader.average_score}\n`);
 }
@@ -137,6 +141,19 @@ function validateShowcase(manifest) {
 }
 
 function validateBenchmarkExpectations(benchmarks) {
+  const publicBenchmark = benchmarks.public;
+  const publicRandom = requireAgent(publicBenchmark, './agents/random.js');
+  const publicBaseline = requireAgent(publicBenchmark, './agents/baseline.js');
+  const publicRuleAware = requireAgent(publicBenchmark, './agents/rule-aware.js');
+  if (publicRandom.success_rate !== 0) throw new Error('Public benchmark expected random agent to fail all seeds.');
+  if (publicBaseline.success_rate < 0.9) throw new Error('Public benchmark expected baseline success rate at or above 0.9.');
+  if (publicRuleAware.success_rate < publicBaseline.success_rate) {
+    throw new Error('Public benchmark expected rule-aware success rate at least baseline.');
+  }
+  if (!(publicRuleAware.average_score > publicBaseline.average_score)) {
+    throw new Error('Public benchmark expected rule-aware average score above baseline.');
+  }
+
   const adversarial = benchmarks.adversarial;
   const adversarialRandom = requireAgent(adversarial, './agents/random.js');
   const adversarialBaseline = requireAgent(adversarial, './agents/baseline.js');
@@ -211,11 +228,13 @@ function buildSummary({ outDir, zipFile, showcaseManifest, benchmarks }) {
       verify_bundle: 'npm run submission:verify',
       demo_package: 'npm run demo:full && npm run demo:check',
       visual_smoke: 'npm run demo:visual',
+      public_benchmark: 'npm run benchmark:public',
       adversarial_benchmark: 'npm run benchmark:adversarial',
       rule_signals_benchmark: 'npm run benchmark:rules',
     },
     showcase: summarizeShowcase(showcaseManifest),
     benchmarks: {
+      public: summarizeBenchmark(benchmarks.public),
       adversarial: summarizeBenchmark(benchmarks.adversarial),
       rules: summarizeBenchmark(benchmarks.rules),
     },
@@ -280,6 +299,7 @@ function renderReadme(summary) {
     '',
     '- `showcase/`: judge entry point, Mission Control dashboard, replay viewer, scorecard, brief, leaderboard, arena, JSONL log, and sha256 manifest.',
     '- `showcase/screenshots/`: desktop and mobile visual smoke screenshots when `npm run demo:visual` has been run.',
+    '- `benchmarks/public/`: broader public seed benchmark output.',
     '- `benchmarks/adversarial/`: fixed adversarial public benchmark output.',
     '- `benchmarks/rules/`: hidden-rule signal benchmark output.',
     '- `source/`: project README and judge-facing protocol/scoring docs.',
@@ -294,6 +314,7 @@ function renderReadme(summary) {
     '',
     `- Showcase: ${summary.showcase.result}/${summary.showcase.reason}, score ${summary.showcase.score}, turns ${summary.showcase.turns}, artifacts ${summary.showcase.artifacts}.`,
     `- Hidden rule: ${summary.showcase.hidden_rule}; claim accepted=${Boolean(summary.showcase.rule_claim?.correct)}.`,
+    `- Public leader: ${summary.benchmarks.public.leader.agent}, avg score ${summary.benchmarks.public.leader.average_score}.`,
     `- Adversarial leader: ${summary.benchmarks.adversarial.leader.agent}, avg score ${summary.benchmarks.adversarial.leader.average_score}.`,
     `- Rule-signal leader: ${summary.benchmarks.rules.leader.agent}, avg score ${summary.benchmarks.rules.leader.average_score}.`,
     '',
@@ -312,6 +333,7 @@ function renderReadme(summary) {
 
 function renderStartHereHtml(summary) {
   const showcase = summary.showcase;
+  const publicBenchmark = summary.benchmarks.public;
   const adversarial = summary.benchmarks.adversarial;
   const rules = summary.benchmarks.rules;
   const edge = Number(adversarial.leader.average_score) - averageScore(adversarial.rows, './agents/baseline.js');
@@ -445,7 +467,7 @@ code {
       <h2>Why It Holds Up</h2>
       <p>Hidden rule claim: <strong>${escapeHtml(showcase.rule_claim?.id || 'unknown')}</strong>, accepted=${escapeHtml(Boolean(showcase.rule_claim?.correct))}.</p>
       <p>Clean run: damage=${escapeHtml(showcase.metrics?.damage_events ?? 'n/a')}, invalid=${escapeHtml(showcase.metrics?.invalid_actions ?? 'n/a')}, wasted=${escapeHtml(showcase.metrics?.wasted_actions ?? 'n/a')}.</p>
-      <p>Benchmarks: adversarial leader ${escapeHtml(adversarial.leader.agent)}, rule-signal leader ${escapeHtml(rules.leader.agent)}.</p>
+      <p>Benchmarks: public leader ${escapeHtml(publicBenchmark.leader.agent)}, adversarial leader ${escapeHtml(adversarial.leader.agent)}, rule-signal leader ${escapeHtml(rules.leader.agent)}.</p>
     </div>
   </section>
 
@@ -458,6 +480,7 @@ code {
       ${startLink('Audit Report', 'SUBMISSION_AUDIT.md', 'Generated verification matrix and command evidence.')}
       ${startLink('Strategy Audit', 'SUBMISSION_STRATEGY_AUDIT.md', 'Per-seed strategy edge, rule-claim evidence, and benchmark deltas.')}
       ${startLink('Scorecard', 'showcase/SCORECARD.md', 'Capability gates and expected proof points.')}
+      ${startLink('Public Leaderboard', 'benchmarks/public/leaderboard.md', 'Broader public benchmark standings.')}
       ${startLink('Adversarial Leaderboard', 'benchmarks/adversarial/leaderboard.md', 'Public adversarial benchmark standings.')}
       ${startLink('Rule-Signal Leaderboard', 'benchmarks/rules/leaderboard.md', 'Hidden-rule signal benchmark standings.')}
       ${startLink('Manifest', 'SUBMISSION_MANIFEST.json', 'Bundle file inventory with sha256 hashes.')}
@@ -479,6 +502,7 @@ function startLink(label, href, detail) {
 
 function renderOnePager(summary) {
   const showcase = summary.showcase;
+  const publicBenchmark = summary.benchmarks.public;
   const adversarial = summary.benchmarks.adversarial;
   const rules = summary.benchmarks.rules;
   const edge = Number(adversarial.leader.average_score) - averageScore(adversarial.rows, './agents/baseline.js');
@@ -492,6 +516,7 @@ function renderOnePager(summary) {
     `- The showcase completes the full mission: ${showcase.result}/${showcase.reason}, score ${showcase.score}, ${showcase.artifacts} artifacts, ${showcase.turns} turns.`,
     `- The agent infers a hidden rule from public evidence: ${showcase.rule_claim?.id || 'unknown'}, accepted=${Boolean(showcase.rule_claim?.correct)}.`,
     `- The run is clean: damage=${showcase.metrics?.damage_events ?? 'n/a'}, invalid=${showcase.metrics?.invalid_actions ?? 'n/a'}, wasted=${showcase.metrics?.wasted_actions ?? 'n/a'}.`,
+    `- Broader public benchmark stays honest: ${publicBenchmark.leader.agent} leads at average score ${publicBenchmark.leader.average_score}, success rate ${publicBenchmark.leader.success_rate}.`,
     `- Strategy quality separates agents: adversarial leader ${adversarial.leader.agent}, average score edge ${formatSigned(edge)} over baseline.`,
     `- Rule-signal benchmark stays robust: ${rules.leader.agent} leads at average score ${rules.leader.average_score}.`,
     '',
@@ -501,7 +526,7 @@ function renderOnePager(summary) {
     '2. Open `showcase/mission-control.html` and read the Competition Verdict first.',
     '3. Use Route Playback to scrub the public path and rule-claim milestones.',
     '4. Check `showcase/SCORECARD.md` and `SUBMISSION_AUDIT.md` for the capability gates.',
-    '5. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md` for agent separation.',
+    '5. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/public/leaderboard.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md` for agent separation.',
     '',
     '## Reproduce',
     '',
@@ -515,6 +540,7 @@ function renderOnePager(summary) {
 }
 
 function renderStrategyAudit(summary) {
+  const publicBenchmark = summary.benchmarks.public;
   const adversarial = summary.benchmarks.adversarial;
   const rules = summary.benchmarks.rules;
   return [
@@ -529,11 +555,15 @@ function renderStrategyAudit(summary) {
     '',
     '## Benchmark Edge',
     '',
+    benchmarkEdgeTable('Public benchmark', publicBenchmark, './agents/baseline.js', './agents/rule-aware.js'),
+    '',
     benchmarkEdgeTable('Adversarial benchmark', adversarial, './agents/baseline.js', './agents/rule-aware.js'),
     '',
     benchmarkEdgeTable('Rule-signal benchmark', rules, './agents/baseline.js', './agents/rule-aware.js'),
     '',
     '## Per-Seed Evidence',
+    '',
+    perSeedEvidence('Public benchmark', publicBenchmark, './agents/baseline.js', './agents/rule-aware.js'),
     '',
     perSeedEvidence('Adversarial benchmark', adversarial, './agents/baseline.js', './agents/rule-aware.js'),
     '',
@@ -611,6 +641,7 @@ function renderChecklist(summary) {
     '- [x] Submission audit report included at `SUBMISSION_AUDIT.md`.',
     '- [x] Strategy audit included at `SUBMISSION_STRATEGY_AUDIT.md`.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
+    '- [x] Public benchmark included and rule-aware beats baseline on average score.',
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
     '- [x] Rule-signals benchmark included and rule-aware/rule-explorer beat baseline on average score.',
     '- [x] Bundle manifest includes sha256 hashes for all copied files.',
@@ -621,7 +652,7 @@ function renderChecklist(summary) {
     '1. Open `showcase/index.html`.',
     '2. Open `showcase/mission-control.html` for the guided briefing and route playback.',
     '3. Check `showcase/SCORECARD.md` and `showcase/JUDGE_BRIEF.md`.',
-    '4. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md`.',
+    '4. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/public/leaderboard.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md`.',
     '',
   ].join('\n');
 }
@@ -655,6 +686,7 @@ function escapeHtml(value) {
 
 function renderAuditReport(summary) {
   const showcase = summary.showcase;
+  const publicBenchmark = summary.benchmarks.public;
   const adversarial = summary.benchmarks.adversarial;
   const rules = summary.benchmarks.rules;
   return [
@@ -671,6 +703,7 @@ function renderAuditReport(summary) {
     `| Hidden-rule inference | PASS | ${showcase.rule_claim?.id || 'unknown'}, accepted=${Boolean(showcase.rule_claim?.correct)} |`,
     `| Clean-run audit | PASS | damage=${showcase.metrics?.damage_events ?? 'n/a'}, invalid=${showcase.metrics?.invalid_actions ?? 'n/a'}, wasted=${showcase.metrics?.wasted_actions ?? 'n/a'} |`,
     `| Visual smoke artifacts | PASS | desktop/mobile screenshots are bundled under showcase/screenshots |`,
+    `| Public benchmark | PASS | leader ${publicBenchmark.leader.agent}, avg ${publicBenchmark.leader.average_score}, success ${publicBenchmark.leader.success_rate} |`,
     `| Adversarial benchmark | PASS | leader ${adversarial.leader.agent}, avg ${adversarial.leader.average_score} |`,
     `| Rule-signal benchmark | PASS | leader ${rules.leader.agent}, avg ${rules.leader.average_score} |`,
     `| Strategy audit | PASS | rule-aware benchmark deltas and rule claims are summarized in SUBMISSION_STRATEGY_AUDIT.md |`,
@@ -691,6 +724,7 @@ function renderAuditReport(summary) {
     '- `showcase/SCORECARD.md`',
     '- `showcase/JUDGE_BRIEF.md`',
     '- `SUBMISSION_STRATEGY_AUDIT.md`',
+    '- `benchmarks/public/leaderboard.md`',
     '- `benchmarks/adversarial/leaderboard.md`',
     '- `benchmarks/rules/leaderboard.md`',
     '',

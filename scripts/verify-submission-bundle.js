@@ -28,6 +28,9 @@ const REQUIRED_FILES = [
   'showcase/agent-comparison.json',
   'showcase/agent-comparison.txt',
   'showcase/screenshots/visual-smoke.json',
+  'benchmarks/public/agent-comparison.json',
+  'benchmarks/public/arena.html',
+  'benchmarks/public/leaderboard.md',
   'benchmarks/adversarial/agent-comparison.json',
   'benchmarks/adversarial/arena.html',
   'benchmarks/adversarial/leaderboard.md',
@@ -174,8 +177,10 @@ function verifyBundleStory(manifest, errors) {
   if ((showcase.metrics?.damage_events ?? 1) !== 0) errors.push('showcase recorded damage events');
   if ((showcase.metrics?.invalid_actions ?? 1) !== 0) errors.push('showcase recorded invalid actions');
 
+  const publicBenchmark = manifest.benchmarks?.public;
   const adversarial = manifest.benchmarks?.adversarial;
   const rules = manifest.benchmarks?.rules;
+  verifyPublicBenchmark(publicBenchmark, errors);
   verifyBenchmark('adversarial', adversarial, './agents/rule-aware.js', errors);
   verifyBenchmark('rules', rules, './agents/rule-aware.js', errors);
   const ruleExplorer = (rules?.rows || []).find((row) => row.agent === './agents/rule-explorer.js');
@@ -183,6 +188,32 @@ function verifyBundleStory(manifest, errors) {
   if (!ruleExplorer) errors.push('rules benchmark missing rule-explorer row');
   if (ruleExplorer && rulesBaseline && !(ruleExplorer.average_score > rulesBaseline.average_score)) {
     errors.push('rules benchmark expected rule-explorer average score above baseline');
+  }
+}
+
+function verifyPublicBenchmark(benchmark, errors) {
+  if (!benchmark) {
+    errors.push('public benchmark missing from manifest');
+    return;
+  }
+  if (benchmark.leader?.agent !== './agents/rule-aware.js') {
+    errors.push(`public leader expected ./agents/rule-aware.js, got ${benchmark.leader?.agent || 'missing'}`);
+  }
+  const random = (benchmark.rows || []).find((row) => row.agent === './agents/random.js');
+  const baseline = (benchmark.rows || []).find((row) => row.agent === './agents/baseline.js');
+  const ruleAware = (benchmark.rows || []).find((row) => row.agent === './agents/rule-aware.js');
+  if (!random) errors.push('public benchmark missing random row');
+  if (!baseline) errors.push('public benchmark missing baseline row');
+  if (!ruleAware) errors.push('public benchmark missing rule-aware row');
+  if (random && random.success_rate !== 0) errors.push(`public random success rate expected 0, got ${random.success_rate}`);
+  if (baseline && baseline.success_rate < 0.9) {
+    errors.push(`public baseline success rate expected at least 0.9, got ${baseline.success_rate}`);
+  }
+  if (baseline && ruleAware && ruleAware.success_rate < baseline.success_rate) {
+    errors.push(`public rule-aware success rate expected at least baseline, got ${ruleAware.success_rate} vs ${baseline.success_rate}`);
+  }
+  if (baseline && ruleAware && !(ruleAware.average_score > baseline.average_score)) {
+    errors.push('public rule-aware average score is not above baseline');
   }
 }
 
@@ -230,6 +261,7 @@ function verifyAuditReport(bundleDir, errors) {
     'Showcase artifact verifier',
     'Hidden-rule inference',
     'Visual smoke artifacts',
+    'Public benchmark',
     'Adversarial benchmark',
     'Rule-signal benchmark',
     'Strategy audit',
@@ -252,6 +284,7 @@ function verifyOnePager(bundleDir, errors) {
     'Route Playback',
     'SUBMISSION_AUDIT.md',
     'SUBMISSION_STRATEGY_AUDIT.md',
+    'benchmarks/public/leaderboard.md',
     'benchmarkable agents',
     'npm run submission:check',
   ]) {
@@ -268,6 +301,7 @@ function verifyStrategyAudit(bundleDir, errors) {
     'What This Proves',
     'Benchmark Edge',
     'Per-Seed Evidence',
+    'Public benchmark',
     'Adversarial benchmark',
     'Rule-signal benchmark',
     'row_count_disclosure',
@@ -292,6 +326,8 @@ function verifyStartHere(bundleDir, errors) {
     'SUBMISSION_ONE_PAGER.md',
     'SUBMISSION_AUDIT.md',
     'SUBMISSION_STRATEGY_AUDIT.md',
+    'Public Leaderboard',
+    'benchmarks/public/leaderboard.md',
     'SUBMISSION_MANIFEST.json',
   ]) {
     if (!text.includes(needle)) errors.push(`START_HERE.html missing "${needle}"`);

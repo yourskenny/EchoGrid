@@ -48,13 +48,13 @@ npm run demo:visual
 
 This writes `logs/showcase/screenshots` with PNG screenshots and `visual-smoke.json`.
 
-To build the final judge handoff bundle after the showcase and public benchmark logs exist:
+To build the final judge handoff bundle after the showcase and benchmark logs exist:
 
 ```bash
 npm run submission:bundle
 ```
 
-This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the browser-first `START_HERE.html`, showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, one-pager, checklist, generated audit report, strategy audit, and sha256 bundle manifest.
+This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the browser-first `START_HERE.html`, showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, one-pager, checklist, generated audit report, strategy audit, and sha256 bundle manifest.
 
 To verify the generated handoff directory, source commit, HTML entry links, and zip archive:
 
@@ -80,7 +80,7 @@ For the full submission gate used by CI:
 npm run submission:check
 ```
 
-This runs the full showcase package, artifact verifier, visual smoke gate, adversarial benchmark, rule-signals benchmark, submission bundle generator, and final bundle verifier, including the manifest source commit and local links in the browser entry pages.
+This runs the full showcase package, artifact verifier, visual smoke gate, public benchmark, adversarial benchmark, rule-signals benchmark, submission bundle generator, and final bundle verifier, including the manifest source commit and local links in the browser entry pages.
 
 ## Useful Commands
 
@@ -93,6 +93,7 @@ npm run demo:visual
 npm run submission:bundle
 npm run submission:verify
 npm run submission:check
+npm run benchmark:public
 npm run benchmark:adversarial
 npm run benchmark:rules
 npm run benchmark:heldout

@@ -46,7 +46,7 @@ For CI-style verification of the full judge package:
 npm run submission:check
 ```
 
-This runs the full demo, checks the generated judge package, renders the browser visual smoke screenshots, runs the adversarial and rule-signals public benchmarks, and creates `dist/submission/echogrid-submission` plus `dist/submission/echogrid-submission.zip`. GitHub Actions uses the same command and uploads both the generated `logs` directory and the submission bundle as evaluation artifacts.
+This runs the full demo, checks the generated judge package, renders the browser visual smoke screenshots, runs the public, adversarial, and rule-signals benchmarks, and creates `dist/submission/echogrid-submission` plus `dist/submission/echogrid-submission.zip`. GitHub Actions uses the same command and uploads both the generated `logs` directory and the submission bundle as evaluation artifacts.
 
 If the logs already exist and only the final handoff package needs to be rebuilt:
 
@@ -54,7 +54,7 @@ If the logs already exist and only the final handoff package needs to be rebuilt
 npm run submission:bundle
 ```
 
-The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
+The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 To verify the handoff package without rebuilding it:
 
@@ -75,6 +75,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - HTML replay viewer: browser-based board, controls, score curve, key events, and action timeline for judges.
 - HTML comparison arena: side-by-side agent aggregate and per-seed score matrix.
 - Leaderboard: ranked Markdown output for tournament-style judging.
+- Public benchmark: broader public pressure set that records success rate and average-score separation without pretending every known-hard seed is solved.
 - Mission-control dashboard: first-glance presentation page with a competition verdict strip, guided judge briefing, final public map, scrub/play route playback, clickable milestones, score construction, strategy edge, agent tournament, and evidence links.
 - Visual smoke screenshots: browser-rendered desktop and mobile PNGs for the index, Mission Control, replay, and arena pages.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.

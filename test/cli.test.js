@@ -604,11 +604,20 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {
     const showcaseDir = path.join(tmp, 'showcase');
+    const publicDir = path.join(tmp, 'public');
     const adversarialDir = path.join(tmp, 'adversarial');
     const rulesDir = path.join(tmp, 'rules');
     const outDir = path.join(tmp, 'bundle');
     writeMinimalShowcasePackage(showcaseDir);
     writeMinimalVisualSmokePackage(showcaseDir);
+    writeBenchmarkPackage(publicDir, {
+      seed_file: './seeds/public.txt',
+      rows: [
+        { agent: './agents/random.js', seeds: 10, successes: 0, success_rate: 0, average_score: 199, average_turns: 107.7, best_score: 374, worst_score: 138, results: [] },
+        { agent: './agents/baseline.js', seeds: 10, successes: 9, success_rate: 0.9, average_score: 727.7, average_turns: 66.6, best_score: 878, worst_score: -575, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 10, successes: 9, success_rate: 0.9, average_score: 787.2, average_turns: 67.9, best_score: 991, worst_score: -420, results: [] },
+      ],
+    });
     writeBenchmarkPackage(adversarialDir, {
       seed_file: './seeds/adversarial.txt',
       rows: [
@@ -632,6 +641,8 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
         './scripts/create-submission-bundle.js',
         '--showcase',
         showcaseDir,
+        '--public',
+        publicDir,
         '--adversarial',
         adversarialDir,
         '--rules',
@@ -655,6 +666,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_ONE_PAGER.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
+    assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'public', 'leaderboard.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'adversarial', 'leaderboard.md')));
     assert.ok(fs.existsSync(`${outDir}.zip`));
 
@@ -672,9 +684,11 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(outDir, 'SUBMISSION_MANIFEST.json'), 'utf8'));
     assert.equal(manifest.schema, 'echogrid.submission_bundle.v1');
     assert.equal(manifest.showcase.result, 'success');
+    assert.equal(manifest.benchmarks.public.leader.agent, './agents/rule-aware.js');
     assert.equal(manifest.benchmarks.adversarial.leader.agent, './agents/rule-aware.js');
     assert.ok(manifest.files.find((item) => item.path === 'START_HERE.html')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'showcase/MANIFEST.json')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'benchmarks/public/leaderboard.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_AUDIT.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_ONE_PAGER.md')?.sha256);
@@ -692,11 +706,13 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(strategyAudit, /EchoGrid Strategy Audit/);
     assert.match(strategyAudit, /Benchmark Edge/);
     assert.match(strategyAudit, /Per-Seed Evidence/);
+    assert.match(strategyAudit, /Public benchmark/);
     assert.match(strategyAudit, /Rule-aware edge over baseline/);
     const startHere = fs.readFileSync(path.join(outDir, 'START_HERE.html'), 'utf8');
     assert.match(startHere, /EchoGrid Submission/);
     assert.match(startHere, /mission-control-desktop\.png/);
     assert.match(startHere, /showcase\/mission-control\.html/);
+    assert.match(startHere, /benchmarks\/public\/leaderboard\.md/);
     assert.match(startHere, /SUBMISSION_STRATEGY_AUDIT\.md/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
   } finally {
