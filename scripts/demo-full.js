@@ -15,6 +15,7 @@ const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
 const showcaseIndex = path.join(showcaseLogDir, 'index.html');
 const showcaseManifest = path.join(showcaseLogDir, 'MANIFEST.json');
 const showcaseScorecard = path.join(showcaseLogDir, 'SCORECARD.md');
+const showcaseDashboard = path.join(showcaseLogDir, 'mission-control.html');
 const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
 const agentComparisonJson = path.join(showcaseLogDir, 'agent-comparison.json');
 const leaderboard = path.join(showcaseLogDir, 'leaderboard.md');
@@ -70,6 +71,8 @@ run('Showcase judge brief', [
   showcaseBrief,
   '--replay-html',
   showcaseReplayHtml,
+  '--dashboard-html',
+  showcaseDashboard,
   '--leaderboard',
   leaderboard,
   '--comparison',
@@ -86,6 +89,25 @@ run('Showcase scorecard', [
   '--comparison-json',
   agentComparisonJson,
 ]);
+run('Showcase mission control dashboard', [
+  process.execPath,
+  './scripts/write-demo-dashboard.js',
+  showcaseLog,
+  '--out',
+  showcaseDashboard,
+  '--comparison-json',
+  agentComparisonJson,
+  '--replay-html',
+  showcaseReplayHtml,
+  '--arena-html',
+  showcaseArenaHtml,
+  '--leaderboard',
+  leaderboard,
+  '--scorecard',
+  showcaseScorecard,
+  '--brief',
+  showcaseBrief,
+]);
 run('Showcase demo index', [
   process.execPath,
   './scripts/write-demo-index.js',
@@ -94,6 +116,8 @@ run('Showcase demo index', [
   showcaseIndex,
   '--manifest',
   showcaseManifest,
+  '--dashboard-html',
+  showcaseDashboard,
   '--scorecard',
   showcaseScorecard,
   '--brief',
@@ -115,6 +139,8 @@ run('Showcase manifest', [
   showcaseManifest,
   '--index',
   showcaseIndex,
+  '--dashboard-html',
+  showcaseDashboard,
   '--scorecard',
   showcaseScorecard,
   '--brief',
@@ -130,7 +156,7 @@ run('Showcase manifest', [
   '--replay-html',
   showcaseReplayHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseScorecard)}, ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
+process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseDashboard)}, ${relativePath(showcaseScorecard)}, ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);

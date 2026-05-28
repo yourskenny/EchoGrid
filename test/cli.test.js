@@ -185,6 +185,7 @@ test('render replay html creates a self-contained viewer', () => {
     const indexFile = path.join(tmp, 'index.html');
     const manifestFile = path.join(tmp, 'MANIFEST.json');
     const scorecardFile = path.join(tmp, 'SCORECARD.md');
+    const dashboardFile = path.join(tmp, 'mission-control.html');
     const run = spawnSync(
       process.execPath,
       [cli, 'evaluate', '--agent', './agents/rule-aware.js', '--seed', '9001', '--log-dir', logDir],
@@ -267,9 +268,28 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(scorecardMarkdown, /EchoGrid Demo Scorecard/);
     assert.match(scorecardMarkdown, /Capability gates passed: 6\/6/);
     assert.match(scorecardMarkdown, /Hidden-rule inference/);
+    const dashboard = spawnSync(
+      process.execPath,
+      ['./scripts/write-demo-dashboard.js', path.join(logDir, '9001.jsonl'), '--out', dashboardFile, '--comparison-json', comparisonJsonFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--scorecard', scorecardFile, '--brief', briefFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(dashboard.status, 0, dashboard.stderr);
+    assert.match(dashboard.stdout, /Wrote/);
+    const dashboardHtml = fs.readFileSync(dashboardFile, 'utf8');
+    assert.match(dashboardHtml, /EchoGrid Mission Control/);
+    assert.match(dashboardHtml, /Final Public Map/);
+    assert.match(dashboardHtml, /Mission Timeline/);
+    assert.match(dashboardHtml, /Score Construction/);
+    assert.match(dashboardHtml, /Agent Tournament/);
+    assert.match(dashboardHtml, /Evidence Links/);
+    assert.match(dashboardHtml, /const missionControl = /);
+    assert.match(dashboardHtml, /sector C scan showed exactly two unstable echoes/);
     const index = spawnSync(
       process.execPath,
-      ['./scripts/write-demo-index.js', path.join(logDir, '9001.jsonl'), '--out', indexFile, '--manifest', manifestFile, '--scorecard', scorecardFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile],
+      ['./scripts/write-demo-index.js', path.join(logDir, '9001.jsonl'), '--out', indexFile, '--manifest', manifestFile, '--dashboard-html', dashboardFile, '--scorecard', scorecardFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -284,13 +304,14 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(indexHtml, /Audit Gates/);
     assert.match(indexHtml, /const demoSummary = /);
     assert.match(indexHtml, /MANIFEST\.json/);
+    assert.match(indexHtml, /mission-control\.html/);
     assert.match(indexHtml, /SCORECARD\.md/);
     assert.match(indexHtml, /JUDGE_BRIEF\.md/);
     assert.match(indexHtml, /replay\.html/);
 
     const manifest = spawnSync(
       process.execPath,
-      ['./scripts/write-demo-manifest.js', path.join(logDir, '9001.jsonl'), '--out', manifestFile, '--index', indexFile, '--scorecard', scorecardFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile, '--comparison', comparisonFile],
+      ['./scripts/write-demo-manifest.js', path.join(logDir, '9001.jsonl'), '--out', manifestFile, '--index', indexFile, '--dashboard-html', dashboardFile, '--scorecard', scorecardFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile, '--comparison', comparisonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -304,6 +325,7 @@ test('render replay html creates a self-contained viewer', () => {
     assert.equal(parsedManifest.showcase.score, 991);
     assert.ok(parsedManifest.artifacts.find((item) => item.name === 'scorecard')?.sha256);
     assert.ok(parsedManifest.artifacts.find((item) => item.name === 'index')?.sha256);
+    assert.ok(parsedManifest.artifacts.find((item) => item.name === 'dashboard')?.sha256);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -478,7 +500,8 @@ test('demo artifact verifier accepts a complete showcase package', () => {
       },
     ];
     fs.writeFileSync(path.join(tmp, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
-    fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'mission-control.html'), 'EchoGrid Mission Control Final Public Map Mission Timeline Score Construction Agent Tournament Evidence Links const missionControl = sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
     fs.writeFileSync(path.join(tmp, 'SCORECARD.md'), 'EchoGrid Demo Scorecard Capability gates passed: 6/6 Mission completion Hidden-rule inference Agent separation PASS rule-aware avg=929.5', 'utf8');
     fs.writeFileSync(path.join(tmp, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
     fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
@@ -502,6 +525,8 @@ test('demo artifact verifier accepts a complete showcase package', () => {
         path.join(tmp, 'MANIFEST.json'),
         '--index',
         path.join(tmp, 'index.html'),
+        '--dashboard-html',
+        path.join(tmp, 'mission-control.html'),
         '--scorecard',
         path.join(tmp, 'SCORECARD.md'),
         '--brief',

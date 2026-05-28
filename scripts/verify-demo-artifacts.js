@@ -13,6 +13,7 @@ function main(argv = process.argv.slice(2)) {
     log: path.join(showcaseDir, '9001.jsonl'),
     manifest: path.join(showcaseDir, 'MANIFEST.json'),
     index: path.join(showcaseDir, 'index.html'),
+    dashboard: path.join(showcaseDir, 'mission-control.html'),
     scorecard: path.join(showcaseDir, 'SCORECARD.md'),
     replay: path.join(showcaseDir, 'replay.html'),
     arena: path.join(showcaseDir, 'arena.html'),
@@ -50,11 +51,23 @@ function main(argv = process.argv.slice(2)) {
       'Audit Gates',
       'const demoSummary = ',
       'MANIFEST.json',
+      'mission-control.html',
       'SCORECARD.md',
       'JUDGE_BRIEF.md',
       'replay.html',
       'arena.html',
       'sector C scan showed exactly two unstable echoes',
+    ], errors);
+    verifyText(files.dashboard, [
+      'EchoGrid Mission Control',
+      'Final Public Map',
+      'Mission Timeline',
+      'Score Construction',
+      'Agent Tournament',
+      'Evidence Links',
+      'const missionControl = ',
+      'sector C scan showed exactly two unstable echoes',
+      'data-coord="7,7"',
     ], errors);
     verifyText(files.scorecard, [
       'EchoGrid Demo Scorecard',
@@ -188,7 +201,7 @@ function verifyManifest(file, files, errors) {
   if (manifest.comparison?.seed_file !== './seeds/demo.txt') errors.push(`manifest comparison seed file expected ./seeds/demo.txt, got ${manifest.comparison?.seed_file || 'unknown'}`);
 
   const artifacts = manifest.artifacts || [];
-  const expectedNames = ['log', 'index', 'scorecard', 'brief', 'leaderboard', 'arena', 'replay', 'comparison', 'comparison_text'];
+  const expectedNames = ['log', 'index', 'dashboard', 'scorecard', 'brief', 'leaderboard', 'arena', 'replay', 'comparison', 'comparison_text'];
   for (const name of expectedNames) {
     const artifact = artifacts.find((item) => item.name === name);
     if (!artifact) {
