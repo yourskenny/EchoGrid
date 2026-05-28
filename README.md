@@ -34,9 +34,10 @@ npm run demo:full
 9. generated judge brief
 10. generated demo index
 11. generated artifact manifest with sha256 hashes
+12. generated capability scorecard
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
+Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
 
 For a shorter verification path, run:
 
@@ -67,6 +68,7 @@ node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 npm run replay:html -- ./logs/48129.jsonl --out ./logs/48129.replay.html
 npm run demo:brief
+npm run demo:scorecard
 npm run demo:index
 npm run demo:manifest
 ```

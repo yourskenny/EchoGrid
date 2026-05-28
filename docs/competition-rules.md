@@ -15,7 +15,7 @@ This document defines the recommended judging contract for EchoGrid demo submiss
 npm run demo:full
 ```
 
-This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, writes `logs/showcase/JUDGE_BRIEF.md`, writes the package entry point `logs/showcase/index.html`, and writes artifact hashes to `logs/showcase/MANIFEST.json`.
+This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, writes `logs/showcase/JUDGE_BRIEF.md`, writes `logs/showcase/SCORECARD.md`, writes the package entry point `logs/showcase/index.html`, and writes artifact hashes to `logs/showcase/MANIFEST.json`.
 
 It recreates `logs/showcase` before running the showcase seed, so keep custom logs outside that directory.
 
@@ -31,7 +31,7 @@ For automated submission checks:
 npm run demo:ci
 ```
 
-This command runs the full demo and verifies that the demo index, manifest, judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present, internally consistent, and hash-checkable.
+This command runs the full demo and verifies that the demo index, scorecard, manifest, judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present, internally consistent, and hash-checkable.
 
 ## Official Agent Evaluation
 
@@ -135,6 +135,7 @@ A judged submission should provide:
 - per-seed status
 - JSONL log directory
 - demo index or equivalent artifact entry point
+- capability scorecard or equivalent gate report
 - artifact manifest or equivalent checksum inventory
 - leaderboard or equivalent ranking table
 - comparison arena or equivalent per-seed comparison

@@ -14,6 +14,7 @@ const showcaseArenaHtml = path.join(showcaseLogDir, 'arena.html');
 const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
 const showcaseIndex = path.join(showcaseLogDir, 'index.html');
 const showcaseManifest = path.join(showcaseLogDir, 'MANIFEST.json');
+const showcaseScorecard = path.join(showcaseLogDir, 'SCORECARD.md');
 const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
 const agentComparisonJson = path.join(showcaseLogDir, 'agent-comparison.json');
 const leaderboard = path.join(showcaseLogDir, 'leaderboard.md');
@@ -76,6 +77,15 @@ run('Showcase judge brief', [
   '--arena-html',
   showcaseArenaHtml,
 ]);
+run('Showcase scorecard', [
+  process.execPath,
+  './scripts/write-demo-scorecard.js',
+  showcaseLog,
+  '--out',
+  showcaseScorecard,
+  '--comparison-json',
+  agentComparisonJson,
+]);
 run('Showcase demo index', [
   process.execPath,
   './scripts/write-demo-index.js',
@@ -84,6 +94,8 @@ run('Showcase demo index', [
   showcaseIndex,
   '--manifest',
   showcaseManifest,
+  '--scorecard',
+  showcaseScorecard,
   '--brief',
   showcaseBrief,
   '--leaderboard',
@@ -103,6 +115,8 @@ run('Showcase manifest', [
   showcaseManifest,
   '--index',
   showcaseIndex,
+  '--scorecard',
+  showcaseScorecard,
   '--brief',
   showcaseBrief,
   '--leaderboard',
@@ -116,7 +130,7 @@ run('Showcase manifest', [
   '--replay-html',
   showcaseReplayHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
+process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseScorecard)}, ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);

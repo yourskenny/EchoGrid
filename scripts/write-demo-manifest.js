@@ -17,6 +17,7 @@ function main(argv = process.argv.slice(2)) {
   const artifactPaths = {
     log: source,
     index: resolvePath(cwd, options.index || path.join(path.dirname(source), 'index.html')),
+    scorecard: resolvePath(cwd, options.scorecard || path.join(path.dirname(source), 'SCORECARD.md')),
     brief: resolvePath(cwd, options.brief || path.join(path.dirname(source), 'JUDGE_BRIEF.md')),
     leaderboard: resolvePath(cwd, options.leaderboard || path.join(path.dirname(source), 'leaderboard.md')),
     arena: resolvePath(cwd, options['arena-html'] || path.join(path.dirname(source), 'arena.html')),
@@ -219,7 +220,7 @@ function resolvePath(cwd, value) {
 
 function usage() {
   return `Usage:
-  node ./scripts/write-demo-manifest.js <log.jsonl> [--out MANIFEST.json] [--index index.html] [--brief JUDGE_BRIEF.md] [--replay-html replay.html] [--arena-html arena.html] [--leaderboard leaderboard.md] [--comparison-json agent-comparison.json] [--comparison agent-comparison.txt]
+  node ./scripts/write-demo-manifest.js <log.jsonl> [--out MANIFEST.json] [--index index.html] [--scorecard SCORECARD.md] [--brief JUDGE_BRIEF.md] [--replay-html replay.html] [--arena-html arena.html] [--leaderboard leaderboard.md] [--comparison-json agent-comparison.json] [--comparison agent-comparison.txt]
 
 Creates a hash manifest for the EchoGrid judge package.`;
 }
