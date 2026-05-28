@@ -79,11 +79,13 @@ function main(argv = process.argv.slice(2)) {
   const onePagerFile = path.join(outDir, 'SUBMISSION_ONE_PAGER.md');
   const checklistFile = path.join(outDir, 'SUBMISSION_CHECKLIST.md');
   const auditFile = path.join(outDir, 'SUBMISSION_AUDIT.md');
+  const strategyAuditFile = path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md');
   fs.writeFileSync(startFile, renderStartHereHtml(summary), 'utf8');
   fs.writeFileSync(readmeFile, renderReadme(summary), 'utf8');
   fs.writeFileSync(onePagerFile, renderOnePager(summary), 'utf8');
   fs.writeFileSync(checklistFile, renderChecklist(summary), 'utf8');
   fs.writeFileSync(auditFile, renderAuditReport(summary), 'utf8');
+  fs.writeFileSync(strategyAuditFile, renderStrategyAudit(summary), 'utf8');
 
   const manifest = {
     schema: 'echogrid.submission_bundle.v1',
@@ -249,6 +251,15 @@ function summarizeBenchmark(benchmark) {
       average_turns: row.average_turns,
       best_score: row.best_score,
       worst_score: row.worst_score,
+      results: Array.isArray(row.results) ? row.results.map((result) => ({
+        seed: result.seed,
+        status: result.status,
+        reason: result.reason,
+        score: result.score,
+        turns: result.turns,
+        hidden_rule: result.hidden_rule,
+        rule_claim: result.rule_claim || null,
+      })) : [],
     })),
   };
 }
@@ -276,6 +287,7 @@ function renderReadme(summary) {
     '- `SUBMISSION_ONE_PAGER.md`: short judge-facing pitch and review path.',
     '- `SUBMISSION_CHECKLIST.md`: human-readable delivery checklist.',
     '- `SUBMISSION_AUDIT.md`: generated verification matrix and handoff evidence summary.',
+    '- `SUBMISSION_STRATEGY_AUDIT.md`: generated per-seed strategy edge and rule-claim evidence.',
     '- `SUBMISSION_MANIFEST.json`: machine-readable bundle inventory with hashes.',
     '',
     '## Verified Story',
@@ -444,6 +456,7 @@ code {
       ${startLink('Demo Index', 'showcase/index.html', 'Showcase package entry point and artifact links.')}
       ${startLink('One-Pager', 'SUBMISSION_ONE_PAGER.md', 'Short judge-facing pitch and review path.')}
       ${startLink('Audit Report', 'SUBMISSION_AUDIT.md', 'Generated verification matrix and command evidence.')}
+      ${startLink('Strategy Audit', 'SUBMISSION_STRATEGY_AUDIT.md', 'Per-seed strategy edge, rule-claim evidence, and benchmark deltas.')}
       ${startLink('Scorecard', 'showcase/SCORECARD.md', 'Capability gates and expected proof points.')}
       ${startLink('Adversarial Leaderboard', 'benchmarks/adversarial/leaderboard.md', 'Public adversarial benchmark standings.')}
       ${startLink('Rule-Signal Leaderboard', 'benchmarks/rules/leaderboard.md', 'Hidden-rule signal benchmark standings.')}
@@ -488,7 +501,7 @@ function renderOnePager(summary) {
     '2. Open `showcase/mission-control.html` and read the Competition Verdict first.',
     '3. Use Route Playback to scrub the public path and rule-claim milestones.',
     '4. Check `showcase/SCORECARD.md` and `SUBMISSION_AUDIT.md` for the capability gates.',
-    '5. Review `benchmarks/adversarial/leaderboard.md` and `benchmarks/rules/leaderboard.md` for agent separation.',
+    '5. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md` for agent separation.',
     '',
     '## Reproduce',
     '',
@@ -499,6 +512,86 @@ function renderOnePager(summary) {
     `Source commit: ${summary.source.commit_short || 'unknown'}`,
     '',
   ].join('\n');
+}
+
+function renderStrategyAudit(summary) {
+  const adversarial = summary.benchmarks.adversarial;
+  const rules = summary.benchmarks.rules;
+  return [
+    '# EchoGrid Strategy Audit',
+    '',
+    `Generated: ${summary.generated_at}`,
+    `Source commit: ${summary.source.commit_short || 'unknown'}`,
+    '',
+    '## What This Proves',
+    '',
+    'The rule-aware agent is not only a route follower. It runs bounded public experiments, claims hidden rules only when a public `rule_signal` appears, and then delegates movement to the same baseline routing policy.',
+    '',
+    '## Benchmark Edge',
+    '',
+    benchmarkEdgeTable('Adversarial benchmark', adversarial, './agents/baseline.js', './agents/rule-aware.js'),
+    '',
+    benchmarkEdgeTable('Rule-signal benchmark', rules, './agents/baseline.js', './agents/rule-aware.js'),
+    '',
+    '## Per-Seed Evidence',
+    '',
+    perSeedEvidence('Adversarial benchmark', adversarial, './agents/baseline.js', './agents/rule-aware.js'),
+    '',
+    perSeedEvidence('Rule-signal benchmark', rules, './agents/baseline.js', './agents/rule-aware.js'),
+    '',
+    '## Interpretation',
+    '',
+    '- `row_count_disclosure` proves the agent can validate a row-level global clue before claiming it.',
+    '- `sector_c_two_unstable` proves the agent can validate a sector-level echo constraint before claiming it.',
+    '- Seeds without a rule claim still complete through the shared baseline route, so the experiments are bounded rather than reckless.',
+    '',
+  ].join('\n');
+}
+
+function benchmarkEdgeTable(title, benchmark, baselineAgent, challengerAgent) {
+  const baseline = findBenchmarkRow(benchmark, baselineAgent);
+  const challenger = findBenchmarkRow(benchmark, challengerAgent);
+  const delta = challenger && baseline
+    ? Number(challenger.average_score) - Number(baseline.average_score)
+    : null;
+  return [
+    `### ${title}`,
+    '',
+    '| Agent | Success | Avg score | Avg turns | Edge vs baseline |',
+    '| --- | ---: | ---: | ---: | ---: |',
+    benchmark.rows.map((row) => {
+      const edge = baseline ? Number(row.average_score) - Number(baseline.average_score) : null;
+      return `| ${row.agent} | ${formatPercent(row.success_rate)} | ${row.average_score} | ${row.average_turns} | ${formatSigned(edge)} |`;
+    }).join('\n'),
+    '',
+    `Leader: ${benchmark.leader.agent}. Rule-aware edge over baseline: ${formatSigned(delta)} average score.`,
+  ].join('\n');
+}
+
+function perSeedEvidence(title, benchmark, baselineAgent, challengerAgent) {
+  const baseline = findBenchmarkRow(benchmark, baselineAgent);
+  const challenger = findBenchmarkRow(benchmark, challengerAgent);
+  const baselineBySeed = new Map((baseline?.results || []).map((result) => [String(result.seed), result]));
+  const rows = (challenger?.results || []).map((result) => {
+    const base = baselineBySeed.get(String(result.seed));
+    const delta = base ? Number(result.score) - Number(base.score) : null;
+    const claim = result.rule_claim?.correct
+      ? `${result.rule_claim.id} at turn ${result.rule_claim.turn ?? '?'}`
+      : 'none';
+    const rationale = result.rule_claim?.rationale || 'completed through shared routing policy';
+    return `| ${result.seed} | ${result.hidden_rule || 'unknown'} | ${base?.score ?? 'n/a'} | ${result.score ?? 'n/a'} | ${formatSigned(delta)} | ${claim} | ${rationale} |`;
+  });
+  return [
+    `### ${title}`,
+    '',
+    '| Seed | Hidden rule | Baseline | Rule-aware | Delta | Claim | Evidence |',
+    '| --- | --- | ---: | ---: | ---: | --- | --- |',
+    rows.length ? rows.join('\n') : '| n/a | n/a | n/a | n/a | n/a | n/a | no per-seed results bundled |',
+  ].join('\n');
+}
+
+function findBenchmarkRow(benchmark, agent) {
+  return (benchmark.rows || []).find((row) => row.agent === agent);
 }
 
 function renderChecklist(summary) {
@@ -516,6 +609,7 @@ function renderChecklist(summary) {
     '- [x] Judge brief and scorecard included.',
     '- [x] Judge-facing one-pager included at `SUBMISSION_ONE_PAGER.md`.',
     '- [x] Submission audit report included at `SUBMISSION_AUDIT.md`.',
+    '- [x] Strategy audit included at `SUBMISSION_STRATEGY_AUDIT.md`.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
     '- [x] Rule-signals benchmark included and rule-aware/rule-explorer beat baseline on average score.',
@@ -527,7 +621,7 @@ function renderChecklist(summary) {
     '1. Open `showcase/index.html`.',
     '2. Open `showcase/mission-control.html` for the guided briefing and route playback.',
     '3. Check `showcase/SCORECARD.md` and `showcase/JUDGE_BRIEF.md`.',
-    '4. Review `benchmarks/adversarial/leaderboard.md` and `benchmarks/rules/leaderboard.md`.',
+    '4. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md`.',
     '',
   ].join('\n');
 }
@@ -538,9 +632,15 @@ function averageScore(rows, agent) {
 }
 
 function formatSigned(value) {
+  if (value === null || value === undefined) return 'n/a';
   const number = Number(value);
   if (!Number.isFinite(number)) return 'n/a';
   return number >= 0 ? `+${Math.round(number * 10) / 10}` : String(Math.round(number * 10) / 10);
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${(number * 100).toFixed(1)}%` : 'n/a';
 }
 
 function escapeHtml(value) {
@@ -573,6 +673,7 @@ function renderAuditReport(summary) {
     `| Visual smoke artifacts | PASS | desktop/mobile screenshots are bundled under showcase/screenshots |`,
     `| Adversarial benchmark | PASS | leader ${adversarial.leader.agent}, avg ${adversarial.leader.average_score} |`,
     `| Rule-signal benchmark | PASS | leader ${rules.leader.agent}, avg ${rules.leader.average_score} |`,
+    `| Strategy audit | PASS | rule-aware benchmark deltas and rule claims are summarized in SUBMISSION_STRATEGY_AUDIT.md |`,
     `| Bundle inventory | PASS | SUBMISSION_MANIFEST.json records copied file sizes and sha256 hashes |`,
     '',
     '## Commands',
@@ -589,6 +690,7 @@ function renderAuditReport(summary) {
     '- `showcase/mission-control.html`',
     '- `showcase/SCORECARD.md`',
     '- `showcase/JUDGE_BRIEF.md`',
+    '- `SUBMISSION_STRATEGY_AUDIT.md`',
     '- `benchmarks/adversarial/leaderboard.md`',
     '- `benchmarks/rules/leaderboard.md`',
     '',

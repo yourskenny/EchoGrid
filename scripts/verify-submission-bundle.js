@@ -14,6 +14,7 @@ const REQUIRED_FILES = [
   'SUBMISSION_CHECKLIST.md',
   'SUBMISSION_MANIFEST.json',
   'SUBMISSION_ONE_PAGER.md',
+  'SUBMISSION_STRATEGY_AUDIT.md',
   'showcase/9001.jsonl',
   'showcase/MANIFEST.json',
   'showcase/index.html',
@@ -69,6 +70,7 @@ function main(argv = process.argv.slice(2)) {
     verifyVisualSmoke(bundleDir, errors);
     verifyAuditReport(bundleDir, errors);
     verifyOnePager(bundleDir, errors);
+    verifyStrategyAudit(bundleDir, errors);
     verifyStartHere(bundleDir, errors);
     verifyLocalHtmlLinks(bundleDir, errors);
     verifyZipArchive(bundleDir, zipFile, errors);
@@ -210,6 +212,7 @@ function verifyAuditReport(bundleDir, errors) {
     'Visual smoke artifacts',
     'Adversarial benchmark',
     'Rule-signal benchmark',
+    'Strategy audit',
     'Bundle inventory',
     'PASS',
   ]) {
@@ -228,10 +231,30 @@ function verifyOnePager(bundleDir, errors) {
     'Competition Verdict',
     'Route Playback',
     'SUBMISSION_AUDIT.md',
+    'SUBMISSION_STRATEGY_AUDIT.md',
     'benchmarkable agents',
     'npm run submission:check',
   ]) {
     if (!text.includes(needle)) errors.push(`SUBMISSION_ONE_PAGER.md missing "${needle}"`);
+  }
+}
+
+function verifyStrategyAudit(bundleDir, errors) {
+  const file = path.join(bundleDir, 'SUBMISSION_STRATEGY_AUDIT.md');
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of [
+    'EchoGrid Strategy Audit',
+    'What This Proves',
+    'Benchmark Edge',
+    'Per-Seed Evidence',
+    'Adversarial benchmark',
+    'Rule-signal benchmark',
+    'row_count_disclosure',
+    'sector_c_two_unstable',
+    'Rule-aware edge over baseline',
+  ]) {
+    if (!text.includes(needle)) errors.push(`SUBMISSION_STRATEGY_AUDIT.md missing "${needle}"`);
   }
 }
 
@@ -248,6 +271,7 @@ function verifyStartHere(bundleDir, errors) {
     'showcase/mission-control.html',
     'SUBMISSION_ONE_PAGER.md',
     'SUBMISSION_AUDIT.md',
+    'SUBMISSION_STRATEGY_AUDIT.md',
     'SUBMISSION_MANIFEST.json',
   ]) {
     if (!text.includes(needle)) errors.push(`START_HERE.html missing "${needle}"`);

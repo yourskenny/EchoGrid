@@ -164,6 +164,7 @@ A judged submission should provide:
 - JSONL log directory
 - demo index or equivalent artifact entry point
 - capability scorecard or equivalent gate report
+- strategy audit or equivalent per-seed policy evidence
 - artifact manifest or equivalent checksum inventory
 - leaderboard or equivalent ranking table
 - comparison arena or equivalent per-seed comparison

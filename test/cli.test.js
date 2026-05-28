@@ -653,6 +653,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_CHECKLIST.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_MANIFEST.json')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_ONE_PAGER.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
     assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'adversarial', 'leaderboard.md')));
     assert.ok(fs.existsSync(`${outDir}.zip`));
@@ -677,6 +678,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_AUDIT.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_ONE_PAGER.md')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_STRATEGY_AUDIT.md')?.sha256);
     const audit = fs.readFileSync(path.join(outDir, 'SUBMISSION_AUDIT.md'), 'utf8');
     assert.match(audit, /EchoGrid Submission Audit/);
     assert.match(audit, /Verification Matrix/);
@@ -685,10 +687,17 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(onePager, /EchoGrid One-Pager/);
     assert.match(onePager, /Why It Is Worth Judging/);
     assert.match(onePager, /90-Second Review Path/);
+    assert.match(onePager, /SUBMISSION_STRATEGY_AUDIT\.md/);
+    const strategyAudit = fs.readFileSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md'), 'utf8');
+    assert.match(strategyAudit, /EchoGrid Strategy Audit/);
+    assert.match(strategyAudit, /Benchmark Edge/);
+    assert.match(strategyAudit, /Per-Seed Evidence/);
+    assert.match(strategyAudit, /Rule-aware edge over baseline/);
     const startHere = fs.readFileSync(path.join(outDir, 'START_HERE.html'), 'utf8');
     assert.match(startHere, /EchoGrid Submission/);
     assert.match(startHere, /mission-control-desktop\.png/);
     assert.match(startHere, /showcase\/mission-control\.html/);
+    assert.match(startHere, /SUBMISSION_STRATEGY_AUDIT\.md/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

@@ -54,7 +54,7 @@ If the logs already exist and only the final handoff package needs to be rebuilt
 npm run submission:bundle
 ```
 
-The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
+The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 To verify the handoff package without rebuilding it:
 
@@ -82,6 +82,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.
 - Scorecard: generated capability gates for mission completion, artifact routing, rule inference, resource discipline, score bar, and agent separation.
 - Submission bundle: generated final handoff directory and zip that gathers the showcase, public benchmarks, docs, checklist, and bundle-level sha256 manifest.
+- Strategy audit: generated per-seed benchmark deltas and rule-claim evidence for explaining why the rule-aware policy is stronger than baseline.
 - Report: summary of outcome, scoring, risks, and transferable lesson.
 - Compare table: demonstrates that strategy quality changes results.
 
