@@ -29,9 +29,10 @@ npm run demo:full
 4. battle report
 5. replay timeline
 6. self-contained HTML replay viewer
+7. generated judge brief
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/replay.html` in a browser after `npm run demo:full` for the judge-friendly visual replay with board states, key events, and a score curve.
+Open `logs/showcase/JUDGE_BRIEF.md` first after `npm run demo:full`, then open `logs/showcase/replay.html` for the judge-friendly visual replay with board states, key events, and a score curve.
 
 For a shorter verification path, run:
 
@@ -53,6 +54,7 @@ node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/pub
 node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 npm run replay:html -- ./logs/48129.jsonl --out ./logs/48129.replay.html
+npm run demo:brief
 ```
 
 `inspect` is a local debugging command and may print hidden answer data. Do not use its output as evaluated agent input.

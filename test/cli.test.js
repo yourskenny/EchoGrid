@@ -156,6 +156,8 @@ test('render replay html creates a self-contained viewer', () => {
   try {
     const logDir = path.join(tmp, 'logs');
     const outFile = path.join(tmp, 'replay.html');
+    const comparisonFile = path.join(tmp, 'agent-comparison.txt');
+    const briefFile = path.join(tmp, 'JUDGE_BRIEF.md');
     const run = spawnSync(
       process.execPath,
       [cli, 'evaluate', '--agent', './agents/rule-aware.js', '--seed', '9001', '--log-dir', logDir],
@@ -189,6 +191,25 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(html, /Rule claim/);
     assert.match(html, /objective complete/);
     assert.match(html, /extract_artifact/);
+
+    fs.writeFileSync(comparisonFile, 'ECHO GRID AGENT COMPARISON\n./agents/rule-aware.js  1  991\n', 'utf8');
+    const brief = spawnSync(
+      process.execPath,
+      ['./scripts/write-judge-brief.js', path.join(logDir, '9001.jsonl'), '--out', briefFile, '--replay-html', outFile, '--comparison', comparisonFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(brief.status, 0, brief.stderr);
+    assert.match(brief.stdout, /Wrote/);
+    const markdown = fs.readFileSync(briefFile, 'utf8');
+    assert.match(markdown, /EchoGrid Judge Brief/);
+    assert.match(markdown, /90-Second Judge Script/);
+    assert.match(markdown, /SUCCESS \/ objective_complete/);
+    assert.match(markdown, /rule claim accepted/);
+    assert.match(markdown, /exit extraction completed/);
+    assert.match(markdown, /ECHO GRID AGENT COMPARISON/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

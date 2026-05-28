@@ -10,11 +10,16 @@ const logs = path.join(root, 'logs');
 const showcaseLogDir = path.join(logs, 'showcase');
 const showcaseLog = path.join(showcaseLogDir, '9001.jsonl');
 const showcaseReplayHtml = path.join(showcaseLogDir, 'replay.html');
-
-run('npm test', npmCommand('test'));
-run('Compare agents on demo seeds', [process.execPath, './scripts/compare.js', '--seeds', './seeds/demo.txt']);
+const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
+const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
 
 fs.rmSync(showcaseLogDir, { recursive: true, force: true });
+fs.mkdirSync(showcaseLogDir, { recursive: true });
+run('npm test', npmCommand('test'));
+run('Compare agents on demo seeds', [process.execPath, './scripts/compare.js', '--seeds', './seeds/demo.txt'], {
+  teeFile: agentComparison,
+});
+
 run('Run rule-aware showcase seed', [
   process.execPath,
   './bin/echogrid.js',
@@ -36,18 +41,35 @@ run('Showcase HTML replay viewer', [
   '--out',
   showcaseReplayHtml,
 ]);
-process.stdout.write(`\nOpen ${path.relative(root, showcaseReplayHtml).replace(/\\/g, '/')} in a browser for the judge-friendly replay viewer.\n`);
+run('Showcase judge brief', [
+  process.execPath,
+  './scripts/write-judge-brief.js',
+  showcaseLog,
+  '--out',
+  showcaseBrief,
+  '--replay-html',
+  showcaseReplayHtml,
+  '--comparison',
+  agentComparison,
+]);
+process.stdout.write(`\nOpen ${relativePath(showcaseBrief)} first, then ${relativePath(showcaseReplayHtml)} for the judge-friendly replay viewer.\n`);
 
-function run(title, command) {
+function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);
   const [cmd, ...args] = command;
   const result = spawnSync(cmd, args, {
     cwd: root,
     encoding: 'utf8',
-    stdio: 'inherit',
+    stdio: options.teeFile ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     shell: false,
     timeout: 240000,
   });
+  if (options.teeFile) {
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    fs.mkdirSync(path.dirname(options.teeFile), { recursive: true });
+    fs.writeFileSync(options.teeFile, `${result.stdout || ''}${result.stderr || ''}`, 'utf8');
+  }
   if (result.error) {
     process.stderr.write(`${result.error.message}\n`);
     process.exit(1);
@@ -55,6 +77,10 @@ function run(title, command) {
   if (result.status !== 0) {
     process.exit(result.status || 1);
   }
+}
+
+function relativePath(file) {
+  return path.relative(root, file).replace(/\\/g, '/');
 }
 
 function npmCommand(scriptName) {
