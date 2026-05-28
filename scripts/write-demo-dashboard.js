@@ -91,6 +91,8 @@ function buildDemoDashboard(events, options = {}) {
   const data = {
     summary,
     action_mix: actionMix,
+    route,
+    extraction_cells: [...extractionCells].map((coord) => coord.split(',').map((item) => Number(item))),
     route_length: route.length,
     milestones: milestones.map(({ turn, title, detail }) => ({ turn, title, detail })),
     comparison_seed_file: comparison.seed_file || 'unknown',
@@ -130,6 +132,7 @@ body {
   color: var(--ink);
   font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+button, input { font: inherit; }
 main {
   width: min(1220px, calc(100vw - 28px));
   margin: 0 auto;
@@ -219,6 +222,58 @@ h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
   outline-offset: -3px;
 }
 .cell.agent::after { display: none; }
+.cell.routeSeen::after {
+  content: "";
+  position: absolute;
+  inset: 23%;
+  border-radius: 999px;
+  background: rgba(38, 107, 145, 0.68);
+}
+.cell.routeActive {
+  outline: 4px solid var(--blue);
+  outline-offset: -4px;
+}
+.cell.routeActive::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 999px;
+  background: rgba(38, 107, 145, 0.88);
+}
+.playback {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.playbackHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.playbackHeader span,
+.routeMeta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.routeControls {
+  display: grid;
+  grid-template-columns: auto auto minmax(160px, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.routeControls button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  background: #fdfaf2;
+  color: var(--ink);
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.routeControls button:hover { border-color: var(--blue); }
+.routeControls input { width: 100%; accent-color: var(--blue); }
 .legend, .proofList {
   display: grid;
   gap: 7px;
@@ -321,6 +376,8 @@ code {
 }
 @media (max-width: 560px) {
   .statusGrid, .links { grid-template-columns: 1fr; }
+  .routeControls { grid-template-columns: 1fr 1fr; }
+  .routeControls input { grid-column: 1 / -1; }
   .scoreRow, .leaderRow { grid-template-columns: 1fr; }
   .value { text-align: left; }
 }
@@ -360,6 +417,15 @@ code {
           ${legendItem('path', 'Visited route')}
           ${legendItem('artifact', 'Artifact extraction')}
         </div>
+      </div>
+      <div class="playback" aria-label="Route playback">
+        <div class="playbackHeader"><strong>Route Playback</strong><span id="routeStep">Step 1 / ${escapeHtml(route.length || 1)}</span></div>
+        <div class="routeControls">
+          <button id="routePlay" type="button">Play</button>
+          <button id="routePause" type="button">Pause</button>
+          <input id="routeSlider" type="range" min="0" max="${escapeHtml(Math.max(0, route.length - 1))}" value="0">
+        </div>
+        <div class="routeMeta">Scrub the public route from the spawn cell to the final exit extraction.</div>
       </div>
     </div>
     <div class="panel">
@@ -404,6 +470,63 @@ code {
 </main>
 <script>
 const missionControl = ${JSON.stringify(data, null, 2)};
+(function initRoutePlayback() {
+  const route = Array.isArray(missionControl.route) ? missionControl.route : [];
+  const slider = document.getElementById('routeSlider');
+  const stepLabel = document.getElementById('routeStep');
+  const playButton = document.getElementById('routePlay');
+  const pauseButton = document.getElementById('routePause');
+  let timer = null;
+
+  function cellFor(coord) {
+    if (!Array.isArray(coord) || coord.length !== 2) return null;
+    return document.querySelector('[data-coord="' + coord[0] + ',' + coord[1] + '"]');
+  }
+
+  function render(index) {
+    if (!route.length) return;
+    const bounded = Math.max(0, Math.min(route.length - 1, Number(index) || 0));
+    document.querySelectorAll('.routeSeen,.routeActive').forEach((node) => {
+      node.classList.remove('routeSeen', 'routeActive');
+    });
+    for (let step = 0; step <= bounded; step += 1) {
+      const cell = cellFor(route[step]);
+      if (cell) cell.classList.add('routeSeen');
+    }
+    const active = cellFor(route[bounded]);
+    if (active) active.classList.add('routeActive');
+    if (slider) slider.value = String(bounded);
+    if (stepLabel) {
+      const coord = route[bounded];
+      stepLabel.textContent = 'Step ' + (bounded + 1) + ' / ' + route.length + ' - (' + coord[0] + ',' + coord[1] + ')';
+    }
+  }
+
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+
+  function play() {
+    if (!route.length) return;
+    stop();
+    let index = Number(slider ? slider.value : 0);
+    if (index >= route.length - 1) index = -1;
+    timer = setInterval(() => {
+      index += 1;
+      render(index);
+      if (index >= route.length - 1) stop();
+    }, 520);
+  }
+
+  if (slider) slider.addEventListener('input', () => {
+    stop();
+    render(slider.value);
+  });
+  if (playButton) playButton.addEventListener('click', play);
+  if (pauseButton) pauseButton.addEventListener('click', stop);
+  render(0);
+}());
 </script>
 </body>
 </html>`;

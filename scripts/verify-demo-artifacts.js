@@ -62,10 +62,13 @@ function main(argv = process.argv.slice(2)) {
       'EchoGrid Mission Control',
       'Final Public Map',
       'Mission Timeline',
+      'Route Playback',
       'Score Construction',
       'Agent Tournament',
       'Evidence Links',
       'const missionControl = ',
+      'id="routeSlider"',
+      'initRoutePlayback',
       'sector C scan showed exactly two unstable echoes',
       'data-coord="7,7"',
     ], errors);
