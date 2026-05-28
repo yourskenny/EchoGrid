@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 
 const REQUIRED_FILES = [
   'README.md',
+  'START_HERE.html',
   'SUBMISSION_AUDIT.md',
   'SUBMISSION_CHECKLIST.md',
   'SUBMISSION_MANIFEST.json',
@@ -68,6 +69,7 @@ function main(argv = process.argv.slice(2)) {
     verifyVisualSmoke(bundleDir, errors);
     verifyAuditReport(bundleDir, errors);
     verifyOnePager(bundleDir, errors);
+    verifyStartHere(bundleDir, errors);
     verifyZipArchive(bundleDir, zipFile, errors);
   }
 
@@ -229,6 +231,25 @@ function verifyOnePager(bundleDir, errors) {
     'npm run submission:check',
   ]) {
     if (!text.includes(needle)) errors.push(`SUBMISSION_ONE_PAGER.md missing "${needle}"`);
+  }
+}
+
+function verifyStartHere(bundleDir, errors) {
+  const file = path.join(bundleDir, 'START_HERE.html');
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of [
+    'EchoGrid Submission',
+    'mission-control-desktop.png',
+    '90-Second Path',
+    'Why It Holds Up',
+    'Mission Control',
+    'showcase/mission-control.html',
+    'SUBMISSION_ONE_PAGER.md',
+    'SUBMISSION_AUDIT.md',
+    'SUBMISSION_MANIFEST.json',
+  ]) {
+    if (!text.includes(needle)) errors.push(`START_HERE.html missing "${needle}"`);
   }
 }
 

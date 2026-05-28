@@ -626,6 +626,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /ECHO GRID SUBMISSION BUNDLE/);
     assert.ok(fs.existsSync(path.join(outDir, 'README.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'START_HERE.html')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_AUDIT.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_CHECKLIST.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_MANIFEST.json')));
@@ -649,6 +650,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.equal(manifest.schema, 'echogrid.submission_bundle.v1');
     assert.equal(manifest.showcase.result, 'success');
     assert.equal(manifest.benchmarks.adversarial.leader.agent, './agents/rule-aware.js');
+    assert.ok(manifest.files.find((item) => item.path === 'START_HERE.html')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'showcase/MANIFEST.json')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_AUDIT.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
@@ -661,6 +663,10 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(onePager, /EchoGrid One-Pager/);
     assert.match(onePager, /Why It Is Worth Judging/);
     assert.match(onePager, /90-Second Review Path/);
+    const startHere = fs.readFileSync(path.join(outDir, 'START_HERE.html'), 'utf8');
+    assert.match(startHere, /EchoGrid Submission/);
+    assert.match(startHere, /mission-control-desktop\.png/);
+    assert.match(startHere, /showcase\/mission-control\.html/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

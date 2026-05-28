@@ -74,10 +74,12 @@ function main(argv = process.argv.slice(2)) {
     benchmarks,
   });
 
+  const startFile = path.join(outDir, 'START_HERE.html');
   const readmeFile = path.join(outDir, 'README.md');
   const onePagerFile = path.join(outDir, 'SUBMISSION_ONE_PAGER.md');
   const checklistFile = path.join(outDir, 'SUBMISSION_CHECKLIST.md');
   const auditFile = path.join(outDir, 'SUBMISSION_AUDIT.md');
+  fs.writeFileSync(startFile, renderStartHereHtml(summary), 'utf8');
   fs.writeFileSync(readmeFile, renderReadme(summary), 'utf8');
   fs.writeFileSync(onePagerFile, renderOnePager(summary), 'utf8');
   fs.writeFileSync(checklistFile, renderChecklist(summary), 'utf8');
@@ -261,7 +263,7 @@ function renderReadme(summary) {
     '',
     '## Start Here',
     '',
-    'Open `showcase/index.html` first. For the guided presentation, open `showcase/mission-control.html`.',
+    'Open `START_HERE.html` first. For the guided presentation, open `showcase/mission-control.html`.',
     '',
     '## Contents',
     '',
@@ -270,6 +272,7 @@ function renderReadme(summary) {
     '- `benchmarks/adversarial/`: fixed adversarial public benchmark output.',
     '- `benchmarks/rules/`: hidden-rule signal benchmark output.',
     '- `source/`: project README and judge-facing protocol/scoring docs.',
+    '- `START_HERE.html`: browser-first entry point for judges.',
     '- `SUBMISSION_ONE_PAGER.md`: short judge-facing pitch and review path.',
     '- `SUBMISSION_CHECKLIST.md`: human-readable delivery checklist.',
     '- `SUBMISSION_AUDIT.md`: generated verification matrix and handoff evidence summary.',
@@ -293,6 +296,172 @@ function renderReadme(summary) {
     'This rebuilds the showcase, verifies artifacts, runs the public benchmark gates, recreates this bundle, and verifies the bundle directory plus zip archive.',
     '',
   ].join('\n');
+}
+
+function renderStartHereHtml(summary) {
+  const showcase = summary.showcase;
+  const adversarial = summary.benchmarks.adversarial;
+  const rules = summary.benchmarks.rules;
+  const edge = Number(adversarial.leader.average_score) - averageScore(adversarial.rows, './agents/baseline.js');
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EchoGrid Submission</title>
+<style>
+:root {
+  --ink: #20272b;
+  --muted: #59686d;
+  --bg: #f6f4ef;
+  --panel: #fffdf8;
+  --line: #d9d2c4;
+  --blue: #256b91;
+  --green: #39785a;
+  --amber: #b67521;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+main {
+  width: min(1160px, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: 24px 0 34px;
+}
+header {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  gap: 18px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+h1 { margin: 0; font-size: 34px; line-height: 1.08; letter-spacing: 0; }
+.subtle { color: var(--muted); margin: 8px 0 0; }
+.preview {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.verdict {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.metric, .panel, .link {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.metric { min-height: 86px; padding: 12px; }
+.metric span { display: block; color: var(--muted); font-size: 12px; }
+.metric strong { display: block; margin-top: 6px; font-size: 23px; line-height: 1.18; overflow-wrap: anywhere; }
+.success { color: var(--green); }
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+}
+.panel { padding: 14px; min-width: 0; }
+.panel h2 { margin: 0 0 10px; font-size: 17px; }
+.pathList { margin: 0; padding-left: 20px; }
+.pathList li { margin: 7px 0; }
+.links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.link {
+  display: block;
+  min-height: 78px;
+  padding: 12px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.link:hover { border-color: var(--blue); }
+.link strong { display: block; font-size: 16px; }
+.link span { display: block; margin-top: 5px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+code {
+  background: #eee8dc;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+@media (max-width: 820px) {
+  main { width: calc(100vw - 20px); }
+  header, .grid { grid-template-columns: 1fr; }
+  .verdict, .links { grid-template-columns: 1fr; }
+  h1 { font-size: 30px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>EchoGrid Submission</h1>
+      <p class="subtle">Agent-native inference game demo with deterministic logs, hidden-rule reasoning, browser replay, benchmarks, and a verifiable handoff bundle.</p>
+    </div>
+    <img class="preview" src="showcase/screenshots/mission-control-desktop.png" alt="Mission Control dashboard preview">
+  </header>
+
+  <section class="verdict" aria-label="Submission verdict">
+    ${startMetric('Showcase', `${showcase.result}/${showcase.reason}`, 'success')}
+    ${startMetric('Score', `${showcase.score}`)}
+    ${startMetric('Artifacts', showcase.artifacts)}
+    ${startMetric('Agent Edge', `${formatSigned(edge)} avg`)}
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <h2>90-Second Path</h2>
+      <ol class="pathList">
+        <li>Open <code>showcase/mission-control.html</code> and read the Competition Verdict.</li>
+        <li>Use Route Playback to inspect the public path and rule-claim milestones.</li>
+        <li>Open <code>showcase/SCORECARD.md</code> and <code>SUBMISSION_AUDIT.md</code> for capability gates.</li>
+        <li>Review adversarial and rule-signal leaderboards for agent separation.</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>Why It Holds Up</h2>
+      <p>Hidden rule claim: <strong>${escapeHtml(showcase.rule_claim?.id || 'unknown')}</strong>, accepted=${escapeHtml(Boolean(showcase.rule_claim?.correct))}.</p>
+      <p>Clean run: damage=${escapeHtml(showcase.metrics?.damage_events ?? 'n/a')}, invalid=${escapeHtml(showcase.metrics?.invalid_actions ?? 'n/a')}, wasted=${escapeHtml(showcase.metrics?.wasted_actions ?? 'n/a')}.</p>
+      <p>Benchmarks: adversarial leader ${escapeHtml(adversarial.leader.agent)}, rule-signal leader ${escapeHtml(rules.leader.agent)}.</p>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <h2>Open These Files</h2>
+    <div class="links">
+      ${startLink('Mission Control', 'showcase/mission-control.html', 'Guided verdict, map, route playback, timeline, and evidence links.')}
+      ${startLink('Demo Index', 'showcase/index.html', 'Showcase package entry point and artifact links.')}
+      ${startLink('One-Pager', 'SUBMISSION_ONE_PAGER.md', 'Short judge-facing pitch and review path.')}
+      ${startLink('Audit Report', 'SUBMISSION_AUDIT.md', 'Generated verification matrix and command evidence.')}
+      ${startLink('Scorecard', 'showcase/SCORECARD.md', 'Capability gates and expected proof points.')}
+      ${startLink('Adversarial Leaderboard', 'benchmarks/adversarial/leaderboard.md', 'Public adversarial benchmark standings.')}
+      ${startLink('Rule-Signal Leaderboard', 'benchmarks/rules/leaderboard.md', 'Hidden-rule signal benchmark standings.')}
+      ${startLink('Manifest', 'SUBMISSION_MANIFEST.json', 'Bundle file inventory with sha256 hashes.')}
+    </div>
+  </section>
+</main>
+</body>
+</html>`;
+}
+
+function startMetric(label, value, className = '') {
+  const classAttr = className ? ` class="${className}"` : '';
+  return `<div class="metric"><span>${escapeHtml(label)}</span><strong${classAttr}>${escapeHtml(value)}</strong></div>`;
+}
+
+function startLink(label, href, detail) {
+  return `<a class="link" href="${escapeHtml(href)}"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(detail)}</span></a>`;
 }
 
 function renderOnePager(summary) {
@@ -372,6 +541,16 @@ function formatSigned(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 'n/a';
   return number >= 0 ? `+${Math.round(number * 10) / 10}` : String(Math.round(number * 10) / 10);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
 }
 
 function renderAuditReport(summary) {
