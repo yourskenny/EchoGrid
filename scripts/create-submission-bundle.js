@@ -146,10 +146,8 @@ function validateBenchmarkExpectations(benchmarks) {
   const publicBaseline = requireAgent(publicBenchmark, './agents/baseline.js');
   const publicRuleAware = requireAgent(publicBenchmark, './agents/rule-aware.js');
   if (publicRandom.success_rate !== 0) throw new Error('Public benchmark expected random agent to fail all seeds.');
-  if (publicBaseline.success_rate < 0.9) throw new Error('Public benchmark expected baseline success rate at or above 0.9.');
-  if (publicRuleAware.success_rate < publicBaseline.success_rate) {
-    throw new Error('Public benchmark expected rule-aware success rate at least baseline.');
-  }
+  if (publicBaseline.success_rate !== 1) throw new Error('Public benchmark expected baseline to solve all seeds.');
+  if (publicRuleAware.success_rate !== 1) throw new Error('Public benchmark expected rule-aware to solve all seeds.');
   if (!(publicRuleAware.average_score > publicBaseline.average_score)) {
     throw new Error('Public benchmark expected rule-aware average score above baseline.');
   }
@@ -516,7 +514,7 @@ function renderOnePager(summary) {
     `- The showcase completes the full mission: ${showcase.result}/${showcase.reason}, score ${showcase.score}, ${showcase.artifacts} artifacts, ${showcase.turns} turns.`,
     `- The agent infers a hidden rule from public evidence: ${showcase.rule_claim?.id || 'unknown'}, accepted=${Boolean(showcase.rule_claim?.correct)}.`,
     `- The run is clean: damage=${showcase.metrics?.damage_events ?? 'n/a'}, invalid=${showcase.metrics?.invalid_actions ?? 'n/a'}, wasted=${showcase.metrics?.wasted_actions ?? 'n/a'}.`,
-    `- Broader public benchmark stays honest: ${publicBenchmark.leader.agent} leads at average score ${publicBenchmark.leader.average_score}, success rate ${publicBenchmark.leader.success_rate}.`,
+    `- Broader public benchmark is fully solved by the reference policies: ${publicBenchmark.leader.agent} leads at average score ${publicBenchmark.leader.average_score}, success rate ${publicBenchmark.leader.success_rate}.`,
     `- Strategy quality separates agents: adversarial leader ${adversarial.leader.agent}, average score edge ${formatSigned(edge)} over baseline.`,
     `- Rule-signal benchmark stays robust: ${rules.leader.agent} leads at average score ${rules.leader.average_score}.`,
     '',
@@ -641,7 +639,7 @@ function renderChecklist(summary) {
     '- [x] Submission audit report included at `SUBMISSION_AUDIT.md`.',
     '- [x] Strategy audit included at `SUBMISSION_STRATEGY_AUDIT.md`.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
-    '- [x] Public benchmark included and rule-aware beats baseline on average score.',
+    '- [x] Public benchmark included, fully solved by reference policies, and rule-aware beats baseline on average score.',
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
     '- [x] Rule-signals benchmark included and rule-aware/rule-explorer beat baseline on average score.',
     '- [x] Bundle manifest includes sha256 hashes for all copied files.',

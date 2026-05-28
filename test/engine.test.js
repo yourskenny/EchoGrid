@@ -668,6 +668,21 @@ test('adversarial seed set covers hidden rules and remains solvable by reference
   ]);
 });
 
+test('reference policies ignore extra artifacts after quota and extract at exit', () => {
+  const baseline = runReferencePolicy('424242', 'baseline');
+  const ruleAware = runReferencePolicy('424242', 'rule-aware');
+
+  assert.equal(baseline.status, 'success');
+  assert.equal(ruleAware.status, 'success');
+  assert.equal(baseline.reason, 'objective_complete');
+  assert.equal(ruleAware.reason, 'objective_complete');
+  assert.equal(baseline.artifacts, '3/3');
+  assert.equal(ruleAware.artifacts, '3/3');
+  assert.equal(baseline.invalid_actions, 0);
+  assert.equal(ruleAware.invalid_actions, 0);
+  assert.ok(ruleAware.score > baseline.score);
+});
+
 function runReferencePolicy(seed, policy) {
   const game = new EchoGridGame({ seed, mode: 'mvp' });
   while (!game.state().turn.terminal) {

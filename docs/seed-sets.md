@@ -22,7 +22,7 @@ EchoGrid seed files are deterministic benchmark surfaces. They are public by des
 npm run benchmark:public
 ```
 
-The command writes `logs/public/agent-comparison.json`, `logs/public/arena.html`, and `logs/public/leaderboard.md`. The set is intentionally broader than the single showcase path and includes a known-hard seed where the reference agents can fail. The bundle verifier therefore checks honest separation: random has 0% success, baseline remains at or above 90% success, and rule-aware matches or exceeds baseline success while beating baseline average score.
+The command writes `logs/public/agent-comparison.json`, `logs/public/arena.html`, and `logs/public/leaderboard.md`. The set is intentionally broader than the single showcase path and includes a known-hard exit-routing seed. The bundle verifier checks that random has 0% success, both reference policies solve every public seed, and rule-aware beats baseline on average score.
 
 ## Rule-Signal Set
 

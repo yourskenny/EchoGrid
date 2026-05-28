@@ -614,8 +614,8 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
       seed_file: './seeds/public.txt',
       rows: [
         { agent: './agents/random.js', seeds: 10, successes: 0, success_rate: 0, average_score: 199, average_turns: 107.7, best_score: 374, worst_score: 138, results: [] },
-        { agent: './agents/baseline.js', seeds: 10, successes: 9, success_rate: 0.9, average_score: 727.7, average_turns: 66.6, best_score: 878, worst_score: -575, results: [] },
-        { agent: './agents/rule-aware.js', seeds: 10, successes: 9, success_rate: 0.9, average_score: 787.2, average_turns: 67.9, best_score: 991, worst_score: -420, results: [] },
+        { agent: './agents/baseline.js', seeds: 10, successes: 10, success_rate: 1, average_score: 871.2, average_turns: 61.8, best_score: 878, worst_score: 860, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 10, successes: 10, success_rate: 1, average_score: 926.7, average_turns: 63.3, best_score: 991, worst_score: 864, results: [] },
       ],
     });
     writeBenchmarkPackage(adversarialDir, {

@@ -13,7 +13,7 @@ function decideAction(state) {
   }
 
   const current = known.get(key(position));
-  if (current && current.terrain === 'artifact') {
+  if (current && current.terrain === 'artifact' && collected < required) {
     return 'extract';
   }
   if (current && current.terrain === 'exit' && collected >= required) {

@@ -206,12 +206,8 @@ function verifyPublicBenchmark(benchmark, errors) {
   if (!baseline) errors.push('public benchmark missing baseline row');
   if (!ruleAware) errors.push('public benchmark missing rule-aware row');
   if (random && random.success_rate !== 0) errors.push(`public random success rate expected 0, got ${random.success_rate}`);
-  if (baseline && baseline.success_rate < 0.9) {
-    errors.push(`public baseline success rate expected at least 0.9, got ${baseline.success_rate}`);
-  }
-  if (baseline && ruleAware && ruleAware.success_rate < baseline.success_rate) {
-    errors.push(`public rule-aware success rate expected at least baseline, got ${ruleAware.success_rate} vs ${baseline.success_rate}`);
-  }
+  if (baseline && baseline.success_rate !== 1) errors.push(`public baseline success rate expected 1, got ${baseline.success_rate}`);
+  if (ruleAware && ruleAware.success_rate !== 1) errors.push(`public rule-aware success rate expected 1, got ${ruleAware.success_rate}`);
   if (baseline && ruleAware && !(ruleAware.average_score > baseline.average_score)) {
     errors.push('public rule-aware average score is not above baseline');
   }
