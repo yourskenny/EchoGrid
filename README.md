@@ -38,7 +38,7 @@ npm run demo:full
 13. generated artifact manifest with sha256 hashes
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/mission-control.html` for the dashboard and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
+Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/mission-control.html` for the guided briefing, dashboard, and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
 
 For a shorter verification path, run:
 

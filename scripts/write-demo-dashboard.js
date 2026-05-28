@@ -90,6 +90,7 @@ function buildDemoDashboard(events, options = {}) {
     leader: leader?.agent || 'unknown',
     score_gap_vs_baseline: scoreGap,
   };
+  const briefing = buildBriefingSteps(summary, milestones, strategy);
   const actionMix = summarizeActions(actionEvents);
   const data = {
     summary,
@@ -105,6 +106,7 @@ function buildDemoDashboard(events, options = {}) {
       route_index: routeIndex,
     })),
     strategy,
+    briefing,
     comparison_seed_file: comparison.seed_file || 'unknown',
   };
 
@@ -183,6 +185,50 @@ h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
 .metric strong { display: block; margin-top: 6px; font-size: 22px; overflow-wrap: anywhere; }
 .success { color: var(--green); }
 .warn { color: var(--amber); }
+.briefingPanel { margin: 14px 0; }
+.briefingTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.briefingTop h2 { margin: 0; font-size: 15px; }
+.briefingTop p { margin: 4px 0 0; color: var(--muted); }
+.briefingControls {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 8px;
+}
+.briefingControls button,
+.briefStep {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  background: #fdfaf2;
+  color: var(--ink);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.briefingControls button:hover,
+.briefStep:hover,
+.briefStep.active {
+  border-color: var(--blue);
+}
+.briefingStage {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  border-left: 3px solid var(--blue);
+  padding-left: 10px;
+}
+.briefingStage span { color: var(--muted); font-size: 12px; }
+.briefingStage strong { font-size: 18px; }
+.briefingStage p { margin: 0; color: var(--muted); }
+.briefingSteps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
 .boardWrap {
   display: grid;
   grid-template-columns: minmax(260px, 520px) minmax(180px, 1fr);
@@ -438,7 +484,7 @@ code {
 }
 @media (max-width: 980px) {
   main { width: min(100vw - 20px, 1220px); }
-  header, .hero, .grid, .boardWrap { grid-template-columns: 1fr; }
+  header, .hero, .grid, .boardWrap, .briefingTop { grid-template-columns: 1fr; }
   .stamp { text-align: left; }
   .statusGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .strategyGrid { grid-template-columns: 1fr; }
@@ -446,6 +492,7 @@ code {
 }
 @media (max-width: 560px) {
   .statusGrid, .links { grid-template-columns: 1fr; }
+  .briefingControls { grid-template-columns: 1fr; }
   .routeControls { grid-template-columns: 1fr 1fr; }
   .routeControls input { grid-column: 1 / -1; }
   .event { grid-template-columns: 1fr; }
@@ -473,6 +520,28 @@ code {
     ${metric('Visible Cells', summary.visible_cells)}
     ${metric('Resources', `energy ${summary.energy}, integrity ${summary.integrity}`)}
     ${metric('Agent Edge', scoreGap === null ? 'n/a' : `+${scoreGap} avg score`)}
+  </section>
+
+  <section class="panel briefingPanel" aria-label="Judge briefing">
+    <div class="briefingTop">
+      <div>
+        <h2>Judge Briefing</h2>
+        <p>Run a guided 60-second explanation that syncs the talk track to the public route.</p>
+      </div>
+      <div class="briefingControls">
+        <button id="briefStart" type="button">Start</button>
+        <button id="briefPrev" type="button">Prev</button>
+        <button id="briefNext" type="button">Next</button>
+      </div>
+    </div>
+    <div class="briefingStage">
+      <span id="briefCount">1 / ${escapeHtml(Math.max(1, briefing.length))}</span>
+      <strong id="briefTitle">${escapeHtml(briefing[0]?.title || 'Mission setup')}</strong>
+      <p id="briefDetail">${escapeHtml(briefing[0]?.detail || 'Open the generated replay and audit artifacts for the full trace.')}</p>
+    </div>
+    <div class="briefingSteps">
+      ${briefing.map((item, index) => briefingStep(item, index)).join('\n')}
+    </div>
   </section>
 
   <section class="hero">
@@ -548,11 +617,19 @@ code {
 const missionControl = ${JSON.stringify(data, null, 2)};
 (function initRoutePlayback() {
   const route = Array.isArray(missionControl.route) ? missionControl.route : [];
+  const briefing = Array.isArray(missionControl.briefing) ? missionControl.briefing : [];
   const slider = document.getElementById('routeSlider');
   const stepLabel = document.getElementById('routeStep');
   const playButton = document.getElementById('routePlay');
   const pauseButton = document.getElementById('routePause');
+  const briefStart = document.getElementById('briefStart');
+  const briefPrev = document.getElementById('briefPrev');
+  const briefNext = document.getElementById('briefNext');
+  const briefCount = document.getElementById('briefCount');
+  const briefTitle = document.getElementById('briefTitle');
+  const briefDetail = document.getElementById('briefDetail');
   let timer = null;
+  let briefIndex = 0;
 
   function cellFor(coord) {
     if (!Array.isArray(coord) || coord.length !== 2) return null;
@@ -599,6 +676,24 @@ const missionControl = ${JSON.stringify(data, null, 2)};
     }, 520);
   }
 
+  function renderBriefing(index) {
+    if (!briefing.length) {
+      render(0);
+      return;
+    }
+    const bounded = Math.max(0, Math.min(briefing.length - 1, Number(index) || 0));
+    briefIndex = bounded;
+    const step = briefing[bounded];
+    if (briefCount) briefCount.textContent = (bounded + 1) + ' / ' + briefing.length;
+    if (briefTitle) briefTitle.textContent = step.title || 'Briefing step';
+    if (briefDetail) briefDetail.textContent = step.detail || '';
+    document.querySelectorAll('.briefStep').forEach((button) => {
+      const buttonIndex = Number(button.getAttribute('data-brief-index') || 0);
+      button.classList.toggle('active', buttonIndex === bounded);
+    });
+    render(step.route_index || 0);
+  }
+
   if (slider) slider.addEventListener('input', () => {
     stop();
     render(slider.value);
@@ -609,9 +704,27 @@ const missionControl = ${JSON.stringify(data, null, 2)};
       render(button.getAttribute('data-route-index'));
     });
   });
+  document.querySelectorAll('.briefStep').forEach((button) => {
+    button.addEventListener('click', () => {
+      stop();
+      renderBriefing(button.getAttribute('data-brief-index'));
+    });
+  });
+  if (briefStart) briefStart.addEventListener('click', () => {
+    stop();
+    renderBriefing(0);
+  });
+  if (briefPrev) briefPrev.addEventListener('click', () => {
+    stop();
+    renderBriefing(briefIndex - 1);
+  });
+  if (briefNext) briefNext.addEventListener('click', () => {
+    stop();
+    renderBriefing(briefIndex + 1);
+  });
   if (playButton) playButton.addEventListener('click', play);
   if (pauseButton) pauseButton.addEventListener('click', stop);
-  render(0);
+  renderBriefing(0);
 }());
 </script>
 </body>
@@ -664,6 +777,10 @@ function metric(label, value, className = '') {
 function milestone(item) {
   const routeIndex = Number.isInteger(item.route_index) ? item.route_index : 0;
   return `<div class="event" data-route-index="${escapeHtml(routeIndex)}"><div class="turn">Turn ${escapeHtml(item.turn)}</div><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></div><button class="jumpButton" type="button" data-route-index="${escapeHtml(routeIndex)}">Jump</button></div>`;
+}
+
+function briefingStep(item, index) {
+  return `<button class="briefStep" type="button" data-brief-index="${escapeHtml(index)}" data-route-index="${escapeHtml(item.route_index ?? 0)}">${escapeHtml(index + 1)}. ${escapeHtml(item.short || item.title)}</button>`;
 }
 
 function scoreRows(score) {
@@ -764,6 +881,58 @@ function buildStrategyEvidence(rows, context = {}) {
     random_failures: randomFailures,
     seed_deltas: seedDeltas,
   };
+}
+
+function buildBriefingSteps(summary, milestones, strategy) {
+  const signal = milestones.find((item) => item.title === 'Rule signal found');
+  const claim = milestones.find((item) => item.title === 'Rule claim accepted');
+  const artifacts = milestones.filter((item) => item.title === 'Artifact secured');
+  const final = milestones.find((item) => item.title === 'Objective complete');
+  const lastArtifact = artifacts[artifacts.length - 1] || final || claim || signal;
+  const finalRouteIndex = final?.route_index ?? lastArtifact?.route_index ?? 0;
+
+  return [
+    {
+      short: 'Setup',
+      title: 'Mission setup',
+      detail: `Seed ${summary.seed} is deterministic: collect ${summary.artifacts} artifacts and extract through the exit.`,
+      route_index: 0,
+    },
+    {
+      short: 'Signal',
+      title: 'Public rule signal',
+      detail: signal
+        ? `The agent observes ${signal.detail} from public scan data.`
+        : 'The agent must use public observations before taking route risks.',
+      route_index: signal?.route_index ?? 0,
+    },
+    {
+      short: 'Claim',
+      title: 'Audited rule claim',
+      detail: claim
+        ? `The rule claim is accepted with rationale: ${claim.detail}.`
+        : 'No accepted rule claim appears on this seed, so routing policy carries the run.',
+      route_index: claim?.route_index ?? signal?.route_index ?? 0,
+    },
+    {
+      short: 'Artifacts',
+      title: 'Artifact route',
+      detail: `The route secures ${summary.artifacts} artifacts with ${summary.damage_events} damage events and ${summary.invalid_actions} invalid actions.`,
+      route_index: lastArtifact?.route_index ?? 0,
+    },
+    {
+      short: 'Finish',
+      title: 'Objective complete',
+      detail: `Final score ${summary.score}, energy ${summary.energy}, integrity ${summary.integrity}.`,
+      route_index: finalRouteIndex,
+    },
+    {
+      short: 'Edge',
+      title: 'Strategy edge',
+      detail: `Across demo seeds, rule-aware is ${formatSigned(strategy.average_score_gap)} average score over baseline; random fails ${strategy.random_failures || 'n/a'}.`,
+      route_index: finalRouteIndex,
+    },
+  ];
 }
 
 function collectMilestones(actionEvents, routeSteps = []) {

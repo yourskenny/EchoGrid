@@ -51,7 +51,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - HTML replay viewer: browser-based board, controls, score curve, key events, and action timeline for judges.
 - HTML comparison arena: side-by-side agent aggregate and per-seed score matrix.
 - Leaderboard: ranked Markdown output for tournament-style judging.
-- Mission-control dashboard: first-glance presentation page with the final public map, scrub/play route playback, clickable milestones, score construction, strategy edge, agent tournament, and evidence links.
+- Mission-control dashboard: first-glance presentation page with a guided judge briefing, final public map, scrub/play route playback, clickable milestones, score construction, strategy edge, agent tournament, and evidence links.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.
 - Demo index: generated HTML entry point with artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.
@@ -81,7 +81,7 @@ npm run demo:index
 npm run demo:manifest
 ```
 
-After `npm run demo:full`, open `logs/showcase/index.html` first for the demo package entry point. Then open `logs/showcase/mission-control.html` for the presentation dashboard and quick route playback, `logs/showcase/SCORECARD.md` for the capability gates, `logs/showcase/JUDGE_BRIEF.md` for the short judging script and result snapshot, `logs/showcase/leaderboard.md` for ranked results, `logs/showcase/arena.html` for the side-by-side agent comparison, and `logs/showcase/replay.html` for the single-run replay. The HTML viewers are single files with no server or external assets. The replay viewer shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline. Use `logs/showcase/MANIFEST.json` to verify the generated files by size and sha256 hash.
+After `npm run demo:full`, open `logs/showcase/index.html` first for the demo package entry point. Then open `logs/showcase/mission-control.html` for the guided judge briefing, presentation dashboard, and quick route playback, `logs/showcase/SCORECARD.md` for the capability gates, `logs/showcase/JUDGE_BRIEF.md` for the short judging script and result snapshot, `logs/showcase/leaderboard.md` for ranked results, `logs/showcase/arena.html` for the side-by-side agent comparison, and `logs/showcase/replay.html` for the single-run replay. The HTML viewers are single files with no server or external assets. The replay viewer shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline. Use `logs/showcase/MANIFEST.json` to verify the generated files by size and sha256 hash.
 
 ## Expected Story
 

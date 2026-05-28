@@ -280,6 +280,9 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(dashboard.stdout, /Wrote/);
     const dashboardHtml = fs.readFileSync(dashboardFile, 'utf8');
     assert.match(dashboardHtml, /EchoGrid Mission Control/);
+    assert.match(dashboardHtml, /Judge Briefing/);
+    assert.match(dashboardHtml, /id="briefNext"/);
+    assert.match(dashboardHtml, /data-brief-index/);
     assert.match(dashboardHtml, /Final Public Map/);
     assert.match(dashboardHtml, /Mission Timeline/);
     assert.match(dashboardHtml, /Route Playback/);
@@ -511,7 +514,7 @@ test('demo artifact verifier accepts a complete showcase package', () => {
     ];
     fs.writeFileSync(path.join(tmp, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
     fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
-    fs.writeFileSync(path.join(tmp, 'mission-control.html'), 'EchoGrid Mission Control Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Strategy Edge Average score edge Accepted rule claims Random agent failures deltaWrap Evidence Links const missionControl = id="routeSlider" initRoutePlayback class="jumpButton" data-route-index sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'mission-control.html'), 'EchoGrid Mission Control Judge Briefing id="briefNext" data-brief-index Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Strategy Edge Average score edge Accepted rule claims Random agent failures deltaWrap Evidence Links const missionControl = id="routeSlider" initRoutePlayback class="jumpButton" data-route-index sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
     fs.writeFileSync(path.join(tmp, 'SCORECARD.md'), 'EchoGrid Demo Scorecard Capability gates passed: 6/6 Mission completion Hidden-rule inference Agent separation PASS rule-aware avg=929.5', 'utf8');
     fs.writeFileSync(path.join(tmp, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
     fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');

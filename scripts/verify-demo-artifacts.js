@@ -60,6 +60,9 @@ function main(argv = process.argv.slice(2)) {
     ], errors);
     verifyText(files.dashboard, [
       'EchoGrid Mission Control',
+      'Judge Briefing',
+      'id="briefNext"',
+      'data-brief-index',
       'Final Public Map',
       'Mission Timeline',
       'Route Playback',
