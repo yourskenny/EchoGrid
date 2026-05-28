@@ -66,6 +66,23 @@ The one-shot and persistent modes use the same action protocol. Persistent mode 
 Public seeds are for development and explanation. Final rankings should use held-out seeds when possible.
 For seed-set details, see [seed-sets.md](./seed-sets.md).
 
+## Held-Out Benchmark Command
+
+Judges can run a private seed file without editing the repository:
+
+```bash
+set ECHOGRID_HELDOUT_SEEDS=C:\path\to\heldout-seeds.txt
+npm run benchmark:heldout
+```
+
+Or pass the file directly:
+
+```bash
+node ./scripts/run-heldout-benchmark.js --seeds C:\path\to\heldout-seeds.txt --out ./logs/heldout
+```
+
+The command writes `heldout-results.json`, `heldout-leaderboard.md`, and `HELDOUT_SUMMARY.md`. Seed ids are redacted by default in generated outputs and the seed file is identified by sha256 plus count. Use `--show-seeds` only when seed disclosure is acceptable.
+
 ## Allowed Agent Inputs
 
 Agents may use:
@@ -129,6 +146,7 @@ A judged submission should provide:
 - command used
 - agent path
 - seed file or seed list
+- held-out seed file sha256 when private seeds are used
 - success rate
 - average score
 - average turns

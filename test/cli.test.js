@@ -356,6 +356,56 @@ test('compare script prints agent comparison table', () => {
   }
 });
 
+test('held-out benchmark redacts private seed ids and writes ranking artifacts', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const seedsFile = path.join(tmp, 'private-seeds.txt');
+    const outDir = path.join(tmp, 'heldout');
+    fs.writeFileSync(seedsFile, '9001\n', 'utf8');
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        './scripts/run-heldout-benchmark.js',
+        '--seeds',
+        seedsFile,
+        '--agents',
+        './agents/baseline.js,./agents/rule-aware.js',
+        '--out',
+        outDir,
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 60000,
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /ECHO GRID HELD-OUT BENCHMARK/);
+
+    const json = fs.readFileSync(path.join(outDir, 'heldout-results.json'), 'utf8');
+    const benchmark = JSON.parse(json);
+    assert.equal(benchmark.schema, 'echogrid.heldout_benchmark.v1');
+    assert.equal(benchmark.seed_file.redacted, true);
+    assert.equal(benchmark.seed_file.count, 1);
+    assert.equal(benchmark.rows.length, 2);
+    assert.equal(benchmark.rows[0].results[0].seed, 'heldout-001');
+    assert.doesNotMatch(json, /"seed":\s*"9001"/);
+
+    const leaderboard = fs.readFileSync(path.join(outDir, 'heldout-leaderboard.md'), 'utf8');
+    assert.match(leaderboard, /EchoGrid Held-Out Leaderboard/);
+    assert.match(leaderboard, /heldout-001/);
+    assert.doesNotMatch(leaderboard, /\|\s*9001\s*\|/);
+
+    const summary = fs.readFileSync(path.join(outDir, 'HELDOUT_SUMMARY.md'), 'utf8');
+    assert.match(summary, /Seed file sha256/);
+    assert.match(summary, /Seed ids are redacted by default/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('demo artifact verifier accepts a complete showcase package', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {

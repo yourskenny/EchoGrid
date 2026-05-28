@@ -41,3 +41,20 @@ These seeds were selected because the bundled reference policies can complete th
 - Use `public` and `adversarial` for local hardening before submission.
 - Use held-out seeds for final rankings when possible.
 - Do not let evaluated agents inspect hidden answers or prior logs from the same held-out run.
+
+## Held-Out Workflow
+
+For final ranking, keep the private seed file outside the repository and point EchoGrid at it:
+
+```bash
+set ECHOGRID_HELDOUT_SEEDS=C:\path\to\heldout-seeds.txt
+npm run benchmark:heldout
+```
+
+The script writes `logs/heldout/heldout-results.json`, `logs/heldout/heldout-leaderboard.md`, and `logs/heldout/HELDOUT_SUMMARY.md`. Generated outputs redact seed ids by default and identify the seed file by sha256 plus seed count. This lets judges verify they used a stable held-out set without publishing the actual seeds.
+
+To disclose seed ids intentionally, run:
+
+```bash
+node ./scripts/run-heldout-benchmark.js --seeds C:\path\to\heldout-seeds.txt --show-seeds
+```

@@ -59,6 +59,7 @@ npm run compare
 npm run showcase
 npm run demo:ci
 npm run benchmark:adversarial
+npm run benchmark:heldout
 
 node ./bin/echogrid.js inspect --seed 48129
 node ./bin/echogrid.js run --seed 48129 --pretty
@@ -74,6 +75,8 @@ npm run demo:manifest
 ```
 
 `inspect` is a local debugging command and may print hidden answer data. Do not use its output as evaluated agent input.
+
+For private final rankings, set `ECHOGRID_HELDOUT_SEEDS` to a seed file outside the repo and run `npm run benchmark:heldout`. The generated held-out outputs redact seed ids by default and record the seed file sha256.
 
 LLM-compatible smoke testing can be run with an OpenAI-compatible endpoint:
 
