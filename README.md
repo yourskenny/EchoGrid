@@ -29,6 +29,8 @@ npm run demo:full
 4. battle report
 5. replay timeline
 
+It recreates `logs/showcase` for the showcase run.
+
 For a shorter verification path, run:
 
 ```bash
@@ -56,14 +58,14 @@ LLM-compatible smoke testing can be run with an OpenAI-compatible endpoint:
 
 ```bash
 set ECHOGRID_LLM_API_KEY=...
-node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro
+node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro --leaderboard pure
 node ./scripts/summarize-llm-logs.js ./logs/llm
-node ./scripts/analyze-run.js ./logs/llm/deepseek-v4-flash/9001.jsonl
+node ./scripts/analyze-run.js ./logs/llm/pure/deepseek-v4-flash/9001.jsonl
 ```
 
 The key is read only from the environment and should never be committed.
 This command is an integration smoke test for model behavior and diagnostics; scores may vary by provider latency and model output quality.
-By default, the LLM runner separates `pure` model runs from `hybrid` model-plus-baseline-fallback runs so leaderboard scores and integration diagnostics do not get mixed.
+By default, the LLM runner separates `pure` model runs from `hybrid` model-plus-baseline-fallback runs so leaderboard scores and integration diagnostics do not get mixed. Pass `--leaderboard pure` to run only the strict model path and reduce provider calls.
 The LLM bridge retries an empty final action once by default through `ECHOGRID_LLM_RETRY_EMPTY_ACTION=1`; set it to `0` to measure first-response-only strictness.
 For DeepSeek V4 models, the bridge sends `thinking: { "type": "disabled" }` by default so short action prompts are not consumed by hidden reasoning tokens. Override with `ECHOGRID_LLM_THINKING_MODE`.
 

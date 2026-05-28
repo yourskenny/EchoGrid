@@ -44,6 +44,8 @@ const prompt = [
   'You are playing EchoGrid, a CLI-native inference game for agents.',
   'You receive only the current public STATE JSON. You do not know hidden terrain except through observations.',
   'Return exactly one valid action line and no explanation.',
+  'If STATE SUMMARY.must_copy_action is not null, copy that exact action.',
+  'Do not output extract unless STATE SUMMARY.extract_valid_now is true.',
   '',
   'Valid actions:',
   '- move N|S|E|W',
@@ -57,10 +59,11 @@ const prompt = [
   '- claim_rule rule_id',
   '',
   'Priorities:',
-  '1. Extract immediately when standing on an artifact.',
-  '2. Extract at exit after enough artifacts are collected.',
-  '3. If action_hints.next_action is present, output that exact action.',
-  '4. Otherwise, if action_hints.preferred has actions, output the first preferred action exactly.',
+  '1. If must_copy_action is present, output it exactly.',
+  '2. Extract immediately when standing on an artifact.',
+  '3. Extract at exit after enough artifacts are collected.',
+  '4. If action_hints.next_action is present, output that exact action.',
+  '5. Otherwise, if action_hints.preferred has actions, output the first preferred action exactly.',
   '5. Never move into an adjacent wall or hazard.',
   '6. Avoid actions listed in action_hints.avoid_repeating unless no other safe action exists.',
   '7. Use scans or claim_rule only when directly supported by recent observations.',
@@ -194,6 +197,13 @@ function compactState(input) {
 function buildStateSummary(input) {
   const visibleCells = input.map?.cells || [];
   const position = input.agent?.position || [0, 0];
+  const currentCell = visibleCells.find((cell) => sameCoord(cell.coord, position));
+  const artifactsCollected = input.objective?.artifacts_collected || 0;
+  const artifactsRequired = input.objective?.artifacts_required || 0;
+  const extractValidNow =
+    currentCell?.terrain === 'artifact' ||
+    (currentCell?.terrain === 'exit' && artifactsCollected >= artifactsRequired);
+  const mustCopyAction = input.action_hints?.next_action || input.action_hints?.preferred?.[0] || null;
   const recentObservations = input.observations?.recent || [];
   const adjacent = adjacentCoords(position, input.map?.size || 0).map((coord) => {
     const cell = visibleCells.find((item) => sameCoord(item.coord, coord));
@@ -216,10 +226,12 @@ function buildStateSummary(input) {
     resources: input.resources,
     objective: input.objective,
     action_hints: input.action_hints,
+    must_copy_action: mustCopyAction,
+    extract_valid_now: extractValidNow,
     position,
     agent: input.agent,
     rows: input.map?.rows,
-    current: visibleCells.find((cell) => sameCoord(cell.coord, position)),
+    current: currentCell,
     adjacent,
     recent_observations: recentObservations.slice(-5),
     rule_claim: input.rules?.claim,

@@ -6,7 +6,11 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const options = parseArgs(process.argv.slice(2));
+const options = parseArgsOrExit(process.argv.slice(2));
+if (options.help) {
+  process.stdout.write(helpText());
+  process.exit(0);
+}
 const models = options.models || ['deepseek-v4-pro', 'deepseek-v4-flash'];
 const seeds = options.seeds || './seeds/showcase.txt';
 const baseUrl = options.baseUrl || process.env.ECHOGRID_LLM_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
@@ -105,35 +109,37 @@ function parseArgs(argv) {
   const parsed = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--models') {
-      parsed.models = argv[i + 1].split(',').map((item) => item.trim()).filter(Boolean);
+    if (arg === '--help' || arg === '-h') {
+      parsed.help = true;
+    } else if (arg === '--models') {
+      parsed.models = readValue(argv, i, arg).split(',').map((item) => item.trim()).filter(Boolean);
       i += 1;
     } else if (arg === '--seeds') {
-      parsed.seeds = argv[i + 1];
+      parsed.seeds = readValue(argv, i, arg);
       i += 1;
     } else if (arg === '--out-dir') {
-      parsed.outDir = argv[i + 1];
+      parsed.outDir = readValue(argv, i, arg);
       i += 1;
     } else if (arg === '--mode') {
-      parsed.mode = argv[i + 1];
+      parsed.mode = readValue(argv, i, arg);
       i += 1;
     } else if (arg === '--base-url') {
-      parsed.baseUrl = argv[i + 1];
+      parsed.baseUrl = readValue(argv, i, arg);
       i += 1;
     } else if (arg === '--timeout') {
-      parsed.timeout = Number(argv[i + 1]);
+      parsed.timeout = Number(readValue(argv, i, arg));
       i += 1;
     } else if (arg === '--request-timeout') {
-      parsed.requestTimeout = Number(argv[i + 1]);
+      parsed.requestTimeout = Number(readValue(argv, i, arg));
       i += 1;
     } else if (arg === '--max-tokens') {
-      parsed.maxTokens = Number(argv[i + 1]);
+      parsed.maxTokens = Number(readValue(argv, i, arg));
       i += 1;
     } else if (arg === '--max-model-turns') {
-      parsed.maxModelTurns = Number(argv[i + 1]);
+      parsed.maxModelTurns = Number(readValue(argv, i, arg));
       i += 1;
     } else if (arg === '--leaderboard') {
-      parsed.leaderboard = argv[i + 1];
+      parsed.leaderboard = readValue(argv, i, arg);
       i += 1;
     } else if (arg === '--recover-reasoning-action') {
       parsed.recoverReasoningAction = true;
@@ -142,6 +148,14 @@ function parseArgs(argv) {
     }
   }
   return parsed;
+}
+
+function readValue(argv, index, name) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith('--')) {
+    throw new Error(`Missing value for ${name}`);
+  }
+  return value;
 }
 
 function sanitize(value) {
@@ -153,4 +167,38 @@ function leaderboardModes(value) {
   if (value === 'hybrid') return ['hybrid'];
   if (value === 'both') return ['pure', 'hybrid'];
   throw new Error(`Unsupported --leaderboard value: ${value}`);
+}
+
+function helpText() {
+  return `Usage:
+  node ./scripts/run-llm-eval.js [options]
+
+Options:
+  --models deepseek-v4-pro,deepseek-v4-flash
+  --seeds ./seeds/showcase.txt
+  --out-dir ./logs/llm
+  --mode mvp|micro
+  --base-url https://api.deepseek.com
+  --timeout 45000
+  --request-timeout 30000
+  --max-tokens 256
+  --max-model-turns 12
+  --leaderboard pure|hybrid|both
+  --recover-reasoning-action
+  --no-summary-table
+  --help
+
+Environment:
+  ECHOGRID_LLM_API_KEY, DEEPSEEK_API_KEY, or OPENAI_API_KEY is required to run evaluations.
+  Help output does not require an API key.
+`;
+}
+
+function parseArgsOrExit(argv) {
+  try {
+    return parseArgs(argv);
+  } catch (error) {
+    process.stderr.write(`${error.message}\n\n${helpText()}`);
+    process.exit(1);
+  }
 }

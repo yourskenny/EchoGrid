@@ -529,8 +529,19 @@ class EchoGridGame {
 
   routeHintAction(avoidActions = []) {
     const goal = this.actionHintGoal();
-    if (goal.source !== 'exit') return null;
     const known = new Map(this.knownCells().map((cell) => [keyOf(cell.coord[0], cell.coord[1]), cell]));
+    if (goal.source !== 'exit') {
+      if (!this.artifactSearchStalled()) return null;
+      const probe = this.stalledSearchProbe(goal.coord, known, avoidActions);
+      if (probe) return `probe ${probe[0]} ${probe[1]}`;
+      const frontier = this.publicFrontierRoute(goal.coord, known, avoidActions, { preferAdjacentProbe: true });
+      if (frontier) {
+        if (frontier.path.length <= 1) return `probe ${frontier.probe[0]} ${frontier.probe[1]}`;
+        return actionFromPathOrFrontier(this.position, frontier.path);
+      }
+      return null;
+    }
+
     const exitKey = keyOf(this.world.exit[0], this.world.exit[1]);
     const exitCell = known.get(exitKey);
     if (exitCell && passablePublicCell(exitCell)) {
@@ -539,7 +550,10 @@ class EchoGridGame {
       if (action) return action;
     }
 
-    const frontier = this.exitFrontierRoute(known, avoidActions);
+    const optimisticExit = this.optimisticExitRoute(known, avoidActions);
+    if (optimisticExit) return optimisticExit;
+
+    const frontier = this.publicFrontierRoute(this.world.exit, known, avoidActions);
     if (frontier) {
       if (frontier.path.length <= 1) return `probe ${frontier.probe[0]} ${frontier.probe[1]}`;
       return actionFromPathOrFrontier(this.position, frontier.path);
@@ -548,7 +562,50 @@ class EchoGridGame {
     return null;
   }
 
-  exitFrontierRoute(known, avoidActions = []) {
+  optimisticExitRoute(known, avoidActions = []) {
+    const path = this.publicOptimisticPathTo(this.world.exit, known, avoidActions);
+    if (!path || path.length < 2) return null;
+    const next = path[1];
+    const cell = known.get(keyOf(next[0], next[1]));
+    if (!cell || !cell.visible) return `probe ${next[0]} ${next[1]}`;
+    if (passablePublicCell(cell)) return moveFromTo(this.position, next);
+    return null;
+  }
+
+  artifactSearchStalled(limit = 14) {
+    if (this.collected.size >= this.world.config.artifactsRequired) return false;
+    const positions = [];
+    for (const event of [...this.events].reverse()) {
+      if (event.outcome?.type !== 'move' || !Array.isArray(event.outcome.coord)) continue;
+      positions.push(event.outcome.coord);
+      if (positions.length >= limit) break;
+    }
+    if (positions.length < 8) return false;
+
+    const unique = new Set(positions.map(([x, y]) => keyOf(x, y))).size;
+    const currentVisits = positions.filter((coord) => sameCoord(coord, this.position)).length;
+    const [last, previous, beforePrevious] = positions;
+    const oscillating = last && previous && beforePrevious && sameCoord(last, beforePrevious);
+    return currentVisits >= 3 || unique <= Math.ceil(positions.length * 0.45) || oscillating;
+  }
+
+  stalledSearchProbe(goal, known, avoidActions = []) {
+    const avoidTargets = new Set(
+      avoidActions
+        .map((action) => actionTarget(action, this.position))
+        .filter(Boolean)
+        .map(([x, y]) => keyOf(x, y)),
+    );
+    return this.publicUnknownNeighbors(this.position, known)
+      .sort((a, b) => {
+        const avoid = Number(avoidTargets.has(keyOf(a[0], a[1]))) - Number(avoidTargets.has(keyOf(b[0], b[1])));
+        if (avoid !== 0) return avoid;
+        return manhattan(a, goal) - manhattan(b, goal);
+      })
+      [0] || null;
+  }
+
+  publicFrontierRoute(goal, known, avoidActions = [], options = {}) {
     const avoidTargets = new Set(
       avoidActions
         .map((action) => actionTarget(action, this.position))
@@ -568,7 +625,7 @@ class EchoGridGame {
         candidates.push({
           path,
           probe,
-          score: frontierRouteScore(path, probe, this.world.exit, avoidTargets),
+          score: frontierRouteScore(path, probe, goal, avoidTargets, options),
         });
       }
       for (const [direction, [dx, dy]] of Object.entries(DIRECTIONS)) {
@@ -612,6 +669,44 @@ class EchoGridGame {
     return null;
   }
 
+  publicOptimisticPathTo(goal, known, avoidActions = []) {
+    const avoidTargets = new Set(
+      avoidActions
+        .map((action) => actionTarget(action, this.position))
+        .filter(Boolean)
+        .map(([x, y]) => keyOf(x, y)),
+    );
+    const goalKey = keyOf(goal[0], goal[1]);
+    const startKey = keyOf(this.position[0], this.position[1]);
+    const queue = [this.position];
+    const seen = new Set([startKey]);
+    const parent = new Map();
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const currentKey = keyOf(current[0], current[1]);
+      if (currentKey === goalKey) return rebuildPublicPath(current, parent);
+      const nextSteps = Object.values(DIRECTIONS)
+        .map(([dx, dy]) => [current[0] + dx, current[1] + dy])
+        .filter(([x, y]) => inBounds(this.world.size, x, y))
+        .sort((a, b) => {
+          const avoid = Number(avoidTargets.has(keyOf(a[0], a[1]))) - Number(avoidTargets.has(keyOf(b[0], b[1])));
+          if (avoid !== 0) return avoid;
+          return manhattan(a, goal) - manhattan(b, goal);
+        });
+      for (const next of nextSteps) {
+        const nextKey = keyOf(next[0], next[1]);
+        if (seen.has(nextKey)) continue;
+        const cell = known.get(nextKey);
+        if (cell?.visible && !passablePublicCell(cell)) continue;
+        seen.add(nextKey);
+        parent.set(nextKey, currentKey);
+        queue.push(next);
+      }
+    }
+    return null;
+  }
+
   publicUnknownNeighbors(coord, known) {
     const result = [];
     for (const [dx, dy] of Object.values(DIRECTIONS)) {
@@ -629,14 +724,41 @@ class EchoGridGame {
       if (a === context.routeHint && b !== context.routeHint) return -1;
       if (b === context.routeHint && a !== context.routeHint) return 1;
     }
-    const goal = this.publicHintGoal();
-    const repeatPenalty = repeatPenaltyFor(a, context.avoidRepeating) - repeatPenaltyFor(b, context.avoidRepeating);
-    if (repeatPenalty !== 0) return repeatPenalty;
-    const progress = this.publicGoalProgressRank(a, goal) - this.publicGoalProgressRank(b, goal);
+    const goalInfo = this.actionHintGoal();
+    const goal = goalInfo.coord;
+    const aProgress = this.publicGoalProgressRank(a, goal);
+    const bProgress = this.publicGoalProgressRank(b, goal);
+    if (goalInfo.source === 'exit') {
+      const repeatPenalty = repeatPenaltyFor(a, context.avoidRepeating) - repeatPenaltyFor(b, context.avoidRepeating);
+      if (repeatPenalty !== 0) return repeatPenalty;
+    }
+    const progress = aProgress - bProgress;
     if (progress !== 0) return progress;
+    if (goalInfo.source !== 'exit') {
+      const axis = this.publicGoalAxisDistance(a, goalInfo) - this.publicGoalAxisDistance(b, goalInfo);
+      if (axis !== 0) return axis;
+      if (aProgress > 0) {
+        const exploration = nonExitExplorationPriority(a) - nonExitExplorationPriority(b);
+        if (exploration !== 0) return exploration;
+      }
+      const repeatPenalty = repeatPenaltyFor(a, context.avoidRepeating) - repeatPenaltyFor(b, context.avoidRepeating);
+      if (repeatPenalty !== 0) return repeatPenalty;
+    }
+    if (goalInfo.source === 'exit') {
+      const exploration = 0;
+      if (exploration !== 0) return exploration;
+    }
     const priority = actionPriority(a) - actionPriority(b);
     if (priority !== 0) return priority;
     return this.publicGoalDistance(a, goal) - this.publicGoalDistance(b, goal);
+  }
+
+  publicGoalAxisDistance(action, goalInfo) {
+    const target = actionTarget(action, this.position);
+    if (!target) return Number.POSITIVE_INFINITY;
+    const axis = traceAxis(goalInfo.trace) || dominantAxis(this.position, goalInfo.coord);
+    if (axis === 'x') return Math.abs(target[0] - goalInfo.coord[0]);
+    return Math.abs(target[1] - goalInfo.coord[1]);
   }
 
   publicGoalProgressRank(action, goal) {
@@ -999,6 +1121,22 @@ function actionPriority(action) {
   return 5;
 }
 
+function nonExitExplorationPriority(action) {
+  if (action.startsWith('probe ')) return 0;
+  if (action.startsWith('move ')) return 1;
+  return actionPriority(action);
+}
+
+function traceAxis(trace) {
+  if (trace === 'east-biased' || trace === 'west-biased') return 'x';
+  if (trace === 'north-biased' || trace === 'south-biased') return 'y';
+  return null;
+}
+
+function dominantAxis(from, to) {
+  return Math.abs(to[0] - from[0]) > Math.abs(to[1] - from[1]) ? 'x' : 'y';
+}
+
 function repeatPenaltyFor(action, avoidRepeating = []) {
   return avoidRepeating.includes(action) ? 1 : 0;
 }
@@ -1034,11 +1172,12 @@ function actionFromPathOrFrontier(position, path) {
   return moveFromTo(position, path[1]);
 }
 
-function frontierRouteScore(path, probe, goal, avoidTargets = new Set()) {
+function frontierRouteScore(path, probe, goal, avoidTargets = new Set(), options = {}) {
   if (!path?.length) return Number.POSITIVE_INFINITY;
   const firstStep = path[1];
   const avoidPenalty = firstStep && avoidTargets.has(keyOf(firstStep[0], firstStep[1])) ? 0.5 : 0;
-  return manhattan(probe, goal) * 4 + path.length + avoidPenalty;
+  const adjacentBonus = options.preferAdjacentProbe && path.length <= 1 ? -20 : 0;
+  return manhattan(probe, goal) * 4 + path.length + avoidPenalty + adjacentBonus;
 }
 
 function rebuildPublicPath(end, parent) {

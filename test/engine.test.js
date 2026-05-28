@@ -164,6 +164,211 @@ test('preferred actions search around public high heat before trace', () => {
   assert.equal(state.action_hints.next_action, 'probe 0 5');
 });
 
+test('artifact route hint opens a frontier when trace search stalls in a loop', () => {
+  const game = new EchoGridGame({ seed: 314159, mode: 'mvp' });
+  for (const action of [
+    'probe 1 0',
+    'move E',
+    'probe 2 0',
+    'move E',
+    'probe 3 0',
+    'move E',
+    'probe 4 0',
+    'move E',
+    'probe 5 0',
+    'move E',
+    'extract',
+    'probe 5 1',
+    'move S',
+    'probe 5 2',
+    'move S',
+    'probe 5 3',
+    'move S',
+    'extract',
+    'probe 5 4',
+    'probe 6 3',
+    'probe 4 3',
+    'move N',
+    'probe 6 2',
+    'move E',
+    'probe 6 1',
+    'move N',
+    'move W',
+    'move N',
+    'move W',
+    'probe 4 1',
+    'move S',
+    'probe 4 2',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+    'move S',
+    'move E',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move W',
+    'move S',
+  ]) {
+    game.step(action);
+  }
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [4, 1]);
+  assert.equal(state.objective.artifacts_collected, 2);
+  assert.equal(state.action_hints.goal.source, 'trace');
+  assert.equal(state.action_hints.next_action, 'probe 3 1');
+  assertArtifactHintPolicyExtractsNextArtifact(game, 20);
+});
+
+test('artifact route hint opens a frontier when heat search stalls in a loop', () => {
+  const game = new EchoGridGame({ seed: 271828, mode: 'mvp' });
+  for (const action of [
+    'probe 0 1',
+    'move S',
+    'probe 0 2',
+    'move S',
+    'probe 0 3',
+    'move S',
+    'probe 0 4',
+    'probe 1 3',
+    'move N',
+    'probe 1 2',
+    'move E',
+    'probe 1 1',
+    'move N',
+    'move W',
+    'move N',
+    'probe 1 0',
+    'move E',
+    'probe 2 0',
+    'move E',
+    'probe 2 1',
+    'move S',
+    'move W',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+    'move W',
+    'move S',
+    'move N',
+    'move N',
+    'move N',
+    'move E',
+    'move S',
+    'move S',
+  ]) {
+    game.step(action);
+  }
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [1, 2]);
+  assert.equal(state.objective.artifacts_collected, 0);
+  assert.equal(state.action_hints.goal.source, 'heat');
+  assert.equal(state.action_hints.next_action, 'probe 2 2');
+  assertArtifactHintPolicyExtractsNextArtifact(game, 20);
+});
+
 test('exit route hint escapes recent loops after artifacts are collected', () => {
   const game = new EchoGridGame({ seed: 1024, mode: 'mvp' });
   for (const action of [
@@ -264,7 +469,50 @@ test('exit route hint can route around blocked public approaches', () => {
   assert.equal(state.action_hints.goal.source, 'exit');
   assert.ok(state.action_hints.avoid_repeating.includes('move W'));
   assert.ok(state.action_hints.avoid_repeating.includes('move N'));
-  assert.equal(state.action_hints.next_action, 'move N');
+  assert.ok(['move N', 'move W'].includes(state.action_hints.next_action));
+  assertExitHintPolicyCompletes(game);
+});
+
+test('exit route hint follows an optimistic route after a blocked exit approach', () => {
+  const game = new EchoGridGame({ seed: 424242, mode: 'mvp' });
+  for (const action of [
+    'probe 0 1',
+    'move S',
+    'probe 0 2',
+    'move S',
+    'probe 1 2',
+    'move E',
+    'probe 1 3',
+    'probe 2 2',
+    'probe 1 1',
+    'move N',
+    'probe 2 1',
+    'move E',
+    'probe 2 0',
+    'probe 3 1',
+    'move E',
+    'probe 3 2',
+    'move S',
+    'probe 3 3',
+    'move S',
+    'probe 2 3',
+    'move W',
+    'extract',
+    'probe 2 4',
+    'move S',
+    'extract',
+    'probe 1 4',
+    'move W',
+    'extract',
+  ]) {
+    game.step(action);
+  }
+  const state = game.state();
+
+  assert.deepEqual(state.agent.position, [1, 4]);
+  assert.equal(state.objective.artifacts_collected, 3);
+  assert.equal(state.action_hints.goal.source, 'exit');
+  assert.equal(state.action_hints.next_action, 'probe 1 5');
   assertExitHintPolicyCompletes(game);
 });
 
@@ -281,6 +529,25 @@ function assertExitHintPolicyCompletes(game) {
     if (event.outcome.type === 'extract_exit') return;
   }
   assert.fail('exit route hint policy did not complete within 80 turns');
+}
+
+function assertArtifactHintPolicyExtractsNextArtifact(game, maxTurns) {
+  const initialArtifacts = game.state().objective.artifacts_collected;
+  const seen = new Set();
+  for (let i = 0; i < maxTurns; i += 1) {
+    const state = game.state();
+    const action = state.action_hints.next_action;
+    const signature = `${state.agent.position.join(',')}|${action}|${state.map.rows.join('/')}`;
+    assert.equal(seen.has(signature), false, `artifact route hint looped at ${signature}`);
+    seen.add(signature);
+    assert.ok(action, 'artifact route hint should keep suggesting actions');
+    const event = game.step(action);
+    if (event.outcome.type === 'extract_artifact') {
+      assert.equal(game.state().objective.artifacts_collected, initialArtifacts + 1);
+      return;
+    }
+  }
+  assert.fail(`artifact route hint policy did not extract another artifact within ${maxTurns} turns`);
 }
 
 test('invalid actions are penalized and preserve a parseable state', () => {

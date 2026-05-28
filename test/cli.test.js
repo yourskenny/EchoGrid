@@ -235,9 +235,32 @@ test('LLM state summary does not invent avoid actions from probe observations', 
   const summary = JSON.parse(buildStateSummary(game.state()));
 
   assert.equal(summary.action_hints.next_action, 'move S');
+  assert.equal(summary.must_copy_action, 'move S');
+  assert.equal(summary.extract_valid_now, false);
   assert.equal(summary.action_hints.avoid_repeating.length, 0);
   assert.equal(Object.hasOwn(summary, 'avoid_actions'), false);
   assert.equal(Object.hasOwn(summary, 'previous_position'), false);
+});
+
+test('LLM state summary marks extract validity from the public current cell', () => {
+  const game = new EchoGridGame({ seed: 1024, mode: 'micro' });
+  for (const action of [
+    'probe 1 0',
+    'move E',
+    'probe 2 0',
+    'move E',
+    'probe 2 1',
+    'move S',
+    'probe 3 1',
+    'move E',
+  ]) {
+    game.step(action);
+  }
+
+  const summary = JSON.parse(buildStateSummary(game.state()));
+  assert.equal(summary.current.terrain, 'artifact');
+  assert.equal(summary.extract_valid_now, true);
+  assert.equal(summary.must_copy_action, 'extract');
 });
 
 test('LLM log summary separates pure model errors', () => {

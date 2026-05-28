@@ -710,7 +710,7 @@ Usage:
   echogrid replay <log.jsonl> [--states] [--pretty]
   echogrid report <log.jsonl>
   echogrid evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt [--log-dir ./logs]
-  echogrid inspect --seed 48129
+  echogrid inspect --seed 48129  # debug only; may reveal the hidden answer
 
 Action protocol:
   move N|S|E|W

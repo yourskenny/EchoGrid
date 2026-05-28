@@ -857,9 +857,44 @@ Both DeepSeek V4 models now complete the public three-seed MVP set in strict pur
 Latest local verification:
 
 ```text
-npm test: 28 pass / 0 fail
+npm test: 32 pass / 0 fail
 npm run demo:verify: pass
 ```
+
+## Loop 26: Public Frontier Recovery For Artifact And Exit Loops
+
+Finding:
+
+`deepseek-v4-flash` strict pure public10 still exposed three longer-horizon failures after public3 was stable. Seed `314159` collected `2/3` artifacts and then repeated a trace-following loop around known cells. Seed `271828` found high heat but oscillated around a small public region without opening adjacent unknown frontiers. Seed `424242` collected `3/3` artifacts, then spent too many turns recovering from a blocked exit approach and later repeated invalid `extract` attempts while `next_action` was a probe.
+
+Optimization:
+
+- added public-only artifact-search stall detection based on recent move positions
+- when stalled before all artifacts are collected, route hints now open an adjacent or reachable public unknown frontier instead of continuing a known movement loop
+- changed non-exit preferred-action ranking to prioritize public goal progress and trace axis alignment before repeat-avoidance penalties
+- added optimistic exit routing that probes along the shortest public/unknown path to the exit while treating known walls and hazards as blocked
+- added LLM state summary fields `must_copy_action` and `extract_valid_now` so one-line action models can distinguish valid extraction from route-following probes
+- added regression tests for the observed `314159`, `271828`, and `424242` failure states
+
+Verification:
+
+```text
+npm test: 32 pass / 0 fail
+npm run demo:verify: pass
+
+deepseek-v4-flash strict pure targeted failure rerun:
+  314159: success, score=878, turns=46, artifacts=3/3
+  271828: success, score=856, turns=87, artifacts=3/3
+  424242: success, score=860, turns=82, artifacts=3/3
+  fallback_actions=0
+  local_policy_actions=0
+  model_error_actions=0
+  recovered_reasoning_actions=0
+```
+
+Interpretation:
+
+The latest failures were not hidden-information problems; they were public hint quality problems. The new policy keeps the protocol public but makes stalled exploration and blocked exit recovery much more legible to LLM agents. The three previously failing or incomplete Flash cases now complete in strict pure mode without fallback.
 
 Previous pushed commit before the persistent-agent iteration:
 

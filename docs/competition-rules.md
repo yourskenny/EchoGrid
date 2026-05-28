@@ -17,6 +17,8 @@ npm run demo:full
 
 This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, and prints a replay timeline.
 
+It recreates `logs/showcase` before running the showcase seed, so keep custom logs outside that directory.
+
 For a shorter smoke check:
 
 ```bash
@@ -104,6 +106,10 @@ node ./scripts/run-llm-eval.js --models deepseek-v4-flash --seeds ./seeds/public
 
 Recovery can prove that a model had a usable action in its reasoning stream, but it should not be mixed silently with strict pure results.
 
+For `deepseek-v4-*` models, the LLM bridge sends `thinking: { "type": "disabled" }` by default because EchoGrid requires a one-line final action rather than a separate reasoning stream. This provider-level setting is considered part of the official pure model adapter unless `ECHOGRID_LLM_THINKING_MODE` is explicitly changed and reported.
+
+The bridge may retry an empty or unparsable final action once with the same model and no fallback. This remains a pure model action only when the retry uses the same provider/model and does not use local policy, baseline fallback, or reasoning-content recovery. Reports must include `model_retry_attempts` when present so first-pass and retry-assisted actions remain auditable.
+
 API keys must be supplied through environment variables such as `ECHOGRID_LLM_API_KEY`. Do not commit keys, logs with secrets, or provider credentials.
 
 ## Required Report Items
@@ -119,6 +125,8 @@ A judged submission should provide:
 - per-seed status
 - JSONL log directory
 - any model diagnostics or fallback policy
+- provider settings such as `thinking_mode`
+- retry diagnostics such as `model_retry_attempts`
 
 Recommended supporting commands:
 

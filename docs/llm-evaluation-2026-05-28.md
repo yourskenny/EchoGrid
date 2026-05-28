@@ -527,6 +527,32 @@ deepseek-v4-pro public3 strict pure after thinking disabled:
 
 This is the cleanest Pro result so far: strict pure, no fallback, no reasoning recovery, and no model error actions on the full three-seed public MVP set.
 
+### Public10 failure-seed follow-up
+
+A partial `deepseek-v4-flash` public10 strict pure run showed that public3 was no longer enough to catch longer-horizon issues. The important failure modes were:
+
+- `314159`: `2/3` artifacts, repeated trace loop around known cells, then model turn budget exhausted.
+- `271828`: `0/3` artifacts in the partial log, high-heat search kept oscillating instead of opening side frontiers.
+- `424242`: `3/3` artifacts, blocked exit approach recovery was too slow; a later rerun also showed repeated invalid `extract` while the public hint said to probe.
+
+After public frontier recovery, non-exit trace-axis ranking, optimistic exit routing, and explicit LLM summary fields (`must_copy_action`, `extract_valid_now`), the targeted strict pure rerun was:
+
+```text
+deepseek-v4-flash targeted public10 failure seeds, strict pure:
+  successes=3/3
+  average_score=864.7
+  average_turns=71.7
+  314159: success, score=878, turns=46
+  271828: success, score=856, turns=87
+  424242: success, score=860, turns=82
+  fallback_actions=0
+  local_policy_actions=0
+  model_error_actions=0
+  recovered_reasoning_actions=0
+```
+
+These runs are still pure model runs: the model selected every action, with no local policy, no baseline fallback, and no reasoning-content recovery. The game-side improvement is that public hints now make stalled exploration and blocked exit routes easier to follow.
+
 ## Isolated Codex Review
 
 Codex was rerun in a separate agent without this thread context. It inspected the repository, ran:
@@ -559,7 +585,7 @@ It prints success status, score, turns, artifacts, invalid actions, waits, model
 For a single run, use:
 
 ```bash
-node ./scripts/analyze-run.js ./logs/llm/deepseek-v4-flash/9001.jsonl
+node ./scripts/analyze-run.js ./logs/llm/pure/deepseek-v4-flash/9001.jsonl
 ```
 
 This returns JSON quality flags such as `not_successful`, `high_wait_rate`, `fallback_dominant`, `low_model_contribution`, and `movement_oscillation`.
