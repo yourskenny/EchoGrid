@@ -775,6 +775,16 @@ test('submission bundle verifier catches stale source commit metadata', () => {
   assert.deepEqual(skipped, []);
 });
 
+test('ci workflow provisions Chrome for visual smoke gate', () => {
+  const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
+
+  assert.match(workflow, /browser-actions\/setup-chrome@v2/);
+  assert.match(workflow, /id:\s*setup-chrome/);
+  assert.match(workflow, /ECHOGRID_BROWSER:\s*\$\{\{\s*steps\.setup-chrome\.outputs\.chrome-path\s*\}\}/);
+  assert.match(workflow, /npm run submission:check/);
+  assert.match(workflow, /echogrid-submission-bundle/);
+});
+
 test('analyze-run reports quality flags for JSONL logs', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {

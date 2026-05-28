@@ -22,8 +22,19 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Chrome for visual smoke
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+
+      - name: Verify Chrome
+        run: '"${{ steps.setup-chrome.outputs.chrome-path }}" --version'
+
       - name: Run submission checks
         run: npm run submission:check
+        env:
+          ECHOGRID_BROWSER: ${{ steps.setup-chrome.outputs.chrome-path }}
 
       - name: Upload evaluation artifacts
         if: always()

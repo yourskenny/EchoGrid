@@ -82,6 +82,8 @@ npm run submission:check
 
 This runs the full showcase package, artifact verifier, visual smoke gate, public benchmark, adversarial benchmark, rule-signals benchmark, submission bundle generator, and final bundle verifier, including the manifest source commit and local links in the browser entry pages.
 
+CI provisions stable Chrome explicitly for the visual smoke gate and passes it through `ECHOGRID_BROWSER`, so the browser-rendered screenshots do not depend on whatever browser happens to be preinstalled on the runner.
+
 ## Useful Commands
 
 ```bash
