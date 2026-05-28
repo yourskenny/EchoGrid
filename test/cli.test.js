@@ -710,6 +710,9 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(strategyAudit, /Rule-aware edge over baseline/);
     const startHere = fs.readFileSync(path.join(outDir, 'START_HERE.html'), 'utf8');
     assert.match(startHere, /EchoGrid Submission/);
+    assert.match(startHere, /Public10/);
+    assert.match(startHere, /100\.0% solved/);
+    assert.match(startHere, /Public benchmark:/);
     assert.match(startHere, /mission-control-desktop\.png/);
     assert.match(startHere, /showcase\/mission-control\.html/);
     assert.match(startHere, /benchmarks\/public\/leaderboard\.md/);

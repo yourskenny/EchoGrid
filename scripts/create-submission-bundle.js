@@ -334,7 +334,8 @@ function renderStartHereHtml(summary) {
   const publicBenchmark = summary.benchmarks.public;
   const adversarial = summary.benchmarks.adversarial;
   const rules = summary.benchmarks.rules;
-  const edge = Number(adversarial.leader.average_score) - averageScore(adversarial.rows, './agents/baseline.js');
+  const publicRuleAware = publicBenchmark.rows.find((row) => row.agent === './agents/rule-aware.js') || publicBenchmark.leader;
+  const publicEdge = Number(publicRuleAware.average_score) - averageScore(publicBenchmark.rows, './agents/baseline.js');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -383,7 +384,7 @@ h1 { margin: 0; font-size: 34px; line-height: 1.08; letter-spacing: 0; }
 }
 .verdict {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   gap: 10px;
   margin: 16px 0;
 }
@@ -448,7 +449,8 @@ code {
     ${startMetric('Showcase', `${showcase.result}/${showcase.reason}`, 'success')}
     ${startMetric('Score', `${showcase.score}`)}
     ${startMetric('Artifacts', showcase.artifacts)}
-    ${startMetric('Agent Edge', `${formatSigned(edge)} avg`)}
+    ${startMetric('Public10', `${formatPercent(publicRuleAware.success_rate)} solved`, 'success')}
+    ${startMetric('Public Edge', `${formatSigned(publicEdge)} avg`)}
   </section>
 
   <section class="grid">
@@ -458,13 +460,14 @@ code {
         <li>Open <code>showcase/mission-control.html</code> and read the Competition Verdict.</li>
         <li>Use Route Playback to inspect the public path and rule-claim milestones.</li>
         <li>Open <code>showcase/SCORECARD.md</code> and <code>SUBMISSION_AUDIT.md</code> for capability gates.</li>
-        <li>Review adversarial and rule-signal leaderboards for agent separation.</li>
+        <li>Review public, adversarial, and rule-signal leaderboards for agent separation.</li>
       </ol>
     </div>
     <div class="panel">
       <h2>Why It Holds Up</h2>
       <p>Hidden rule claim: <strong>${escapeHtml(showcase.rule_claim?.id || 'unknown')}</strong>, accepted=${escapeHtml(Boolean(showcase.rule_claim?.correct))}.</p>
       <p>Clean run: damage=${escapeHtml(showcase.metrics?.damage_events ?? 'n/a')}, invalid=${escapeHtml(showcase.metrics?.invalid_actions ?? 'n/a')}, wasted=${escapeHtml(showcase.metrics?.wasted_actions ?? 'n/a')}.</p>
+      <p>Public benchmark: ${escapeHtml(publicBenchmark.leader.agent)} solves ${escapeHtml(formatPercent(publicRuleAware.success_rate))} at avg ${escapeHtml(publicRuleAware.average_score)}, edge ${escapeHtml(formatSigned(publicEdge))} over baseline.</p>
       <p>Benchmarks: public leader ${escapeHtml(publicBenchmark.leader.agent)}, adversarial leader ${escapeHtml(adversarial.leader.agent)}, rule-signal leader ${escapeHtml(rules.leader.agent)}.</p>
     </div>
   </section>

@@ -315,6 +315,9 @@ function verifyStartHere(bundleDir, errors) {
   for (const needle of [
     'EchoGrid Submission',
     'mission-control-desktop.png',
+    'Public10',
+    '100.0% solved',
+    'Public benchmark:',
     '90-Second Path',
     'Why It Holds Up',
     'Mission Control',
