@@ -39,7 +39,7 @@ node ./bin/echogrid.js evaluate --agent ./agents/baseline-persistent.js --seed 4
 
 In persistent mode, EchoGrid starts the agent once per seed, writes one compact state JSON line to stdin on each turn, and reads the first non-empty stdout line as that turn's action. This reduces process startup overhead while keeping the same action protocol.
 
-Machine-readable protocol references live in:
+Machine-readable protocol references live under `schemas/` from the repository root, and under `source/schemas/` inside the submission bundle:
 
 - `schemas/state.schema.json`
 - `schemas/event.schema.json`

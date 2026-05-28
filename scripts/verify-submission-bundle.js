@@ -38,11 +38,15 @@ const REQUIRED_FILES = [
   'benchmarks/rules/arena.html',
   'benchmarks/rules/leaderboard.md',
   'source/README.md',
+  'source/docs/agent-authoring.md',
   'source/docs/competition-demo.md',
   'source/docs/competition-rules.md',
   'source/docs/protocol-reference.md',
   'source/docs/scoring.md',
   'source/docs/seed-sets.md',
+  'source/schemas/state.schema.json',
+  'source/schemas/event.schema.json',
+  'source/schemas/summary.schema.json',
 ];
 
 const SCREENSHOT_FILES = [
@@ -77,6 +81,7 @@ function main(argv = process.argv.slice(2)) {
     verifyOnePager(bundleDir, errors);
     verifyStrategyAudit(bundleDir, errors);
     verifyStartHere(bundleDir, errors);
+    verifySourceProtocolPackage(bundleDir, errors);
     verifyLocalHtmlLinks(bundleDir, errors);
     verifyZipArchive(bundleDir, zipFile, errors);
   }
@@ -325,11 +330,45 @@ function verifyStartHere(bundleDir, errors) {
     'SUBMISSION_ONE_PAGER.md',
     'SUBMISSION_AUDIT.md',
     'SUBMISSION_STRATEGY_AUDIT.md',
+    'Agent Authoring',
+    'source/docs/agent-authoring.md',
+    'State Schema',
+    'source/schemas/state.schema.json',
     'Public Leaderboard',
     'benchmarks/public/leaderboard.md',
     'SUBMISSION_MANIFEST.json',
   ]) {
     if (!text.includes(needle)) errors.push(`START_HERE.html missing "${needle}"`);
+  }
+}
+
+function verifySourceProtocolPackage(bundleDir, errors) {
+  const authoring = path.join(bundleDir, 'source', 'docs', 'agent-authoring.md');
+  if (fs.existsSync(authoring)) {
+    const text = fs.readFileSync(authoring, 'utf8');
+    for (const needle of [
+      'Minimal JavaScript Agent',
+      'schemas/state.schema.json',
+      'schemas/event.schema.json',
+      'schemas/summary.schema.json',
+      'claim_rule rule_id because rationale',
+    ]) {
+      if (!text.includes(needle)) errors.push(`source/docs/agent-authoring.md missing "${needle}"`);
+    }
+  }
+
+  for (const relative of [
+    'source/schemas/state.schema.json',
+    'source/schemas/event.schema.json',
+    'source/schemas/summary.schema.json',
+  ]) {
+    const schema = readJson(path.join(bundleDir, relative), errors);
+    if (!schema) continue;
+    if (schema.$schema !== 'https://json-schema.org/draft/2020-12/schema') {
+      errors.push(`${relative} has unexpected $schema`);
+    }
+    if (!String(schema.$id || '').includes('echogrid')) errors.push(`${relative} missing echogrid $id`);
+    if (typeof schema.title !== 'string' || !schema.title) errors.push(`${relative} missing title`);
   }
 }
 

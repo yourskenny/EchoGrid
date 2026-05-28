@@ -54,7 +54,7 @@ If the logs already exist and only the final handoff package needs to be rebuilt
 npm run submission:bundle
 ```
 
-The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
+The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, agent-authoring guide, JSON schemas, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 To verify the handoff package without rebuilding it:
 
@@ -86,6 +86,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Strategy audit: generated per-seed benchmark deltas and rule-claim evidence for explaining why the rule-aware policy is stronger than baseline.
 - Report: summary of outcome, scoring, risks, and transferable lesson.
 - Compare table: demonstrates that strategy quality changes results.
+- Agent-authoring guide and schemas: bundled under `source/docs/agent-authoring.md` and `source/schemas/` so judges can inspect the exact state/event/summary contract without browsing the repository.
 
 Representative report output is stored in [sample-report.md](./sample-report.md).
 The full action and observation contract is in [protocol-reference.md](./protocol-reference.md).

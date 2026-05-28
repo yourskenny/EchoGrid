@@ -666,6 +666,8 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_ONE_PAGER.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
+    assert.ok(fs.existsSync(path.join(outDir, 'source', 'docs', 'agent-authoring.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'source', 'schemas', 'state.schema.json')));
     assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'public', 'leaderboard.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'adversarial', 'leaderboard.md')));
     assert.ok(fs.existsSync(`${outDir}.zip`));
@@ -693,6 +695,8 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_ONE_PAGER.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_STRATEGY_AUDIT.md')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'source/docs/agent-authoring.md')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'source/schemas/state.schema.json')?.sha256);
     const audit = fs.readFileSync(path.join(outDir, 'SUBMISSION_AUDIT.md'), 'utf8');
     assert.match(audit, /EchoGrid Submission Audit/);
     assert.match(audit, /Verification Matrix/);
@@ -715,6 +719,8 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(startHere, /Public benchmark:/);
     assert.match(startHere, /mission-control-desktop\.png/);
     assert.match(startHere, /showcase\/mission-control\.html/);
+    assert.match(startHere, /source\/docs\/agent-authoring\.md/);
+    assert.match(startHere, /source\/schemas\/state\.schema\.json/);
     assert.match(startHere, /benchmarks\/public\/leaderboard\.md/);
     assert.match(startHere, /SUBMISSION_STRATEGY_AUDIT\.md/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');

@@ -30,11 +30,15 @@ const BENCHMARK_FILES = [
 
 const SOURCE_DOCS = [
   ['README.md', 'source/README.md'],
+  ['docs/agent-authoring.md', 'source/docs/agent-authoring.md'],
   ['docs/competition-demo.md', 'source/docs/competition-demo.md'],
   ['docs/competition-rules.md', 'source/docs/competition-rules.md'],
   ['docs/protocol-reference.md', 'source/docs/protocol-reference.md'],
   ['docs/scoring.md', 'source/docs/scoring.md'],
   ['docs/seed-sets.md', 'source/docs/seed-sets.md'],
+  ['schemas/state.schema.json', 'source/schemas/state.schema.json'],
+  ['schemas/event.schema.json', 'source/schemas/event.schema.json'],
+  ['schemas/summary.schema.json', 'source/schemas/summary.schema.json'],
 ];
 
 function main(argv = process.argv.slice(2)) {
@@ -300,7 +304,7 @@ function renderReadme(summary) {
     '- `benchmarks/public/`: broader public seed benchmark output.',
     '- `benchmarks/adversarial/`: fixed adversarial public benchmark output.',
     '- `benchmarks/rules/`: hidden-rule signal benchmark output.',
-    '- `source/`: project README and judge-facing protocol/scoring docs.',
+    '- `source/`: project README, agent-authoring guide, judge-facing protocol/scoring docs, and machine-readable JSON schemas.',
     '- `START_HERE.html`: browser-first entry point for judges.',
     '- `SUBMISSION_ONE_PAGER.md`: short judge-facing pitch and review path.',
     '- `SUBMISSION_CHECKLIST.md`: human-readable delivery checklist.',
@@ -481,6 +485,8 @@ code {
       ${startLink('Audit Report', 'SUBMISSION_AUDIT.md', 'Generated verification matrix and command evidence.')}
       ${startLink('Strategy Audit', 'SUBMISSION_STRATEGY_AUDIT.md', 'Per-seed strategy edge, rule-claim evidence, and benchmark deltas.')}
       ${startLink('Scorecard', 'showcase/SCORECARD.md', 'Capability gates and expected proof points.')}
+      ${startLink('Agent Authoring', 'source/docs/agent-authoring.md', 'State protocol, action contract, and minimal agent example.')}
+      ${startLink('State Schema', 'source/schemas/state.schema.json', 'Machine-readable JSON schema for public STATE payloads.')}
       ${startLink('Public Leaderboard', 'benchmarks/public/leaderboard.md', 'Broader public benchmark standings.')}
       ${startLink('Adversarial Leaderboard', 'benchmarks/adversarial/leaderboard.md', 'Public adversarial benchmark standings.')}
       ${startLink('Rule-Signal Leaderboard', 'benchmarks/rules/leaderboard.md', 'Hidden-rule signal benchmark standings.')}

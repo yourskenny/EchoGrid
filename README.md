@@ -54,7 +54,7 @@ To build the final judge handoff bundle after the showcase and benchmark logs ex
 npm run submission:bundle
 ```
 
-This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the browser-first `START_HERE.html`, showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, one-pager, checklist, generated audit report, strategy audit, and sha256 bundle manifest.
+This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the browser-first `START_HERE.html`, showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, agent-authoring guide, JSON schemas, one-pager, checklist, generated audit report, strategy audit, and sha256 bundle manifest.
 
 To verify the generated handoff directory, source commit, HTML entry links, and zip archive:
 
