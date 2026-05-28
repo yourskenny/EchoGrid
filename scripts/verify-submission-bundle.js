@@ -70,6 +70,7 @@ function main(argv = process.argv.slice(2)) {
     verifyAuditReport(bundleDir, errors);
     verifyOnePager(bundleDir, errors);
     verifyStartHere(bundleDir, errors);
+    verifyLocalHtmlLinks(bundleDir, errors);
     verifyZipArchive(bundleDir, zipFile, errors);
   }
 
@@ -253,6 +254,41 @@ function verifyStartHere(bundleDir, errors) {
   }
 }
 
+function verifyLocalHtmlLinks(bundleDir, errors) {
+  const htmlFiles = listFiles(bundleDir).filter((file) => path.extname(file).toLowerCase() === '.html');
+  const attributePattern = /\b(href|src)\s*=\s*(["'])(.*?)\2/gi;
+  for (const file of htmlFiles) {
+    const html = fs.readFileSync(file, 'utf8');
+    const source = normalizeZipPath(path.relative(bundleDir, file));
+    const fileDir = path.dirname(file);
+    for (const match of html.matchAll(attributePattern)) {
+      const attribute = match[1].toLowerCase();
+      const value = String(match[3] || '').trim();
+      if (!shouldVerifyLocalLink(value)) continue;
+      const target = stripLinkFragmentAndQuery(value);
+      if (!target) continue;
+      const resolved = path.resolve(fileDir, target);
+      const relative = path.relative(bundleDir, resolved);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        errors.push(`${source} has ${attribute} outside bundle: ${value}`);
+        continue;
+      }
+      if (!fs.existsSync(resolved)) errors.push(`${source} has broken ${attribute}: ${value}`);
+    }
+  }
+}
+
+function shouldVerifyLocalLink(value) {
+  if (!value || value.startsWith('#')) return false;
+  if (value.startsWith('//')) return false;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return false;
+  return true;
+}
+
+function stripLinkFragmentAndQuery(value) {
+  return value.split('#', 1)[0].split('?', 1)[0];
+}
+
 function verifyZipArchive(bundleDir, zipFile, errors) {
   let entries;
   try {
@@ -370,4 +406,5 @@ if (require.main === module) {
 
 module.exports = {
   readZipEntries,
+  verifyLocalHtmlLinks,
 };

@@ -9,6 +9,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { EchoGridGame } = require('../src/engine');
 const { buildStateSummary } = require('../agents/llm-openai-compatible');
+const { verifyLocalHtmlLinks } = require('../scripts/verify-submission-bundle');
 
 const root = path.resolve(__dirname, '..');
 const cli = path.join(root, 'bin', 'echogrid.js');
@@ -668,6 +669,37 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(startHere, /mission-control-desktop\.png/);
     assert.match(startHere, /showcase\/mission-control\.html/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('submission bundle verifier checks local html links', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    fs.mkdirSync(path.join(tmp, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'assets', 'good.txt'), 'ok\n', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'image.png'), 'ok\n', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'index.html'), [
+      '<a href="assets/good.txt">good</a>',
+      '<img src="image.png?size=1#preview">',
+      '<a href="#local-anchor">anchor</a>',
+      '<a href="https://example.com/reference">external</a>',
+    ].join('\n'), 'utf8');
+
+    const cleanErrors = [];
+    verifyLocalHtmlLinks(tmp, cleanErrors);
+    assert.deepEqual(cleanErrors, []);
+
+    fs.writeFileSync(path.join(tmp, 'broken.html'), [
+      '<a href="missing.html">missing</a>',
+      '<img src="../outside.png">',
+    ].join('\n'), 'utf8');
+
+    const brokenErrors = [];
+    verifyLocalHtmlLinks(tmp, brokenErrors);
+    assert.match(brokenErrors.join('\n'), /broken\.html has broken href: missing\.html/);
+    assert.match(brokenErrors.join('\n'), /broken\.html has src outside bundle: \.\.\/outside\.png/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
