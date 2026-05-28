@@ -56,6 +56,14 @@ npm run submission:bundle
 
 The bundle includes the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_CHECKLIST.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
+To verify the handoff package without rebuilding it:
+
+```bash
+npm run submission:verify
+```
+
+This checks required files, bundle-level hashes, visual smoke screenshots, benchmark outcomes, and the zip central directory against the generated bundle directory.
+
 ## What To Look For
 
 EchoGrid is designed around agent behavior, not a visual board. The important artifacts are:

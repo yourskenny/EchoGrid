@@ -56,6 +56,12 @@ npm run submission:bundle
 
 This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, checklist, and sha256 bundle manifest.
 
+To verify the generated handoff directory and zip archive:
+
+```bash
+npm run submission:verify
+```
+
 For a shorter verification path, run:
 
 ```bash
@@ -74,7 +80,7 @@ For the full submission gate used by CI:
 npm run submission:check
 ```
 
-This runs the full showcase package, artifact verifier, visual smoke gate, adversarial benchmark, rule-signals benchmark, and submission bundle generator.
+This runs the full showcase package, artifact verifier, visual smoke gate, adversarial benchmark, rule-signals benchmark, submission bundle generator, and final bundle verifier.
 
 ## Useful Commands
 
@@ -85,6 +91,7 @@ npm run showcase
 npm run demo:ci
 npm run demo:visual
 npm run submission:bundle
+npm run submission:verify
 npm run submission:check
 npm run benchmark:adversarial
 npm run benchmark:rules

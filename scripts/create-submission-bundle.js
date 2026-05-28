@@ -200,6 +200,7 @@ function buildSummary({ outDir, zipFile, showcaseManifest, benchmarks }) {
     commands: {
       full_gate: 'npm run submission:check',
       regenerate_bundle: 'npm run submission:bundle',
+      verify_bundle: 'npm run submission:verify',
       demo_package: 'npm run demo:full && npm run demo:check',
       visual_smoke: 'npm run demo:visual',
       adversarial_benchmark: 'npm run benchmark:adversarial',
@@ -283,7 +284,7 @@ function renderReadme(summary) {
     'npm run submission:check',
     '```',
     '',
-    'This rebuilds the showcase, verifies artifacts, runs the public benchmark gates, and recreates this bundle.',
+    'This rebuilds the showcase, verifies artifacts, runs the public benchmark gates, recreates this bundle, and verifies the bundle directory plus zip archive.',
     '',
   ].join('\n');
 }
@@ -305,6 +306,7 @@ function renderChecklist(summary) {
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
     '- [x] Rule-signals benchmark included and rule-aware/rule-explorer beat baseline on average score.',
     '- [x] Bundle manifest includes sha256 hashes for all copied files.',
+    '- [x] Bundle directory and zip archive can be verified with `npm run submission:verify`.',
     '',
     '## Judge Path',
     '',

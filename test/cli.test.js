@@ -586,6 +586,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     const rulesDir = path.join(tmp, 'rules');
     const outDir = path.join(tmp, 'bundle');
     writeMinimalShowcasePackage(showcaseDir);
+    writeMinimalVisualSmokePackage(showcaseDir);
     writeBenchmarkPackage(adversarialDir, {
       seed_file: './seeds/adversarial.txt',
       rows: [
@@ -630,6 +631,17 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
     assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'adversarial', 'leaderboard.md')));
     assert.ok(fs.existsSync(`${outDir}.zip`));
+
+    const verify = spawnSync(
+      process.execPath,
+      ['./scripts/verify-submission-bundle.js', outDir],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(verify.status, 0, verify.stderr);
+    assert.match(verify.stdout, /SUBMISSION BUNDLE CHECK PASSED/);
 
     const manifest = JSON.parse(fs.readFileSync(path.join(outDir, 'SUBMISSION_MANIFEST.json'), 'utf8'));
     assert.equal(manifest.schema, 'echogrid.submission_bundle.v1');
@@ -1068,3 +1080,40 @@ function writeBenchmarkPackage(dir, comparison) {
   fs.writeFileSync(path.join(dir, 'arena.html'), 'EchoGrid Arena const comparison = ./agents/rule-aware.js', 'utf8');
   fs.writeFileSync(path.join(dir, 'leaderboard.md'), 'EchoGrid Leaderboard Ranked by success rate ./agents/rule-aware.js', 'utf8');
 }
+
+function writeMinimalVisualSmokePackage(showcaseDir) {
+  const screenshotsDir = path.join(showcaseDir, 'screenshots');
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+  const entries = [
+    ['index.html', 'desktop', 1365, 900],
+    ['index.html', 'mobile', 390, 844],
+    ['mission-control.html', 'desktop', 1365, 900],
+    ['mission-control.html', 'mobile', 390, 844],
+    ['replay.html', 'desktop', 1365, 900],
+    ['replay.html', 'mobile', 390, 844],
+    ['arena.html', 'desktop', 1365, 900],
+    ['arena.html', 'mobile', 390, 844],
+  ].map(([page, viewport, width, height]) => {
+    const name = `${page.replace(/\.html$/, '')}-${viewport}.png`;
+    fs.writeFileSync(path.join(screenshotsDir, name), Buffer.from(TINY_PNG_BASE64, 'base64'));
+    return {
+      page,
+      viewport,
+      width,
+      height,
+      unique_colors: 32,
+      size: 68,
+      screenshot: `logs/showcase/screenshots/${name}`,
+    };
+  });
+  fs.writeFileSync(path.join(screenshotsDir, 'visual-smoke.json'), `${JSON.stringify({
+    schema: 'echogrid.visual_smoke.v1',
+    generated_at: '2026-05-28T00:00:00.000Z',
+    generator: 'scripts/smoke-demo-visuals.js',
+    browser: 'test-browser',
+    showcase_dir: 'logs/showcase',
+    screenshots: entries,
+  }, null, 2)}\n`, 'utf8');
+}
+
+const TINY_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAC0lEQVR4nGP4zwAAAgEBAJzQnxcAAAAASUVORK5CYII=';
