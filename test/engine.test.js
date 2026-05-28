@@ -1,8 +1,13 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 const { EchoGridGame, parseAction } = require('../src/engine');
+const { decideAction } = require('../agents/baseline-policy');
+
+const root = path.resolve(__dirname, '..');
 
 test('world generation is deterministic for a seed', () => {
   const first = new EchoGridGame({ seed: 48129 }).state({ includeAnswer: true }).answer;
@@ -612,3 +617,63 @@ test('invalid actions are penalized and preserve a parseable state', () => {
   assert.ok(state.score < 300);
   assert.equal(Array.isArray(state.map.legend), true);
 });
+
+test('adversarial seed set covers hidden rules and remains solvable by reference policies', () => {
+  const seedFile = path.join(root, 'seeds', 'adversarial.txt');
+  const seeds = fs.readFileSync(seedFile, 'utf8').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const rules = new Set();
+
+  assert.equal(seeds.length, 5);
+  for (const seed of seeds) {
+    const baseline = runReferencePolicy(seed, 'baseline');
+    const ruleAware = runReferencePolicy(seed, 'rule-aware');
+    rules.add(baseline.hidden_rule);
+
+    assert.equal(baseline.status, 'success', `baseline failed seed ${seed}`);
+    assert.equal(ruleAware.status, 'success', `rule-aware failed seed ${seed}`);
+    assert.equal(baseline.artifacts, '3/3', `baseline missed artifacts on seed ${seed}`);
+    assert.equal(ruleAware.artifacts, '3/3', `rule-aware missed artifacts on seed ${seed}`);
+    assert.equal(baseline.invalid_actions, 0, `baseline used invalid actions on seed ${seed}`);
+    assert.equal(ruleAware.invalid_actions, 0, `rule-aware used invalid actions on seed ${seed}`);
+  }
+
+  assert.deepEqual([...rules].sort(), [
+    'artifact_suppression',
+    'exit_radius_safe',
+    'row_count_disclosure',
+    'sector_c_two_unstable',
+    'wall_echo_inversion',
+  ]);
+});
+
+function runReferencePolicy(seed, policy) {
+  const game = new EchoGridGame({ seed, mode: 'mvp' });
+  while (!game.state().turn.terminal) {
+    const state = game.state();
+    game.step(referenceAction(state, policy));
+  }
+  const state = game.state();
+  const terminal = state.turn.terminal;
+  return {
+    hidden_rule: terminal.hidden_rule,
+    status: terminal.status,
+    reason: terminal.reason,
+    score: terminal.score,
+    turns: state.turn.current,
+    artifacts: `${state.objective.artifacts_collected}/${state.objective.artifacts_required}`,
+    invalid_actions: state.metrics.invalid_actions,
+  };
+}
+
+function referenceAction(state, policy) {
+  if (policy === 'rule-aware' && !state.rules.claim) {
+    if (state.turn.current === 0) return 'scan sector C';
+    const sectorCSignal = [...state.observations.recent]
+      .reverse()
+      .find((item) => item.type === 'scan' && item.kind === 'sector' && item.value === 'C');
+    if (sectorCSignal?.rule_signal === 'sector_c_exactly_two_unstable') {
+      return 'claim_rule sector_c_two_unstable';
+    }
+  }
+  return decideAction(state);
+}

@@ -60,9 +60,11 @@ The one-shot and persistent modes use the same action protocol. Persistent mode 
 - `seeds/showcase.txt`: small judge-facing showcase set.
 - `seeds/demo.txt`: bundled demo comparison set.
 - `seeds/public.txt`: public benchmark seeds for local comparison.
+- `seeds/adversarial.txt`: public stress seeds with hidden-rule coverage and longer reference routes.
 - Private or hidden competition seeds should use the same protocol and scoring path.
 
 Public seeds are for development and explanation. Final rankings should use held-out seeds when possible.
+For seed-set details, see [seed-sets.md](./seed-sets.md).
 
 ## Allowed Agent Inputs
 

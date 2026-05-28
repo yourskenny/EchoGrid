@@ -12,7 +12,8 @@
 ## Benchmark Hardening
 
 - Formal JSON schemas for `STATE`, `EVENT`, and JSONL logs.
-- Public, private, and adversarial seed sets.
+- Public adversarial seed set with hidden-rule coverage.
+- Private and held-out seed workflows for final rankings.
 - Stable score breakdown and capability metrics.
 - Faster multi-agent evaluation harness.
 - CI for tests, full demo execution, generated artifact checks, and showcase artifact upload.

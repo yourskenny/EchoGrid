@@ -54,6 +54,7 @@ npm run demo
 npm run compare
 npm run showcase
 npm run demo:ci
+npm run benchmark:adversarial
 
 node ./bin/echogrid.js inspect --seed 48129
 node ./bin/echogrid.js run --seed 48129 --pretty
@@ -168,6 +169,7 @@ For a guided explanation, including the HTML replay viewer path, see [docs/compe
 For the full agent protocol, see [docs/protocol-reference.md](./docs/protocol-reference.md).
 For judging boundaries and official evaluation modes, see [docs/competition-rules.md](./docs/competition-rules.md).
 For scoring details, see [docs/scoring.md](./docs/scoring.md).
+For seed-set purposes, see [docs/seed-sets.md](./docs/seed-sets.md).
 For representative report output, see [docs/sample-report.md](./docs/sample-report.md).
 For the first LLM evaluation loop, see [docs/llm-evaluation-2026-05-28.md](./docs/llm-evaluation-2026-05-28.md).
 For the repeated test/optimization cycle summary, see [docs/test-optimization-cycle-summary-2026-05-28.md](./docs/test-optimization-cycle-summary-2026-05-28.md).

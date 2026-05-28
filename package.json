@@ -17,6 +17,7 @@
     "demo:check": "node ./scripts/verify-demo-artifacts.js ./logs/showcase",
     "demo:ci": "npm run demo:full && npm run demo:check",
     "compare": "node ./scripts/compare.js --seeds ./seeds/demo.txt",
+    "benchmark:adversarial": "node ./scripts/compare.js --seeds ./seeds/adversarial.txt --json-out ./logs/adversarial/agent-comparison.json --html-out ./logs/adversarial/arena.html",
     "showcase": "node ./bin/echogrid.js evaluate --agent ./agents/rule-aware.js --seed 9001 --log-dir ./logs/showcase",
     "llm:smoke": "node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro --max-model-turns 12 --leaderboard both",
     "llm:summary": "node ./scripts/summarize-llm-logs.js ./logs/llm",
