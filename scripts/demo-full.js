@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 const logs = path.join(root, 'logs');
 const showcaseLogDir = path.join(logs, 'showcase');
 const showcaseLog = path.join(showcaseLogDir, '9001.jsonl');
+const showcaseReplayHtml = path.join(showcaseLogDir, 'replay.html');
 
 run('npm test', npmCommand('test'));
 run('Compare agents on demo seeds', [process.execPath, './scripts/compare.js', '--seeds', './seeds/demo.txt']);
@@ -28,6 +29,14 @@ run('Run rule-aware showcase seed', [
 
 run('Showcase battle report', [process.execPath, './bin/echogrid.js', 'report', showcaseLog]);
 run('Showcase replay', [process.execPath, './bin/echogrid.js', 'replay', showcaseLog]);
+run('Showcase HTML replay viewer', [
+  process.execPath,
+  './scripts/render-replay-html.js',
+  showcaseLog,
+  '--out',
+  showcaseReplayHtml,
+]);
+process.stdout.write(`\nOpen ${path.relative(root, showcaseReplayHtml).replace(/\\/g, '/')} in a browser for the judge-friendly replay viewer.\n`);
 
 function run(title, command) {
   process.stdout.write(`\n=== ${title} ===\n`);

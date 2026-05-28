@@ -15,6 +15,7 @@ This command proves the demo end to end:
 3. Runs the showcase agent on seed `9001`.
 4. Generates a battle report.
 5. Prints a replay timeline.
+6. Generates a self-contained HTML replay viewer at `logs/showcase/replay.html`.
 
 For faster local verification during judging or development:
 
@@ -22,7 +23,7 @@ For faster local verification during judging or development:
 npm run demo:verify
 ```
 
-This runs tests, the rule-aware showcase, and the three-agent showcase comparison without printing the full replay timeline.
+This runs tests, the rule-aware showcase, and the three-agent showcase comparison without printing the full replay timeline or generating the viewer.
 
 ## What To Look For
 
@@ -32,6 +33,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Action lines: deterministic, parseable commands.
 - JSONL logs: complete audit trail.
 - Replay: turn-by-turn reconstruction.
+- HTML replay viewer: browser-based board, controls, and action timeline for judges.
 - Report: summary of outcome, scoring, risks, and transferable lesson.
 - Compare table: demonstrates that strategy quality changes results.
 
@@ -49,7 +51,10 @@ Run it directly:
 npm run showcase
 node ./bin/echogrid.js report ./logs/showcase/9001.jsonl
 node ./bin/echogrid.js replay ./logs/showcase/9001.jsonl
+npm run replay:html -- ./logs/showcase/9001.jsonl --out ./logs/showcase/replay.html
 ```
+
+After `npm run demo:full`, open `logs/showcase/replay.html` in a browser. The viewer is a single HTML file with no server or external assets. It shows the public board state, current action, outcome, score, and clickable turn timeline.
 
 ## Expected Story
 

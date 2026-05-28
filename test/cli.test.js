@@ -120,6 +120,44 @@ test('report command summarizes a JSONL run log', () => {
   }
 });
 
+test('render replay html creates a self-contained viewer', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const logDir = path.join(tmp, 'logs');
+    const outFile = path.join(tmp, 'replay.html');
+    const run = spawnSync(
+      process.execPath,
+      [cli, 'evaluate', '--agent', './agents/rule-aware.js', '--seed', '9001', '--log-dir', logDir],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 30000,
+      },
+    );
+    assert.equal(run.status, 0, run.stderr);
+
+    const render = spawnSync(
+      process.execPath,
+      ['./scripts/render-replay-html.js', path.join(logDir, '9001.jsonl'), '--out', outFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(render.status, 0, render.stderr);
+    assert.match(render.stdout, /Wrote/);
+    const html = fs.readFileSync(outFile, 'utf8');
+    assert.match(html, /EchoGrid Replay/);
+    assert.match(html, /Seed 9001/);
+    assert.match(html, /id="board"/);
+    assert.match(html, /id="timelineRows"/);
+    assert.match(html, /const frames = /);
+    assert.match(html, /extract_artifact/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('report command handles BOM JSONL and LLM diagnostics', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {

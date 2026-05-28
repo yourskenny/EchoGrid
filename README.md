@@ -28,8 +28,10 @@ npm run demo:full
 3. showcase seed evaluation
 4. battle report
 5. replay timeline
+6. self-contained HTML replay viewer
 
 It recreates `logs/showcase` for the showcase run.
+Open `logs/showcase/replay.html` in a browser after `npm run demo:full` for the judge-friendly visual replay.
 
 For a shorter verification path, run:
 
@@ -50,6 +52,7 @@ node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/pub
 node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt --summary-file ./logs/summary.json
 node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
+npm run replay:html -- ./logs/48129.jsonl --out ./logs/48129.replay.html
 ```
 
 `inspect` is a local debugging command and may print hidden answer data. Do not use its output as evaluated agent input.
@@ -151,7 +154,7 @@ npm run demo:full
 
 The showcase seed is `9001`. It demonstrates the full loop: structured observations, rule-aware action, artifact collection, extraction, scoring, report, and replay.
 
-For a guided explanation, see [docs/competition-demo.md](./docs/competition-demo.md).
+For a guided explanation, including the HTML replay viewer path, see [docs/competition-demo.md](./docs/competition-demo.md).
 For the full agent protocol, see [docs/protocol-reference.md](./docs/protocol-reference.md).
 For judging boundaries and official evaluation modes, see [docs/competition-rules.md](./docs/competition-rules.md).
 For scoring details, see [docs/scoring.md](./docs/scoring.md).
