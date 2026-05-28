@@ -29,10 +29,11 @@ npm run demo:full
 4. battle report
 5. replay timeline
 6. self-contained HTML replay viewer
-7. generated judge brief
+7. self-contained HTML comparison arena
+8. generated judge brief
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/JUDGE_BRIEF.md` first after `npm run demo:full`, then open `logs/showcase/replay.html` for the judge-friendly visual replay with board states, key events, and a score curve.
+Open `logs/showcase/JUDGE_BRIEF.md` first after `npm run demo:full`, then open `logs/showcase/arena.html` for the agent comparison and `logs/showcase/replay.html` for the judge-friendly visual replay with board states, key events, and a score curve.
 
 For a shorter verification path, run:
 

@@ -15,7 +15,7 @@ This document defines the recommended judging contract for EchoGrid demo submiss
 npm run demo:full
 ```
 
-This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, and writes `logs/showcase/JUDGE_BRIEF.md`.
+This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, and writes `logs/showcase/JUDGE_BRIEF.md`.
 
 It recreates `logs/showcase` before running the showcase seed, so keep custom logs outside that directory.
 
@@ -124,6 +124,7 @@ A judged submission should provide:
 - average turns
 - per-seed status
 - JSONL log directory
+- comparison arena or equivalent per-seed comparison
 - generated judge brief or equivalent handoff
 - any model diagnostics or fallback policy
 - provider settings such as `thinking_mode`

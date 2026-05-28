@@ -16,7 +16,8 @@ This command proves the demo end to end:
 4. Generates a battle report.
 5. Prints a replay timeline.
 6. Generates a self-contained HTML replay viewer at `logs/showcase/replay.html`.
-7. Generates a one-page judge brief at `logs/showcase/JUDGE_BRIEF.md`.
+7. Generates a self-contained HTML comparison arena at `logs/showcase/arena.html`.
+8. Generates a one-page judge brief at `logs/showcase/JUDGE_BRIEF.md`.
 
 For faster local verification during judging or development:
 
@@ -35,6 +36,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - JSONL logs: complete audit trail.
 - Replay: turn-by-turn reconstruction.
 - HTML replay viewer: browser-based board, controls, score curve, key events, and action timeline for judges.
+- HTML comparison arena: side-by-side agent aggregate and per-seed score matrix.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.
 - Report: summary of outcome, scoring, risks, and transferable lesson.
 - Compare table: demonstrates that strategy quality changes results.
@@ -57,7 +59,7 @@ npm run replay:html -- ./logs/showcase/9001.jsonl --out ./logs/showcase/replay.h
 npm run demo:brief
 ```
 
-After `npm run demo:full`, open `logs/showcase/JUDGE_BRIEF.md` first for the short judging script and result snapshot. Then open `logs/showcase/replay.html` in a browser. The viewer is a single HTML file with no server or external assets. It shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline.
+After `npm run demo:full`, open `logs/showcase/JUDGE_BRIEF.md` first for the short judging script and result snapshot. Then open `logs/showcase/arena.html` for the side-by-side agent comparison and `logs/showcase/replay.html` for the single-run replay. Both viewers are single HTML files with no server or external assets. The replay viewer shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline.
 
 ## Expected Story
 

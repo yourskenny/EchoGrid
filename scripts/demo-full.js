@@ -10,15 +10,30 @@ const logs = path.join(root, 'logs');
 const showcaseLogDir = path.join(logs, 'showcase');
 const showcaseLog = path.join(showcaseLogDir, '9001.jsonl');
 const showcaseReplayHtml = path.join(showcaseLogDir, 'replay.html');
+const showcaseArenaHtml = path.join(showcaseLogDir, 'arena.html');
 const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
 const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
+const agentComparisonJson = path.join(showcaseLogDir, 'agent-comparison.json');
 
 fs.rmSync(showcaseLogDir, { recursive: true, force: true });
 fs.mkdirSync(showcaseLogDir, { recursive: true });
 run('npm test', npmCommand('test'));
-run('Compare agents on demo seeds', [process.execPath, './scripts/compare.js', '--seeds', './seeds/demo.txt'], {
-  teeFile: agentComparison,
-});
+run(
+  'Compare agents on demo seeds',
+  [
+    process.execPath,
+    './scripts/compare.js',
+    '--seeds',
+    './seeds/demo.txt',
+    '--json-out',
+    agentComparisonJson,
+    '--html-out',
+    showcaseArenaHtml,
+  ],
+  {
+    teeFile: agentComparison,
+  },
+);
 
 run('Run rule-aware showcase seed', [
   process.execPath,
@@ -51,8 +66,10 @@ run('Showcase judge brief', [
   showcaseReplayHtml,
   '--comparison',
   agentComparison,
+  '--arena-html',
+  showcaseArenaHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseBrief)} first, then ${relativePath(showcaseReplayHtml)} for the judge-friendly replay viewer.\n`);
+process.stdout.write(`\nOpen ${relativePath(showcaseBrief)} first, then ${relativePath(showcaseArenaHtml)} and ${relativePath(showcaseReplayHtml)} for the judge-friendly viewers.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);

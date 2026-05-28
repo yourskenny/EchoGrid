@@ -156,6 +156,7 @@ test('render replay html creates a self-contained viewer', () => {
   try {
     const logDir = path.join(tmp, 'logs');
     const outFile = path.join(tmp, 'replay.html');
+    const arenaFile = path.join(tmp, 'arena.html');
     const comparisonFile = path.join(tmp, 'agent-comparison.txt');
     const briefFile = path.join(tmp, 'JUDGE_BRIEF.md');
     const run = spawnSync(
@@ -195,7 +196,7 @@ test('render replay html creates a self-contained viewer', () => {
     fs.writeFileSync(comparisonFile, 'ECHO GRID AGENT COMPARISON\n./agents/rule-aware.js  1  991\n', 'utf8');
     const brief = spawnSync(
       process.execPath,
-      ['./scripts/write-judge-brief.js', path.join(logDir, '9001.jsonl'), '--out', briefFile, '--replay-html', outFile, '--comparison', comparisonFile],
+      ['./scripts/write-judge-brief.js', path.join(logDir, '9001.jsonl'), '--out', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--comparison', comparisonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -206,6 +207,7 @@ test('render replay html creates a self-contained viewer', () => {
     const markdown = fs.readFileSync(briefFile, 'utf8');
     assert.match(markdown, /EchoGrid Judge Brief/);
     assert.match(markdown, /90-Second Judge Script/);
+    assert.match(markdown, /arena\.html/);
     assert.match(markdown, /SUCCESS \/ objective_complete/);
     assert.match(markdown, /rule claim accepted/);
     assert.match(markdown, /exit extraction completed/);
@@ -241,15 +243,38 @@ test('report command handles BOM JSONL and LLM diagnostics', () => {
 });
 
 test('compare script prints agent comparison table', () => {
-  const result = spawnSync(process.execPath, ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js'], {
-    cwd: root,
-    encoding: 'utf8',
-    timeout: 30000,
-  });
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const jsonFile = path.join(tmp, 'comparison.json');
+    const htmlFile = path.join(tmp, 'arena.html');
+    const result = spawnSync(
+      process.execPath,
+      ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js', '--json-out', jsonFile, '--html-out', htmlFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 30000,
+      },
+    );
 
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /ECHO GRID AGENT COMPARISON/);
-  assert.match(result.stdout, /agents\/random\.js/);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /ECHO GRID AGENT COMPARISON/);
+    assert.match(result.stdout, /agents\/random\.js/);
+
+    const comparison = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+    assert.equal(comparison.seed_file, './seeds/showcase.txt');
+    assert.equal(comparison.rows.length, 1);
+    assert.equal(comparison.rows[0].agent, './agents/random.js');
+    assert.ok(Array.isArray(comparison.rows[0].results));
+
+    const html = fs.readFileSync(htmlFile, 'utf8');
+    assert.match(html, /EchoGrid Arena/);
+    assert.match(html, /Per-Seed Matrix/);
+    assert.match(html, /const comparison = /);
+    assert.match(html, /random/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('analyze-run reports quality flags for JSONL logs', () => {
