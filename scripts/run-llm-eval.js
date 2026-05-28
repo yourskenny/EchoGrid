@@ -129,6 +129,9 @@ function parseArgs(argv) {
     } else if (arg === '--timeout') {
       parsed.timeout = Number(readValue(argv, i, arg));
       i += 1;
+    } else if (arg === '--process-timeout') {
+      parsed.processTimeout = Number(readValue(argv, i, arg));
+      i += 1;
     } else if (arg === '--request-timeout') {
       parsed.requestTimeout = Number(readValue(argv, i, arg));
       i += 1;
@@ -180,6 +183,7 @@ Options:
   --mode mvp|micro
   --base-url https://api.deepseek.com
   --timeout 45000
+  --process-timeout 600000
   --request-timeout 30000
   --max-tokens 256
   --max-model-turns 12

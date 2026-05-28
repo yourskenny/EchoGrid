@@ -531,9 +531,19 @@ class EchoGridGame {
     const goal = this.actionHintGoal();
     const known = new Map(this.knownCells().map((cell) => [keyOf(cell.coord[0], cell.coord[1]), cell]));
     if (goal.source !== 'exit') {
+      const escape = this.oscillationEscapeAction(goal.coord, known, avoidActions);
+      if (escape) return escape;
       if (!this.artifactSearchStalled()) return null;
       const probe = this.stalledSearchProbe(goal.coord, known, avoidActions);
       if (probe) return `probe ${probe[0]} ${probe[1]}`;
+      const nearestFrontier = this.publicFrontierRoute(this.position, known, avoidActions, {
+        preferAdjacentProbe: true,
+        blockAvoidFirstStep: true,
+      });
+      if (nearestFrontier) {
+        if (nearestFrontier.path.length <= 1) return `probe ${nearestFrontier.probe[0]} ${nearestFrontier.probe[1]}`;
+        return actionFromPathOrFrontier(this.position, nearestFrontier.path);
+      }
       const frontier = this.publicFrontierRoute(goal.coord, known, avoidActions, { preferAdjacentProbe: true });
       if (frontier) {
         if (frontier.path.length <= 1) return `probe ${frontier.probe[0]} ${frontier.probe[1]}`;
@@ -560,6 +570,51 @@ class EchoGridGame {
     }
 
     return null;
+  }
+
+  oscillationEscapeAction(goal, known, avoidActions = []) {
+    if (this.collected.size >= this.world.config.artifactsRequired) return null;
+    if (!this.recentMoveOscillation()) return null;
+    const probe = this.stalledSearchProbe(goal, known, avoidActions);
+    if (probe) return `probe ${probe[0]} ${probe[1]}`;
+
+    const nearestFrontier = this.publicFrontierRoute(this.position, known, avoidActions, {
+      preferAdjacentProbe: true,
+      blockAvoidFirstStep: true,
+    });
+    if (nearestFrontier) {
+      if (nearestFrontier.path.length <= 1) return `probe ${nearestFrontier.probe[0]} ${nearestFrontier.probe[1]}`;
+      return actionFromPathOrFrontier(this.position, nearestFrontier.path);
+    }
+
+    const frontier = this.publicFrontierRoute(goal, known, avoidActions, {
+      preferAdjacentProbe: true,
+      blockAvoidFirstStep: true,
+    });
+    if (frontier) {
+      if (frontier.path.length <= 1) return `probe ${frontier.probe[0]} ${frontier.probe[1]}`;
+      return actionFromPathOrFrontier(this.position, frontier.path);
+    }
+
+    const avoidSet = new Set(avoidActions);
+    const moves = this.adjacentCells()
+      .filter((cell) => cell.visible && passablePublicCell(cell))
+      .map((cell) => cell.recommended_actions[0])
+      .filter(Boolean)
+      .filter((action) => !avoidSet.has(action))
+      .sort((a, b) => this.publicGoalDistance(a, goal) - this.publicGoalDistance(b, goal));
+    return moves[0] || null;
+  }
+
+  recentMoveOscillation() {
+    const positions = [];
+    for (const event of [...this.events].reverse()) {
+      if (event.outcome?.type !== 'move' || !Array.isArray(event.outcome.coord)) continue;
+      positions.push(event.outcome.coord);
+      if (positions.length >= 4) break;
+    }
+    if (positions.length < 3) return false;
+    return sameCoord(positions[0], positions[2]);
   }
 
   optimisticExitRoute(known, avoidActions = []) {
@@ -622,6 +677,8 @@ class EchoGridGame {
       const current = queue.shift();
       const path = rebuildPublicPath(current, parent);
       for (const probe of this.publicUnknownNeighbors(current, known)) {
+        const firstStep = path[1];
+        if (options.blockAvoidFirstStep && firstStep && avoidTargets.has(keyOf(firstStep[0], firstStep[1]))) continue;
         candidates.push({
           path,
           probe,
@@ -726,6 +783,12 @@ class EchoGridGame {
     }
     const goalInfo = this.actionHintGoal();
     const goal = goalInfo.coord;
+    if (goalInfo.source !== 'exit') {
+      const oscillationPenalty = repeatPenaltyFor(a, context.avoidRepeating) - repeatPenaltyFor(b, context.avoidRepeating);
+      if (oscillationPenalty !== 0) return oscillationPenalty;
+      const repeatProbe = nonExitRepeatProbeOrder(a, b, context.avoidRepeating);
+      if (repeatProbe !== 0) return repeatProbe;
+    }
     const aProgress = this.publicGoalProgressRank(a, goal);
     const bProgress = this.publicGoalProgressRank(b, goal);
     if (goalInfo.source === 'exit') {
@@ -1125,6 +1188,15 @@ function nonExitExplorationPriority(action) {
   if (action.startsWith('probe ')) return 0;
   if (action.startsWith('move ')) return 1;
   return actionPriority(action);
+}
+
+function nonExitRepeatProbeOrder(a, b, avoidRepeating = []) {
+  const aProbe = a.startsWith('probe ');
+  const bProbe = b.startsWith('probe ');
+  if (aProbe === bProbe) return 0;
+  if (aProbe && avoidRepeating.includes(b)) return -1;
+  if (bProbe && avoidRepeating.includes(a)) return 1;
+  return 0;
 }
 
 function traceAxis(trace) {

@@ -553,16 +553,65 @@ deepseek-v4-flash targeted public10 failure seeds, strict pure:
 
 These runs are still pure model runs: the model selected every action, with no local policy, no baseline fallback, and no reasoning-content recovery. The game-side improvement is that public hints now make stalled exploration and blocked exit routes easier to follow.
 
+### Public10 strict pure completion
+
+A later full public10 strict pure pass exposed two additional artifact-stage loops on `9001` and `65537`. The model was still copying public hints, but the non-exit ranking let heat/trace progress override repeat avoidance, so short public movement loops survived after the previous frontier fixes.
+
+The engine now treats non-exit oscillation as a public routing signal. During artifact search, route hints first try a useful local probe, then open a nearby public frontier whose first step does not repeat a recently visited move. Non-exit preferred ordering also considers repeat avoidance before heat/trace progress.
+
+Targeted rerun on the new `seeds/targeted-oscillation.txt` set:
+
+```text
+deepseek-v4-flash strict pure:
+  successes=2/2
+  average_score=843.0
+  average_turns=60.0
+  9001:  success, score=816, turns=54
+  65537: success, score=870, turns=66
+
+deepseek-v4-pro strict pure:
+  successes=2/2
+  average_score=753.0
+  average_turns=64.5
+  9001:  success, score=636, turns=63
+  65537: success, score=870, turns=66
+```
+
+Full public10 strict pure result:
+
+```text
+deepseek-v4-flash:
+  successes=10/10
+  average_score=871.2
+  average_turns=61.8
+
+deepseek-v4-pro:
+  successes=10/10
+  average_score=871.2
+  average_turns=61.8
+
+For every public10 run:
+  artifacts=3/3
+  fallback_actions=0
+  local_policy_actions=0
+  model_error_actions=0
+  recovered_reasoning_actions=0
+```
+
+This is the strongest external-model milestone so far: both DeepSeek V4 models can complete every public MVP seed in strict pure mode with no baseline fallback, no local policy, and no reasoning-content recovery. The remaining benchmark work should shift from "can the model finish public seeds?" to stronger hidden-rule reasoning, private seeds, and richer replay/judge presentation.
+
 ## Isolated Codex Review
 
 Codex was rerun in a separate agent without this thread context. It inspected the repository, ran:
 
 ```text
+git status --short --branch
 npm test
 npm run demo:verify
+node ./scripts/run-llm-eval.js --help
 ```
 
-Both passed: `27/27` tests and a successful `demo:verify` run with `rule-aware` scoring `977` on seed `9001`. From a first-time agent-author / judge perspective, the review identified these next documentation and protocol gaps:
+The isolated verification passed: `33/33` tests, a successful `demo:verify` run with `rule-aware` scoring `977` on seed `9001`, and LLM runner help printed without requiring an API key. The reviewer noted that the checkout was dirty during validation and that full LLM evaluation still depends on external provider credentials. From a first-time agent-author / judge perspective, the remaining gaps are now mostly product-depth items:
 
 - action semantics need a single reference for costs, failure cases, outcomes, and scoring effects
 - observation fields such as `heat`, `echo`, `trace`, `noise`, and `sector` need clearer value semantics

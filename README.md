@@ -66,8 +66,15 @@ node ./scripts/analyze-run.js ./logs/llm/pure/deepseek-v4-flash/9001.jsonl
 The key is read only from the environment and should never be committed.
 This command is an integration smoke test for model behavior and diagnostics; scores may vary by provider latency and model output quality.
 By default, the LLM runner separates `pure` model runs from `hybrid` model-plus-baseline-fallback runs so leaderboard scores and integration diagnostics do not get mixed. Pass `--leaderboard pure` to run only the strict model path and reduce provider calls.
+Use `--process-timeout` for longer public seed batches, for example `--process-timeout 1800000` for public10 strict pure runs.
 The LLM bridge retries an empty final action once by default through `ECHOGRID_LLM_RETRY_EMPTY_ACTION=1`; set it to `0` to measure first-response-only strictness.
 For DeepSeek V4 models, the bridge sends `thinking: { "type": "disabled" }` by default so short action prompts are not consumed by hidden reasoning tokens. Override with `ECHOGRID_LLM_THINKING_MODE`.
+
+For targeted regression of the latest public oscillation fixes:
+
+```bash
+node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/targeted-oscillation.txt --mode mvp --leaderboard pure --max-model-turns 96 --process-timeout 1800000
+```
 
 ## Game Loop
 

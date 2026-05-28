@@ -852,15 +852,6 @@ Interpretation:
 
 Both DeepSeek V4 models now complete the public three-seed MVP set in strict pure mode. The remaining distinction between models is speed and score variance, not basic protocol reliability.
 
-## Current Verification Snapshot
-
-Latest local verification:
-
-```text
-npm test: 32 pass / 0 fail
-npm run demo:verify: pass
-```
-
 ## Loop 26: Public Frontier Recovery For Artifact And Exit Loops
 
 Finding:
@@ -896,10 +887,69 @@ Interpretation:
 
 The latest failures were not hidden-information problems; they were public hint quality problems. The new policy keeps the protocol public but makes stalled exploration and blocked exit recovery much more legible to LLM agents. The three previously failing or incomplete Flash cases now complete in strict pure mode without fallback.
 
-Previous pushed commit before the persistent-agent iteration:
+## Loop 27: Non-Exit Oscillation Escape And Public10 Strict Pure
+
+Finding:
+
+The first strict pure Flash public10 run after Loop 26 improved the earlier failure seeds, but still exposed two longer artifact-search loops:
+
+- `9001`: after `2/3` artifacts, the public hint policy alternated around `[6,4]` / `[6,5]` while trace direction flipped across a narrow known corridor.
+- `65537`: after `1/3` artifacts, the policy wandered broad known corridors around a public heat goal instead of consistently opening non-repeated frontiers.
+
+Both failures were public-policy issues: the model was generally copying `action_hints.next_action`, but the hint ranking still allowed heat/trace progress to outrank repeat avoidance during non-exit artifact search.
+
+Optimization:
+
+- added a public-only two-cell oscillation detector for artifact-stage route hints
+- made artifact-stage route hints try a stalled local probe, then a nearest public frontier whose first step is not an avoid-repeating move
+- allowed public frontier routing to block avoided first steps when requested
+- changed non-exit preferred-action sorting so repeat avoidance is considered before heat/trace progress
+- kept exit routing behavior separate from artifact-stage oscillation handling
+- added `seeds/targeted-oscillation.txt` with the two observed public failure seeds
+- added `--process-timeout` to the LLM eval runner CLI so long public10 batches can be configured from the command line
+- added regression tests for the observed `9001` oscillation and the existing `271828` heat-stall state
+
+Verification:
 
 ```text
-73015dd Summarize test optimization cycles
+node --test test/engine.test.js: 15 pass / 0 fail
+npm test: 33 pass / 0 fail
+npm run demo:verify: pass
+node ./scripts/run-llm-eval.js --help: includes --process-timeout
+
+targeted strict pure, seeds ./seeds/targeted-oscillation.txt:
+  deepseek-v4-flash: successes=2/2, average_score=843.0, average_turns=60.0
+  deepseek-v4-pro:   successes=2/2, average_score=753.0, average_turns=64.5
+
+public10 strict pure:
+  deepseek-v4-flash: successes=10/10, average_score=871.2, average_turns=61.8
+  deepseek-v4-pro:   successes=10/10, average_score=871.2, average_turns=61.8
+
+public10 diagnostics:
+  fallback_actions=0 for every run
+  local_policy_actions=0 for every run
+  model_error_actions=0 for every run
+  recovered_reasoning_actions=0 for every run
+```
+
+Interpretation:
+
+EchoGrid's public hint protocol is now strong enough for both DeepSeek V4 models to complete all ten public MVP seeds in strict pure mode. The fix did not reveal hidden map data; it made artifact-stage exploration less myopic by treating short repeat loops as a first-class public signal. The identical public10 aggregate for Pro and Flash indicates the game-side policy is now dominating the route quality for this seed set, while model-provider differences are no longer blocking completion.
+
+## Current Verification Snapshot
+
+Latest local verification:
+
+```text
+npm test: 33 pass / 0 fail
+npm run demo:verify: pass
+isolated Codex no-context check: npm test and npm run demo:verify passed; LLM help works without API key
+```
+
+Previous pushed checkpoint before Loop 27:
+
+```text
+c639a8f Improve LLM frontier routing and eval docs
 ```
 
 ## Current Assessment
