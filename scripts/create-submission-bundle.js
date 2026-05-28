@@ -62,6 +62,7 @@ function main(argv = process.argv.slice(2)) {
 
   const copied = [];
   copyNamedFiles(dirs.showcase, path.join(outDir, 'showcase'), SHOWCASE_FILES, copied);
+  copyOptionalDirectory(path.join(dirs.showcase, 'screenshots'), path.join(outDir, 'showcase', 'screenshots'), copied);
   copyNamedFiles(dirs.adversarial, path.join(outDir, 'benchmarks', 'adversarial'), BENCHMARK_FILES, copied);
   copyNamedFiles(dirs.rules, path.join(outDir, 'benchmarks', 'rules'), BENCHMARK_FILES, copied);
   copySourceDocs(outDir, copied);
@@ -200,6 +201,7 @@ function buildSummary({ outDir, zipFile, showcaseManifest, benchmarks }) {
       full_gate: 'npm run submission:check',
       regenerate_bundle: 'npm run submission:bundle',
       demo_package: 'npm run demo:full && npm run demo:check',
+      visual_smoke: 'npm run demo:visual',
       adversarial_benchmark: 'npm run benchmark:adversarial',
       rule_signals_benchmark: 'npm run benchmark:rules',
     },
@@ -259,6 +261,7 @@ function renderReadme(summary) {
     '## Contents',
     '',
     '- `showcase/`: judge entry point, Mission Control dashboard, replay viewer, scorecard, brief, leaderboard, arena, JSONL log, and sha256 manifest.',
+    '- `showcase/screenshots/`: desktop and mobile visual smoke screenshots when `npm run demo:visual` has been run.',
     '- `benchmarks/adversarial/`: fixed adversarial public benchmark output.',
     '- `benchmarks/rules/`: hidden-rule signal benchmark output.',
     '- `source/`: project README and judge-facing protocol/scoring docs.',
@@ -296,6 +299,7 @@ function renderChecklist(summary) {
     `- [x] Showcase seed ${summary.showcase.seed} completed with score ${summary.showcase.score}.`,
     '- [x] Mission Control dashboard included at `showcase/mission-control.html`.',
     '- [x] Replay viewer included at `showcase/replay.html`.',
+    '- [x] Browser-rendered visual smoke screenshots included when available.',
     '- [x] Judge brief and scorecard included.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
@@ -332,6 +336,17 @@ function copySourceDocs(outDir, copied) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(source, target);
     copied.push({ source, target });
+  }
+}
+
+function copyOptionalDirectory(sourceDir, targetDir, copied) {
+  if (!fs.existsSync(sourceDir)) return;
+  for (const file of listFiles(sourceDir)) {
+    const relative = path.relative(sourceDir, file);
+    const target = path.join(targetDir, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(file, target);
+    copied.push({ source: file, target });
   }
 }
 

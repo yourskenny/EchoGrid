@@ -24,6 +24,14 @@ This command proves the demo end to end:
 12. Generates a single-entry demo index at `logs/showcase/index.html`.
 13. Generates an artifact hash manifest at `logs/showcase/MANIFEST.json`.
 
+For browser-level verification of the generated HTML pages:
+
+```bash
+npm run demo:visual
+```
+
+This renders the index, Mission Control, replay, and arena pages through headless Chrome/Edge at desktop and mobile viewport sizes. It writes screenshots and `visual-smoke.json` under `logs/showcase/screenshots`.
+
 For faster local verification during judging or development:
 
 ```bash
@@ -38,7 +46,7 @@ For CI-style verification of the full judge package:
 npm run submission:check
 ```
 
-This runs the full demo, checks the generated judge package, runs the adversarial and rule-signals public benchmarks, and creates `dist/submission/echogrid-submission` plus `dist/submission/echogrid-submission.zip`. GitHub Actions uses the same command and uploads both the generated `logs` directory and the submission bundle as evaluation artifacts.
+This runs the full demo, checks the generated judge package, renders the browser visual smoke screenshots, runs the adversarial and rule-signals public benchmarks, and creates `dist/submission/echogrid-submission` plus `dist/submission/echogrid-submission.zip`. GitHub Actions uses the same command and uploads both the generated `logs` directory and the submission bundle as evaluation artifacts.
 
 If the logs already exist and only the final handoff package needs to be rebuilt:
 
@@ -46,7 +54,7 @@ If the logs already exist and only the final handoff package needs to be rebuilt
 npm run submission:bundle
 ```
 
-The bundle includes the showcase package, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_CHECKLIST.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
+The bundle includes the showcase package, visual smoke screenshots when available, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_CHECKLIST.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 ## What To Look For
 
@@ -60,6 +68,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - HTML comparison arena: side-by-side agent aggregate and per-seed score matrix.
 - Leaderboard: ranked Markdown output for tournament-style judging.
 - Mission-control dashboard: first-glance presentation page with a guided judge briefing, final public map, scrub/play route playback, clickable milestones, score construction, strategy edge, agent tournament, and evidence links.
+- Visual smoke screenshots: browser-rendered desktop and mobile PNGs for the index, Mission Control, replay, and arena pages.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.
 - Demo index: generated HTML entry point with artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.
