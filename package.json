@@ -15,6 +15,7 @@
     "demo:verify": "npm test && node ./bin/echogrid.js evaluate --agent ./agents/rule-aware.js --seed 9001 --json && node ./scripts/compare.js --seeds ./seeds/showcase.txt",
     "demo:brief": "node ./scripts/write-judge-brief.js ./logs/showcase/9001.jsonl --out ./logs/showcase/JUDGE_BRIEF.md --replay-html ./logs/showcase/replay.html --arena-html ./logs/showcase/arena.html --leaderboard ./logs/showcase/leaderboard.md --comparison ./logs/showcase/agent-comparison.txt",
     "demo:index": "node ./scripts/write-demo-index.js ./logs/showcase/9001.jsonl --out ./logs/showcase/index.html --brief ./logs/showcase/JUDGE_BRIEF.md --replay-html ./logs/showcase/replay.html --arena-html ./logs/showcase/arena.html --leaderboard ./logs/showcase/leaderboard.md --comparison-json ./logs/showcase/agent-comparison.json",
+    "demo:manifest": "node ./scripts/write-demo-manifest.js ./logs/showcase/9001.jsonl --out ./logs/showcase/MANIFEST.json --index ./logs/showcase/index.html --brief ./logs/showcase/JUDGE_BRIEF.md --replay-html ./logs/showcase/replay.html --arena-html ./logs/showcase/arena.html --leaderboard ./logs/showcase/leaderboard.md --comparison-json ./logs/showcase/agent-comparison.json --comparison ./logs/showcase/agent-comparison.txt",
     "demo:check": "node ./scripts/verify-demo-artifacts.js ./logs/showcase",
     "demo:ci": "npm run demo:full && npm run demo:check",
     "compare": "node ./scripts/compare.js --seeds ./seeds/demo.txt",

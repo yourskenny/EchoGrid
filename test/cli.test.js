@@ -162,6 +162,7 @@ test('render replay html creates a self-contained viewer', () => {
     const comparisonJsonFile = path.join(tmp, 'agent-comparison.json');
     const briefFile = path.join(tmp, 'JUDGE_BRIEF.md');
     const indexFile = path.join(tmp, 'index.html');
+    const manifestFile = path.join(tmp, 'MANIFEST.json');
     const run = spawnSync(
       process.execPath,
       [cli, 'evaluate', '--agent', './agents/rule-aware.js', '--seed', '9001', '--log-dir', logDir],
@@ -230,7 +231,7 @@ test('render replay html creates a self-contained viewer', () => {
     }), 'utf8');
     const index = spawnSync(
       process.execPath,
-      ['./scripts/write-demo-index.js', path.join(logDir, '9001.jsonl'), '--out', indexFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile],
+      ['./scripts/write-demo-index.js', path.join(logDir, '9001.jsonl'), '--out', indexFile, '--manifest', manifestFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -244,8 +245,25 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(indexHtml, /Leaderboard Snapshot/);
     assert.match(indexHtml, /Audit Gates/);
     assert.match(indexHtml, /const demoSummary = /);
+    assert.match(indexHtml, /MANIFEST\.json/);
     assert.match(indexHtml, /JUDGE_BRIEF\.md/);
     assert.match(indexHtml, /replay\.html/);
+
+    const manifest = spawnSync(
+      process.execPath,
+      ['./scripts/write-demo-manifest.js', path.join(logDir, '9001.jsonl'), '--out', manifestFile, '--index', indexFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile, '--comparison', comparisonFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(manifest.status, 0, manifest.stderr);
+    assert.match(manifest.stdout, /Wrote/);
+    const parsedManifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    assert.equal(parsedManifest.schema, 'echogrid.demo_manifest.v1');
+    assert.equal(parsedManifest.showcase.result, 'success');
+    assert.equal(parsedManifest.showcase.score, 991);
+    assert.ok(parsedManifest.artifacts.find((item) => item.name === 'index')?.sha256);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -354,12 +372,20 @@ test('demo artifact verifier accepts a complete showcase package', () => {
             },
           },
           objective: { artifacts_collected: 3, artifacts_required: 3 },
+          rules: {
+            claim: {
+              id: 'sector_c_two_unstable',
+              correct: true,
+              turn: 2,
+              rationale: 'sector C scan showed exactly two unstable echoes',
+            },
+          },
           metrics: { damage_events: 0, invalid_actions: 0, wasted_actions: 0 },
         },
       },
     ];
     fs.writeFileSync(path.join(tmp, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
-    fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
     fs.writeFileSync(path.join(tmp, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
     fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
     fs.writeFileSync(path.join(tmp, 'JUDGE_BRIEF.md'), 'EchoGrid Judge Brief 90-Second Judge Script SUCCESS / objective_complete logs/showcase/arena.html logs/showcase/replay.html ECHO GRID AGENT COMPARISON', 'utf8');
@@ -373,6 +399,34 @@ test('demo artifact verifier accepts a complete showcase package', () => {
         { agent: './agents/rule-aware.js', seeds: 4, successes: 4, average_score: 929.5 },
       ],
     }), 'utf8');
+    const manifest = spawnSync(
+      process.execPath,
+      [
+        './scripts/write-demo-manifest.js',
+        path.join(tmp, '9001.jsonl'),
+        '--out',
+        path.join(tmp, 'MANIFEST.json'),
+        '--index',
+        path.join(tmp, 'index.html'),
+        '--brief',
+        path.join(tmp, 'JUDGE_BRIEF.md'),
+        '--replay-html',
+        path.join(tmp, 'replay.html'),
+        '--arena-html',
+        path.join(tmp, 'arena.html'),
+        '--leaderboard',
+        path.join(tmp, 'leaderboard.md'),
+        '--comparison-json',
+        path.join(tmp, 'agent-comparison.json'),
+        '--comparison',
+        path.join(tmp, 'agent-comparison.txt'),
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(manifest.status, 0, manifest.stderr);
 
     const result = spawnSync(process.execPath, ['./scripts/verify-demo-artifacts.js', tmp], {
       cwd: root,

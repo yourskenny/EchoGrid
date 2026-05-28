@@ -13,6 +13,7 @@ const showcaseReplayHtml = path.join(showcaseLogDir, 'replay.html');
 const showcaseArenaHtml = path.join(showcaseLogDir, 'arena.html');
 const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
 const showcaseIndex = path.join(showcaseLogDir, 'index.html');
+const showcaseManifest = path.join(showcaseLogDir, 'MANIFEST.json');
 const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
 const agentComparisonJson = path.join(showcaseLogDir, 'agent-comparison.json');
 const leaderboard = path.join(showcaseLogDir, 'leaderboard.md');
@@ -81,6 +82,8 @@ run('Showcase demo index', [
   showcaseLog,
   '--out',
   showcaseIndex,
+  '--manifest',
+  showcaseManifest,
   '--brief',
   showcaseBrief,
   '--leaderboard',
@@ -92,7 +95,28 @@ run('Showcase demo index', [
   '--replay-html',
   showcaseReplayHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)} for the judge-friendly outputs.\n`);
+run('Showcase manifest', [
+  process.execPath,
+  './scripts/write-demo-manifest.js',
+  showcaseLog,
+  '--out',
+  showcaseManifest,
+  '--index',
+  showcaseIndex,
+  '--brief',
+  showcaseBrief,
+  '--leaderboard',
+  leaderboard,
+  '--comparison-json',
+  agentComparisonJson,
+  '--comparison',
+  agentComparison,
+  '--arena-html',
+  showcaseArenaHtml,
+  '--replay-html',
+  showcaseReplayHtml,
+]);
+process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);

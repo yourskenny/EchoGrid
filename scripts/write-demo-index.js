@@ -13,6 +13,7 @@ function main(argv = process.argv.slice(2)) {
   const source = resolvePath(cwd, input);
   const outFile = resolvePath(cwd, options.out || path.join(path.dirname(source), 'index.html'));
   const artifactPaths = {
+    manifest: resolvePath(cwd, options.manifest || path.join(path.dirname(source), 'MANIFEST.json')),
     brief: resolvePath(cwd, options.brief || path.join(path.dirname(source), 'JUDGE_BRIEF.md')),
     leaderboard: resolvePath(cwd, options.leaderboard || path.join(path.dirname(source), 'leaderboard.md')),
     arena: resolvePath(cwd, options['arena-html'] || path.join(path.dirname(source), 'arena.html')),
@@ -295,6 +296,7 @@ const demoSummary = ${JSON.stringify(data, null, 2)};
 function artifactLinks(paths, outFile) {
   const labels = [
     ['Demo Index', outFile, 'This overview page'],
+    ['Manifest', paths.manifest, 'Hash-checked artifact inventory'],
     ['Judge Brief', paths.brief, 'One-page scoring handoff'],
     ['Leaderboard', paths.leaderboard, 'Ranked tournament table'],
     ['Arena', paths.arena, 'Side-by-side agent comparison'],
@@ -467,7 +469,7 @@ function escapeHtml(value) {
 
 function usage() {
   return `Usage:
-  node ./scripts/write-demo-index.js <log.jsonl> [--out index.html] [--brief JUDGE_BRIEF.md] [--replay-html replay.html] [--arena-html arena.html] [--leaderboard leaderboard.md] [--comparison-json agent-comparison.json]
+  node ./scripts/write-demo-index.js <log.jsonl> [--out index.html] [--manifest MANIFEST.json] [--brief JUDGE_BRIEF.md] [--replay-html replay.html] [--arena-html arena.html] [--leaderboard leaderboard.md] [--comparison-json agent-comparison.json]
 
 Creates a single-entry HTML index for the EchoGrid judge package.`;
 }

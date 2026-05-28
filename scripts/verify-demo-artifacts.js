@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
 
@@ -10,6 +11,7 @@ function main(argv = process.argv.slice(2)) {
   const showcaseDir = resolvePath(argv[0] || './logs/showcase');
   const files = {
     log: path.join(showcaseDir, '9001.jsonl'),
+    manifest: path.join(showcaseDir, 'MANIFEST.json'),
     index: path.join(showcaseDir, 'index.html'),
     replay: path.join(showcaseDir, 'replay.html'),
     arena: path.join(showcaseDir, 'arena.html'),
@@ -46,6 +48,7 @@ function main(argv = process.argv.slice(2)) {
       'Leaderboard Snapshot',
       'Audit Gates',
       'const demoSummary = ',
+      'MANIFEST.json',
       'JUDGE_BRIEF.md',
       'replay.html',
       'arena.html',
@@ -79,6 +82,7 @@ function main(argv = process.argv.slice(2)) {
       'Per-Seed Winners',
       './agents/rule-aware.js',
     ], errors);
+    verifyManifest(files.manifest, files, errors);
   }
 
   if (errors.length > 0) {
@@ -155,6 +159,44 @@ function verifyComparison(file, errors) {
   }
 }
 
+function verifyManifest(file, files, errors) {
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (error) {
+    errors.push(`invalid manifest JSON: ${error.message}`);
+    return;
+  }
+
+  if (manifest.schema !== 'echogrid.demo_manifest.v1') errors.push(`manifest schema mismatch: ${manifest.schema || 'missing'}`);
+  if (manifest.showcase?.seed !== '9001') errors.push(`manifest showcase seed expected 9001, got ${manifest.showcase?.seed || 'unknown'}`);
+  if (manifest.showcase?.result !== 'success') errors.push(`manifest showcase result expected success, got ${manifest.showcase?.result || 'unknown'}`);
+  if (manifest.showcase?.reason !== 'objective_complete') errors.push(`manifest showcase reason expected objective_complete, got ${manifest.showcase?.reason || 'unknown'}`);
+  if ((manifest.showcase?.score ?? 0) < 950) errors.push(`manifest showcase score below demo bar: ${manifest.showcase?.score ?? 0}`);
+  if (manifest.showcase?.rule_claim?.rationale !== 'sector C scan showed exactly two unstable echoes') errors.push('manifest missing audited rule-claim rationale');
+  if (manifest.comparison?.seed_file !== './seeds/demo.txt') errors.push(`manifest comparison seed file expected ./seeds/demo.txt, got ${manifest.comparison?.seed_file || 'unknown'}`);
+
+  const artifacts = manifest.artifacts || [];
+  const expectedNames = ['log', 'index', 'brief', 'leaderboard', 'arena', 'replay', 'comparison', 'comparison_text'];
+  for (const name of expectedNames) {
+    const artifact = artifacts.find((item) => item.name === name);
+    if (!artifact) {
+      errors.push(`manifest missing artifact entry: ${name}`);
+      continue;
+    }
+    if (artifact.exists !== true) errors.push(`manifest artifact marked missing: ${name}`);
+    const artifactPath = resolveManifestArtifactPath(artifact.path, files.log);
+    if (!fs.existsSync(artifactPath)) {
+      errors.push(`manifest artifact path not found: ${artifact.path}`);
+      continue;
+    }
+    const buffer = fs.readFileSync(artifactPath);
+    const actualHash = crypto.createHash('sha256').update(buffer).digest('hex');
+    if (artifact.size !== buffer.length) errors.push(`manifest size mismatch for ${name}: ${artifact.size} vs ${buffer.length}`);
+    if (artifact.sha256 !== actualHash) errors.push(`manifest sha256 mismatch for ${name}`);
+  }
+}
+
 function verifyText(file, needles, errors) {
   const text = fs.readFileSync(file, 'utf8');
   for (const needle of needles) {
@@ -174,6 +216,14 @@ function readJsonl(file) {
 
 function resolvePath(value) {
   return path.isAbsolute(String(value)) ? String(value) : path.resolve(root, String(value));
+}
+
+function resolveManifestArtifactPath(value, showcaseLog) {
+  const text = String(value || '');
+  if (path.isAbsolute(text)) return text;
+  const rootRelative = path.resolve(root, text);
+  if (fs.existsSync(rootRelative)) return rootRelative;
+  return path.resolve(path.dirname(showcaseLog), text);
 }
 
 function displayPath(file) {

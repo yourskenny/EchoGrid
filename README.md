@@ -33,9 +33,10 @@ npm run demo:full
 8. tournament-style leaderboard
 9. generated judge brief
 10. generated demo index
+11. generated artifact manifest with sha256 hashes
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`.
+Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
 
 For a shorter verification path, run:
 
@@ -67,6 +68,7 @@ node ./bin/echogrid.js report ./logs/48129.jsonl
 npm run replay:html -- ./logs/48129.jsonl --out ./logs/48129.replay.html
 npm run demo:brief
 npm run demo:index
+npm run demo:manifest
 ```
 
 `inspect` is a local debugging command and may print hidden answer data. Do not use its output as evaluated agent input.
