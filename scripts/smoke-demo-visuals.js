@@ -13,7 +13,7 @@ const PAGES = [
   {
     label: 'index',
     file: 'index.html',
-    requiredText: ['EchoGrid Demo Index', '90-Second Runbook', 'Leaderboard Snapshot'],
+    requiredText: ['EchoGrid Demo Index', 'Competition Verdict', '90-Second Runbook', 'Leaderboard Snapshot'],
   },
   {
     label: 'mission-control',

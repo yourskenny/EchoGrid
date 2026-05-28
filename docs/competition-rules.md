@@ -15,7 +15,7 @@ This document defines the recommended judging contract for EchoGrid demo submiss
 npm run demo:full
 ```
 
-This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, writes `logs/showcase/mission-control.html`, writes `logs/showcase/JUDGE_BRIEF.md`, writes `logs/showcase/SCORECARD.md`, writes the package entry point `logs/showcase/index.html`, and writes artifact hashes to `logs/showcase/MANIFEST.json`.
+This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, writes `logs/showcase/mission-control.html`, writes `logs/showcase/JUDGE_BRIEF.md`, writes `logs/showcase/SCORECARD.md`, writes the package entry point `logs/showcase/index.html` with a first-screen competition verdict, and writes artifact hashes to `logs/showcase/MANIFEST.json`.
 
 It recreates `logs/showcase` before running the showcase seed, so keep custom logs outside that directory.
 

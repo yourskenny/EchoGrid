@@ -46,6 +46,10 @@ function main(argv = process.argv.slice(2)) {
     ], errors);
     verifyText(files.index, [
       'EchoGrid Demo Index',
+      'Competition Verdict',
+      'Complete run. Ready.',
+      'Clean run:',
+      'Agent Edge',
       '90-Second Runbook',
       'Leaderboard Snapshot',
       'Audit Gates',

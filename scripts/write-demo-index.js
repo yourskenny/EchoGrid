@@ -61,6 +61,11 @@ function buildDemoIndex(events, options = {}) {
   const rows = Array.isArray(comparison.rows) ? comparison.rows : [];
   const rankings = Array.isArray(comparison.rankings) ? comparison.rankings : rankRows(rows);
   const leader = rankings[0] || rows[0] || null;
+  const baseline = rows.find((row) => row.agent === './agents/baseline.js' || /baseline\.js$/.test(row.agent));
+  const ruleAware = rows.find((row) => row.agent === './agents/rule-aware.js' || /rule-aware\.js$/.test(row.agent));
+  const scoreGap = baseline && ruleAware
+    ? roundNumber(Number(ruleAware.average_score) - Number(baseline.average_score))
+    : null;
   const artifacts = artifactLinks(options.artifactPaths || {}, options.outFile || process.cwd());
   const milestones = collectMilestones(actionEvents);
   const summary = {
@@ -70,9 +75,14 @@ function buildDemoIndex(events, options = {}) {
     score: terminal.score ?? finalState.score ?? 0,
     turns: `${finalState.turn?.current ?? 'unknown'} / ${finalState.turn?.limit ?? 'unknown'}`,
     artifacts: `${objective.artifacts_collected ?? 0} / ${objective.artifacts_required ?? 0}`,
+    artifacts_compact: `${objective.artifacts_collected ?? 0}/${objective.artifacts_required ?? 0}`,
+    turn_count: finalState.turn?.current ?? 'unknown',
     resources: `energy=${resources.energy ?? 'unknown'}, integrity=${resources.integrity ?? 'unknown'}`,
     rule: terminal.hidden_rule || ruleClaim?.id || 'unknown',
     claim: ruleClaim ? `${ruleClaim.id} (${ruleClaim.correct ? 'accepted' : 'rejected'}, turn ${ruleClaim.turn ?? '?'})` : 'none',
+    rule_rationale: ruleClaim?.rationale || 'no rationale recorded',
+    clean_run: `damage=${metrics.damage_events ?? 0}, invalid=${metrics.invalid_actions ?? 0}, wasted=${metrics.wasted_actions ?? 0}`,
+    score_gap_vs_baseline: scoreGap,
   };
   const data = {
     summary,
@@ -120,9 +130,64 @@ header {
   border-bottom: 1px solid var(--line);
   padding-bottom: 16px;
 }
+header > div { min-width: 0; }
 h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
-.subtle { margin: 5px 0 0; color: var(--muted); }
-.stamp { color: var(--muted); font-size: 12px; text-align: right; }
+.subtle { margin: 5px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.stamp { min-width: 0; color: var(--muted); font-size: 12px; text-align: right; overflow-wrap: anywhere; }
+.verdictBand {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  align-items: stretch;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  background: #f8fbf6;
+  padding: 14px;
+}
+.verdictIntro {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+.verdictIntro span,
+.verdictItem span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.verdictIntro strong {
+  font-size: 24px;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+.verdictIntro p {
+  margin: 0;
+  color: var(--muted);
+}
+.verdictGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.verdictItem {
+  min-width: 0;
+  border-left: 3px solid var(--teal);
+  padding: 7px 0 7px 10px;
+}
+.verdictItem strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.verdictItem p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -211,14 +276,16 @@ code {
   padding: 1px 5px;
 }
 @media (max-width: 900px) {
-  main { width: min(100vw - 20px, 1180px); }
-  header, .grid { grid-template-columns: 1fr; }
+  main { width: min(1180px, calc(100vw - 20px)); }
+  header, .grid, .verdictBand { grid-template-columns: 1fr; }
   .stamp { text-align: left; }
+  .verdictGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .links { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
   .metrics { grid-template-columns: 1fr; }
+  .verdictGrid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -227,10 +294,24 @@ code {
   <header>
     <div>
       <h1>EchoGrid Demo Index</h1>
-      <p class="subtle">Single entry point for the judge-facing showcase package.</p>
+      <p class="subtle">Judge-facing showcase package.</p>
     </div>
     <div class="stamp">Generated from <code>${escapeHtml(displayPath(options.source || 'unknown', options.cwd))}</code></div>
   </header>
+
+  <section class="verdictBand" aria-label="Competition Verdict">
+    <div class="verdictIntro">
+      <span>Competition Verdict</span>
+      <strong>${terminal.status === 'success' ? 'Complete run. Ready.' : 'Review required.'}</strong>
+      <p>Clean run: ${escapeHtml(summary.clean_run)}.</p>
+    </div>
+    <div class="verdictGrid">
+      ${verdictItem('Mission', `${summary.score} score`, `${summary.artifacts_compact} artifacts in ${summary.turn_count} turns`)}
+      ${verdictItem('Inference', ruleClaim?.correct ? 'Accepted rule claim' : 'Rule claim check', summary.rule_rationale)}
+      ${verdictItem('Agent Edge', scoreGap === null ? 'n/a' : `${formatSigned(scoreGap)} avg score`, 'rule-aware over baseline')}
+      ${verdictItem('Audit Trail', 'Hash manifest', 'JSONL, replay, scorecard')}
+    </div>
+  </section>
 
   <section class="metrics" aria-label="Result snapshot">
     ${metric('Result', summary.result, terminal.status === 'success' ? 'success' : 'failure')}
@@ -379,6 +460,10 @@ function metric(label, value, className = '') {
   return `<div class="metric"><span>${escapeHtml(label)}</span><strong${classAttr}>${escapeHtml(value)}</strong></div>`;
 }
 
+function verdictItem(label, value, detail) {
+  return `<div class="verdictItem"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><p>${escapeHtml(detail)}</p></div>`;
+}
+
 function artifactLink(item) {
   return `<a class="artifact" href="${escapeHtml(item.href)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.description)} - ${escapeHtml(item.path)}</span></a>`;
 }
@@ -455,6 +540,18 @@ function resolvePath(cwd, value) {
 function formatPercent(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${(number * 100).toFixed(1)}%` : 'n/a';
+}
+
+function roundNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
+}
+
+function formatSigned(value) {
+  if (value === null || value === undefined) return 'n/a';
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'n/a';
+  return number >= 0 ? `+${roundNumber(number)}` : String(roundNumber(number));
 }
 
 function shortAgent(agent) {

@@ -21,7 +21,7 @@ This command proves the demo end to end:
 9. Generates a one-page judge brief at `logs/showcase/JUDGE_BRIEF.md`.
 10. Generates a capability scorecard at `logs/showcase/SCORECARD.md`.
 11. Generates a mission-control dashboard at `logs/showcase/mission-control.html`.
-12. Generates a single-entry demo index at `logs/showcase/index.html`.
+12. Generates a single-entry demo index with a first-screen competition verdict at `logs/showcase/index.html`.
 13. Generates an artifact hash manifest at `logs/showcase/MANIFEST.json`.
 
 For browser-level verification of the generated HTML pages:
@@ -79,7 +79,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Mission-control dashboard: first-glance presentation page with a competition verdict strip, guided judge briefing, final public map, scrub/play route playback, clickable milestones, score construction, strategy edge, agent tournament, and evidence links.
 - Visual smoke screenshots: browser-rendered desktop and mobile PNGs for the index, Mission Control, replay, and arena pages.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.
-- Demo index: generated HTML entry point with artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
+- Demo index: generated HTML entry point with a first-screen competition verdict, artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.
 - Scorecard: generated capability gates for mission completion, artifact routing, rule inference, resource discipline, score bar, and agent separation.
 - Submission bundle: generated final handoff directory and zip that gathers the showcase, public benchmarks, docs, checklist, and bundle-level sha256 manifest.

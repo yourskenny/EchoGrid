@@ -34,11 +34,11 @@ npm run demo:full
 9. generated judge brief
 10. generated capability scorecard
 11. generated mission-control dashboard
-12. generated demo index
+12. generated demo index with a first-screen competition verdict
 13. generated artifact manifest with sha256 hashes
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/mission-control.html` for the competition verdict, guided briefing, dashboard, and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
+Open `logs/showcase/index.html` first after `npm run demo:full` for the first-screen competition verdict and artifact order, then open `logs/showcase/mission-control.html` for the guided briefing, dashboard, and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
 
 To render the browser-facing artifacts through headless Chrome/Edge and save desktop/mobile screenshots:
 
