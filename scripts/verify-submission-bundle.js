@@ -75,6 +75,7 @@ function main(argv = process.argv.slice(2)) {
       verifySourceCommit(manifest, errors, options);
       verifyManifest(bundleDir, manifest, errors);
       verifyBundleStory(manifest, errors);
+      verifyShowcaseSourceCommit(bundleDir, manifest, errors);
     }
     verifyVisualSmoke(bundleDir, errors);
     verifyAuditReport(bundleDir, errors);
@@ -135,6 +136,26 @@ function verifySourceCommit(manifest, errors, options = {}) {
   if (manifestCommit !== head) {
     const manifestShort = manifest.source?.commit_short || manifestCommit.slice(0, 7);
     errors.push(`manifest source commit ${manifestShort} does not match current HEAD ${head.slice(0, 7)}`);
+  }
+}
+
+function verifyShowcaseSourceCommit(bundleDir, manifest, errors) {
+  const showcaseManifest = readJson(path.join(bundleDir, 'showcase', 'MANIFEST.json'), errors);
+  if (!showcaseManifest) return;
+  const sourceCommit = manifest.source?.commit;
+  const showcaseCommit = showcaseManifest.git_commit;
+  if (!sourceCommit) {
+    errors.push('manifest source commit missing before showcase source check');
+    return;
+  }
+  if (!showcaseCommit) {
+    errors.push('showcase manifest git_commit missing');
+    return;
+  }
+  if (showcaseCommit !== sourceCommit) {
+    const showcaseShort = showcaseManifest.git_commit_short || showcaseCommit.slice(0, 7);
+    const sourceShort = manifest.source?.commit_short || sourceCommit.slice(0, 7);
+    errors.push(`showcase manifest source commit ${showcaseShort} does not match bundle source commit ${sourceShort}`);
   }
 }
 
@@ -260,6 +281,7 @@ function verifyAuditReport(bundleDir, errors) {
     'EchoGrid Submission Audit',
     'Verification Matrix',
     'Showcase artifact verifier',
+    'Source consistency',
     'Hidden-rule inference',
     'Visual smoke artifacts',
     'Public benchmark',
@@ -535,5 +557,6 @@ if (require.main === module) {
 module.exports = {
   readZipEntries,
   verifyLocalHtmlLinks,
+  verifyShowcaseSourceCommit,
   verifySourceCommit,
 };

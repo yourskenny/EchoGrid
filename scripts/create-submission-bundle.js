@@ -60,7 +60,7 @@ function main(argv = process.argv.slice(2)) {
     adversarial: loadBenchmark('adversarial', dirs.adversarial),
     rules: loadBenchmark('rules', dirs.rules),
   };
-  validateShowcase(showcaseManifest);
+  validateShowcase(showcaseManifest, gitValue(['rev-parse', 'HEAD']));
   validateBenchmarkExpectations(benchmarks);
 
   fs.rmSync(outDir, { recursive: true, force: true });
@@ -134,9 +134,12 @@ function runDemoVerifier(showcaseDir) {
   }
 }
 
-function validateShowcase(manifest) {
+function validateShowcase(manifest, expectedCommit = null) {
   const showcase = manifest.showcase || {};
   if (manifest.schema !== 'echogrid.demo_manifest.v1') throw new Error(`Unexpected showcase manifest schema: ${manifest.schema || 'missing'}`);
+  if (expectedCommit && manifest.git_commit && manifest.git_commit !== expectedCommit) {
+    throw new Error(`Showcase manifest source commit ${manifest.git_commit_short || manifest.git_commit.slice(0, 7)} does not match current HEAD ${expectedCommit.slice(0, 7)}. Run npm run demo:ci before bundling.`);
+  }
   if (showcase.result !== 'success') throw new Error(`Showcase result must be success, got ${showcase.result || 'missing'}`);
   if (showcase.reason !== 'objective_complete') throw new Error(`Showcase reason must be objective_complete, got ${showcase.reason || 'missing'}`);
   if ((showcase.score ?? 0) < 950) throw new Error(`Showcase score below submission bar: ${showcase.score ?? 0}`);
@@ -638,6 +641,7 @@ function renderChecklist(summary) {
     `Generated: ${summary.generated_at}`,
     '',
     '- [x] Source commit captured in `SUBMISSION_MANIFEST.json`.',
+    '- [x] Showcase manifest source commit matches bundle source commit.',
     '- [x] Showcase package generated and verified by `npm run demo:check`.',
     `- [x] Showcase seed ${summary.showcase.seed} completed with score ${summary.showcase.score}.`,
     '- [x] Mission Control dashboard included at `showcase/mission-control.html`.',
@@ -707,6 +711,7 @@ function renderAuditReport(summary) {
     '| Gate | Status | Evidence |',
     '| --- | --- | --- |',
     `| Showcase artifact verifier | PASS | ${showcase.result}/${showcase.reason}, score ${showcase.score}, artifacts ${showcase.artifacts} |`,
+    `| Source consistency | PASS | bundle manifest and showcase manifest point at source commit ${summary.source.commit_short || 'unknown'} |`,
     `| Hidden-rule inference | PASS | ${showcase.rule_claim?.id || 'unknown'}, accepted=${Boolean(showcase.rule_claim?.correct)} |`,
     `| Clean-run audit | PASS | damage=${showcase.metrics?.damage_events ?? 'n/a'}, invalid=${showcase.metrics?.invalid_actions ?? 'n/a'}, wasted=${showcase.metrics?.wasted_actions ?? 'n/a'} |`,
     `| Visual smoke artifacts | PASS | desktop/mobile screenshots are bundled under showcase/screenshots |`,

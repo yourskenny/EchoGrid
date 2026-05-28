@@ -9,7 +9,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { EchoGridGame } = require('../src/engine');
 const { buildStateSummary } = require('../agents/llm-openai-compatible');
-const { verifyLocalHtmlLinks, verifySourceCommit } = require('../scripts/verify-submission-bundle');
+const { verifyLocalHtmlLinks, verifyShowcaseSourceCommit, verifySourceCommit } = require('../scripts/verify-submission-bundle');
 
 const root = path.resolve(__dirname, '..');
 const cli = path.join(root, 'bin', 'echogrid.js');
@@ -729,6 +729,72 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
   }
 });
 
+test('submission bundle generator rejects stale showcase source metadata', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const showcaseDir = path.join(tmp, 'showcase');
+    const publicDir = path.join(tmp, 'public');
+    const adversarialDir = path.join(tmp, 'adversarial');
+    const rulesDir = path.join(tmp, 'rules');
+    writeMinimalShowcasePackage(showcaseDir);
+    const manifestFile = path.join(showcaseDir, 'MANIFEST.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    manifest.git_commit = '1111111111111111111111111111111111111111';
+    manifest.git_commit_short = '1111111';
+    fs.writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    writeBenchmarkPackage(publicDir, {
+      seed_file: './seeds/public.txt',
+      rows: [
+        { agent: './agents/random.js', seeds: 10, successes: 0, success_rate: 0, average_score: 199, average_turns: 107.7, best_score: 374, worst_score: 138, results: [] },
+        { agent: './agents/baseline.js', seeds: 10, successes: 10, success_rate: 1, average_score: 871.2, average_turns: 61.8, best_score: 878, worst_score: 860, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 10, successes: 10, success_rate: 1, average_score: 926.7, average_turns: 63.3, best_score: 991, worst_score: 864, results: [] },
+      ],
+    });
+    writeBenchmarkPackage(adversarialDir, {
+      seed_file: './seeds/adversarial.txt',
+      rows: [
+        { agent: './agents/random.js', seeds: 2, successes: 0, success_rate: 0, average_score: 150, average_turns: 100, best_score: 200, worst_score: 100, results: [] },
+        { agent: './agents/baseline.js', seeds: 2, successes: 2, success_rate: 1, average_score: 830, average_turns: 104, best_score: 850, worst_score: 810, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 2, successes: 2, success_rate: 1, average_score: 860, average_turns: 105, best_score: 970, worst_score: 825, results: [] },
+      ],
+    });
+    writeBenchmarkPackage(rulesDir, {
+      seed_file: './seeds/rule-signals.txt',
+      rows: [
+        { agent: './agents/baseline.js', seeds: 2, successes: 2, success_rate: 1, average_score: 849, average_turns: 98, best_score: 856, worst_score: 842, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 2, successes: 2, success_rate: 1, average_score: 904.5, average_turns: 99, best_score: 971, worst_score: 838, results: [] },
+        { agent: './agents/rule-explorer.js', seeds: 2, successes: 2, success_rate: 1, average_score: 890.5, average_turns: 102, best_score: 957, worst_score: 824, results: [] },
+      ],
+    });
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        './scripts/create-submission-bundle.js',
+        '--showcase',
+        showcaseDir,
+        '--public',
+        publicDir,
+        '--adversarial',
+        adversarialDir,
+        '--rules',
+        rulesDir,
+        '--out',
+        path.join(tmp, 'bundle'),
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Showcase manifest source commit 1111111 does not match current HEAD/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('submission bundle verifier checks local html links', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {
@@ -779,6 +845,30 @@ test('submission bundle verifier catches stale source commit metadata', () => {
     },
   }, skipped, { 'skip-source-commit-check': true });
   assert.deepEqual(skipped, []);
+});
+
+test('submission bundle verifier catches stale showcase source metadata', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    fs.mkdirSync(path.join(tmp, 'showcase'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'showcase', 'MANIFEST.json'), `${JSON.stringify({
+      schema: 'echogrid.demo_manifest.v1',
+      git_commit: '1111111111111111111111111111111111111111',
+      git_commit_short: '1111111',
+    }, null, 2)}\n`, 'utf8');
+
+    const errors = [];
+    verifyShowcaseSourceCommit(tmp, {
+      source: {
+        commit: '2222222222222222222222222222222222222222',
+        commit_short: '2222222',
+      },
+    }, errors);
+
+    assert.match(errors.join('\n'), /showcase manifest source commit 1111111 does not match bundle source commit 2222222/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('ci workflow provisions Chrome for visual smoke gate', () => {
