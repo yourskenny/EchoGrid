@@ -20,6 +20,7 @@ const timeoutMs = Number(process.env.ECHOGRID_LLM_TIMEOUT_MS || 30000);
 const maxTokens = Number(process.env.ECHOGRID_LLM_MAX_TOKENS || 256);
 const maxModelTurns = Number(process.env.ECHOGRID_LLM_MAX_MODEL_TURNS || 12);
 const retryEmptyAction = Math.max(0, Number(process.env.ECHOGRID_LLM_RETRY_EMPTY_ACTION ?? 1));
+const thinkingMode = process.env.ECHOGRID_LLM_THINKING_MODE || defaultThinkingMode(model);
 const fallbackMode = process.env.ECHOGRID_LLM_FALLBACK_MODE || 'baseline';
 const localPolicyEnabled = process.env.ECHOGRID_LLM_LOCAL_POLICY !== '0' && fallbackMode !== 'none';
 const recoverReasoningAction = process.env.ECHOGRID_LLM_RECOVER_REASONING_ACTION === '1';
@@ -111,21 +112,7 @@ async function requestModel(userPrompt, tokenBudget) {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      max_tokens: tokenBudget,
-      messages: [
-        {
-          role: 'system',
-          content: 'You output exactly one EchoGrid action line in the final answer. No markdown, no prose.',
-        },
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    }),
+    body: JSON.stringify(requestBody(userPrompt, tokenBudget)),
   }, timeoutMs);
 
   if (!response.ok) {
@@ -138,6 +125,30 @@ async function requestModel(userPrompt, tokenBudget) {
     finishReason: payload?.choices?.[0]?.finish_reason || null,
     reasoning: payload?.choices?.[0]?.message?.reasoning_content || '',
   };
+}
+
+function requestBody(userPrompt, tokenBudget) {
+  const body = {
+    model,
+    temperature: 0,
+    max_tokens: tokenBudget,
+    messages: [
+      {
+        role: 'system',
+        content: 'You output exactly one EchoGrid action line in the final answer. No markdown, no prose.',
+      },
+      {
+        role: 'user',
+        content: userPrompt,
+      },
+    ],
+  };
+  if (thinkingMode) body.thinking = { type: thinkingMode };
+  return body;
+}
+
+function defaultThinkingMode(modelName) {
+  return /^deepseek-v4-/i.test(String(modelName || '')) ? 'disabled' : '';
 }
 
 function retryPrompt() {
@@ -317,6 +328,7 @@ function baseDiagnostic(extra) {
   return {
     model,
     base_url: baseUrl,
+    thinking_mode: thinkingMode || 'provider_default',
     fallback_mode: fallbackMode,
     local_policy_enabled: localPolicyEnabled,
     recover_reasoning_action: recoverReasoningAction,

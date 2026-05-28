@@ -502,6 +502,31 @@ deepseek-v4-flash public3 strict pure after retry prompt:
 
 This keeps the run in pure model mode: no baseline fallback, no local policy, and no reasoning-content recovery. It only gives the same provider a second chance to place the already chosen action in the final answer channel.
 
+### DeepSeek V4 thinking-mode follow-up
+
+DeepSeek V4 defaults to thinking mode, which separates `reasoning_content` from final `content`. For EchoGrid's one-line action protocol, that caused Pro to spend the response budget on reasoning and finish with empty final content even after route hints were correct. The LLM bridge now sends `thinking: { "type": "disabled" }` by default for `deepseek-v4-*` models, while exposing `ECHOGRID_LLM_THINKING_MODE` as an override.
+
+```text
+deepseek-v4-pro public3 strict pure before thinking disabled:
+  successes=1/3
+  1024: failed, empty_model_action, artifacts=3/3
+  48129: success, score=870, turns=63
+  7331: failed, empty_model_action, artifacts=3/3
+
+deepseek-v4-pro public3 strict pure after thinking disabled:
+  successes=3/3
+  average_score=868.7
+  average_turns=63.0
+  1024:  success, score=882, turns=37
+  48129: success, score=870, turns=63
+  7331:  success, score=854, turns=89
+  fallback_actions=0
+  recovered_reasoning_actions=0
+  model_error_actions=0
+```
+
+This is the cleanest Pro result so far: strict pure, no fallback, no reasoning recovery, and no model error actions on the full three-seed public MVP set.
+
 ## Isolated Codex Review
 
 Codex was rerun in a separate agent without this thread context. It inspected the repository, ran:

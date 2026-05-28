@@ -806,6 +806,52 @@ Interpretation:
 
 This closes the last observed Flash public3 strict pure gap without weakening leaderboard separation. A retry-assisted pure run is still fully model-driven, but diagnostics preserve whether any action needed a second final-answer attempt.
 
+## Loop 25: Disable DeepSeek V4 Thinking For Action Prompts
+
+Finding:
+
+After empty-final retry improved Flash, `deepseek-v4-pro` still failed strict pure public3 on seeds `1024` and `7331`. Both failures happened after collecting `3/3` artifacts, with `finish_reason=length` and reasoning previews that discussed the correct next action but did not emit final `content`. The problem was not route planning; it was provider thinking-mode behavior on a one-line action protocol.
+
+Optimization:
+
+- added `ECHOGRID_LLM_THINKING_MODE`
+- defaulted DeepSeek V4 model requests to `thinking: { "type": "disabled" }`
+- recorded `thinking_mode` in LLM diagnostics
+- kept the override empty for non-DeepSeek models unless explicitly configured
+- extended the local fake-server retry test to assert the request body and diagnostics include thinking mode
+
+Verification:
+
+```text
+npm test: 28 pass / 0 fail
+npm run demo:verify: pass
+
+deepseek-v4-pro public3 strict pure before thinking disabled:
+  seeds=3
+  successes=1
+  failures=1024,7331
+  reason=empty_model_action
+
+deepseek-v4-pro seed 1024 strict pure after thinking disabled:
+  status=success
+  score=882
+  turns=37
+
+deepseek-v4-pro public3 strict pure after thinking disabled:
+  seeds=3
+  successes=3
+  success_rate=1.000
+  average_score=868.7
+  average_turns=63.0
+  model_error_actions=0
+  fallback_actions=0
+  recovered_reasoning_actions=0
+```
+
+Interpretation:
+
+Both DeepSeek V4 models now complete the public three-seed MVP set in strict pure mode. The remaining distinction between models is speed and score variance, not basic protocol reliability.
+
 ## Current Verification Snapshot
 
 Latest local verification:

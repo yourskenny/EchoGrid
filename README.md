@@ -65,6 +65,7 @@ The key is read only from the environment and should never be committed.
 This command is an integration smoke test for model behavior and diagnostics; scores may vary by provider latency and model output quality.
 By default, the LLM runner separates `pure` model runs from `hybrid` model-plus-baseline-fallback runs so leaderboard scores and integration diagnostics do not get mixed.
 The LLM bridge retries an empty final action once by default through `ECHOGRID_LLM_RETRY_EMPTY_ACTION=1`; set it to `0` to measure first-response-only strictness.
+For DeepSeek V4 models, the bridge sends `thinking: { "type": "disabled" }` by default so short action prompts are not consumed by hidden reasoning tokens. Override with `ECHOGRID_LLM_THINKING_MODE`.
 
 ## Game Loop
 

@@ -366,7 +366,7 @@ test('LLM bridge retries empty final output without fallback', async () => {
           ...process.env,
           ECHOGRID_LLM_API_KEY: 'test-key',
           ECHOGRID_LLM_BASE_URL: `http://127.0.0.1:${port}`,
-          ECHOGRID_LLM_MODEL: 'fake-retry',
+          ECHOGRID_LLM_MODEL: 'deepseek-v4-flash',
           ECHOGRID_LLM_FALLBACK_MODE: 'none',
           ECHOGRID_LLM_LOCAL_POLICY: '0',
           ECHOGRID_LLM_MAX_MODEL_TURNS: '1',
@@ -378,6 +378,7 @@ test('LLM bridge retries empty final output without fallback', async () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.equal(requests.length, 2);
+    assert.deepEqual(requests[0].thinking, { type: 'disabled' });
     assert.match(requests[1].messages[1].content, /previous final answer was empty/i);
 
     const output = JSON.parse(result.stdout);
@@ -392,6 +393,7 @@ test('LLM bridge retries empty final output without fallback', async () => {
     assert.equal(action.agent_diagnostic.fallback, false);
     assert.equal(action.agent_diagnostic.model_error, undefined);
     assert.equal(action.agent_diagnostic.model_retry_attempts, 1);
+    assert.equal(action.agent_diagnostic.thinking_mode, 'disabled');
   } finally {
     await closeServer(server);
     fs.rmSync(tmp, { recursive: true, force: true });
