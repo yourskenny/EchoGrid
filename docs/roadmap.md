@@ -15,7 +15,7 @@
 - Public, private, and adversarial seed sets.
 - Stable score breakdown and capability metrics.
 - Faster multi-agent evaluation harness.
-- CI for tests and demo smoke checks.
+- CI for tests, full demo execution, generated artifact checks, and showcase artifact upload.
 
 ## Reasoning Depth
 

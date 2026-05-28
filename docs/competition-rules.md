@@ -25,6 +25,14 @@ For a shorter smoke check:
 npm run demo:verify
 ```
 
+For automated submission checks:
+
+```bash
+npm run demo:ci
+```
+
+This command runs the full demo and verifies that the judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present and internally consistent.
+
 ## Official Agent Evaluation
 
 One seed:

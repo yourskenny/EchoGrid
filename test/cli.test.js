@@ -277,6 +277,71 @@ test('compare script prints agent comparison table', () => {
   }
 });
 
+test('demo artifact verifier accepts a complete showcase package', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const log = [
+      { type: 'start', state: { seed: '9001' } },
+      {
+        type: 'action',
+        event: { outcome: { type: 'scan', observation: { rule_signal: 'sector_c_exactly_two_unstable' } } },
+        state: { seed: '9001' },
+      },
+      {
+        type: 'action',
+        event: { outcome: { type: 'claim_rule', observation: { accepted: true } } },
+        state: { seed: '9001' },
+      },
+      ...[1, 2, 3].map((count) => ({
+        type: 'action',
+        event: { outcome: { type: 'extract_artifact' } },
+        state: { seed: '9001', objective: { artifacts_collected: count, artifacts_required: 3 } },
+      })),
+      {
+        type: 'action',
+        event: { outcome: { type: 'extract_exit' } },
+        state: {
+          seed: '9001',
+          score: 991,
+          turn: {
+            terminal: {
+              status: 'success',
+              reason: 'objective_complete',
+              score: 991,
+              hidden_rule: 'sector_c_two_unstable',
+            },
+          },
+          objective: { artifacts_collected: 3, artifacts_required: 3 },
+          metrics: { damage_events: 0, invalid_actions: 0, wasted_actions: 0 },
+        },
+      },
+    ];
+    fs.writeFileSync(path.join(tmp, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
+    fs.writeFileSync(path.join(tmp, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'JUDGE_BRIEF.md'), 'EchoGrid Judge Brief 90-Second Judge Script SUCCESS / objective_complete logs/showcase/arena.html logs/showcase/replay.html ECHO GRID AGENT COMPARISON', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'agent-comparison.txt'), 'ECHO GRID AGENT COMPARISON ./agents/random.js ./agents/baseline.js ./agents/rule-aware.js', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'agent-comparison.json'), JSON.stringify({
+      seed_file: './seeds/demo.txt',
+      rows: [
+        { agent: './agents/random.js', seeds: 4, successes: 0, average_score: 218.5 },
+        { agent: './agents/baseline.js', seeds: 4, successes: 4, average_score: 874 },
+        { agent: './agents/rule-aware.js', seeds: 4, successes: 4, average_score: 929.5 },
+      ],
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, ['./scripts/verify-demo-artifacts.js', tmp], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /DEMO ARTIFACT CHECK PASSED/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('analyze-run reports quality flags for JSONL logs', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {

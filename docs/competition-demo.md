@@ -27,6 +27,14 @@ npm run demo:verify
 
 This runs tests, the rule-aware showcase, and the three-agent showcase comparison without printing the full replay timeline or generating the viewer.
 
+For CI-style verification of the full judge package:
+
+```bash
+npm run demo:ci
+```
+
+This runs the full demo and then checks that the JSONL log, replay viewer, comparison arena, comparison JSON, and judge brief were generated and contain the expected showcase result.
+
 ## What To Look For
 
 EchoGrid is designed around agent behavior, not a visual board. The important artifacts are:

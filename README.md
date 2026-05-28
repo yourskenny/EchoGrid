@@ -41,12 +41,19 @@ For a shorter verification path, run:
 npm run demo:verify
 ```
 
+To validate the generated showcase artifacts after `npm run demo:full`:
+
+```bash
+npm run demo:check
+```
+
 ## Useful Commands
 
 ```bash
 npm run demo
 npm run compare
 npm run showcase
+npm run demo:ci
 
 node ./bin/echogrid.js inspect --seed 48129
 node ./bin/echogrid.js run --seed 48129 --pretty
