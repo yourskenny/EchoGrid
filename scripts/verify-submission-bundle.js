@@ -15,6 +15,7 @@ const REQUIRED_FILES = [
   'SUBMISSION_CHECKLIST.md',
   'SUBMISSION_MANIFEST.json',
   'SUBMISSION_ONE_PAGER.md',
+  'SUBMISSION_REPRODUCE.md',
   'SUBMISSION_STRATEGY_AUDIT.md',
   'showcase/9001.jsonl',
   'showcase/MANIFEST.json',
@@ -80,6 +81,7 @@ function main(argv = process.argv.slice(2)) {
     verifyVisualSmoke(bundleDir, errors);
     verifyAuditReport(bundleDir, errors);
     verifyOnePager(bundleDir, errors);
+    verifyReproduceReport(bundleDir, errors);
     verifyStrategyAudit(bundleDir, errors);
     verifyStartHere(bundleDir, errors);
     verifySourceProtocolPackage(bundleDir, errors);
@@ -315,6 +317,27 @@ function verifyOnePager(bundleDir, errors) {
   }
 }
 
+function verifyReproduceReport(bundleDir, errors) {
+  const file = path.join(bundleDir, 'SUBMISSION_REPRODUCE.md');
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of [
+    'EchoGrid Reproduce Report',
+    'Source',
+    'Environment',
+    'Command Sequence',
+    'Source Consistency',
+    'Benchmark Evidence',
+    'npm run submission:check',
+    'npm run submission:verify',
+    'ECHOGRID_BROWSER',
+    'GitHub Actions',
+    'showcase manifest',
+  ]) {
+    if (!text.includes(needle)) errors.push(`SUBMISSION_REPRODUCE.md missing "${needle}"`);
+  }
+}
+
 function verifyStrategyAudit(bundleDir, errors) {
   const file = path.join(bundleDir, 'SUBMISSION_STRATEGY_AUDIT.md');
   if (!fs.existsSync(file)) return;
@@ -351,6 +374,7 @@ function verifyStartHere(bundleDir, errors) {
     'showcase/mission-control.html',
     'SUBMISSION_ONE_PAGER.md',
     'SUBMISSION_AUDIT.md',
+    'SUBMISSION_REPRODUCE.md',
     'SUBMISSION_STRATEGY_AUDIT.md',
     'Agent Authoring',
     'source/docs/agent-authoring.md',

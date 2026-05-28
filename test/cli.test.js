@@ -664,6 +664,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_CHECKLIST.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_MANIFEST.json')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_ONE_PAGER.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_REPRODUCE.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
     assert.ok(fs.existsSync(path.join(outDir, 'source', 'docs', 'agent-authoring.md')));
@@ -694,6 +695,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_AUDIT.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_ONE_PAGER.md')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_REPRODUCE.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_STRATEGY_AUDIT.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'source/docs/agent-authoring.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'source/schemas/state.schema.json')?.sha256);
@@ -706,6 +708,11 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(onePager, /Why It Is Worth Judging/);
     assert.match(onePager, /90-Second Review Path/);
     assert.match(onePager, /SUBMISSION_STRATEGY_AUDIT\.md/);
+    const reproduce = fs.readFileSync(path.join(outDir, 'SUBMISSION_REPRODUCE.md'), 'utf8');
+    assert.match(reproduce, /EchoGrid Reproduce Report/);
+    assert.match(reproduce, /npm run submission:check/);
+    assert.match(reproduce, /ECHOGRID_BROWSER/);
+    assert.match(reproduce, /Source Consistency/);
     const strategyAudit = fs.readFileSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md'), 'utf8');
     assert.match(strategyAudit, /EchoGrid Strategy Audit/);
     assert.match(strategyAudit, /Benchmark Edge/);
@@ -722,6 +729,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(startHere, /source\/docs\/agent-authoring\.md/);
     assert.match(startHere, /source\/schemas\/state\.schema\.json/);
     assert.match(startHere, /benchmarks\/public\/leaderboard\.md/);
+    assert.match(startHere, /SUBMISSION_REPRODUCE\.md/);
     assert.match(startHere, /SUBMISSION_STRATEGY_AUDIT\.md/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
   } finally {

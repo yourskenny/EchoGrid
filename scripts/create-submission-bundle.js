@@ -86,12 +86,14 @@ function main(argv = process.argv.slice(2)) {
   const onePagerFile = path.join(outDir, 'SUBMISSION_ONE_PAGER.md');
   const checklistFile = path.join(outDir, 'SUBMISSION_CHECKLIST.md');
   const auditFile = path.join(outDir, 'SUBMISSION_AUDIT.md');
+  const reproduceFile = path.join(outDir, 'SUBMISSION_REPRODUCE.md');
   const strategyAuditFile = path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md');
   fs.writeFileSync(startFile, renderStartHereHtml(summary), 'utf8');
   fs.writeFileSync(readmeFile, renderReadme(summary), 'utf8');
   fs.writeFileSync(onePagerFile, renderOnePager(summary), 'utf8');
   fs.writeFileSync(checklistFile, renderChecklist(summary), 'utf8');
   fs.writeFileSync(auditFile, renderAuditReport(summary), 'utf8');
+  fs.writeFileSync(reproduceFile, renderReproduceReport(summary), 'utf8');
   fs.writeFileSync(strategyAuditFile, renderStrategyAudit(summary), 'utf8');
 
   const manifest = {
@@ -226,6 +228,10 @@ function buildSummary({ outDir, zipFile, showcaseManifest, benchmarks }) {
       commit_short: gitValue(['rev-parse', '--short', 'HEAD']),
       branch: gitValue(['rev-parse', '--abbrev-ref', 'HEAD']),
       node: process.version,
+      platform: `${process.platform}/${process.arch}`,
+      showcase_commit: showcaseManifest.git_commit || null,
+      showcase_commit_short: showcaseManifest.git_commit_short || null,
+      showcase_node: showcaseManifest.node || null,
     },
     commands: {
       full_gate: 'npm run submission:check',
@@ -312,6 +318,7 @@ function renderReadme(summary) {
     '- `SUBMISSION_ONE_PAGER.md`: short judge-facing pitch and review path.',
     '- `SUBMISSION_CHECKLIST.md`: human-readable delivery checklist.',
     '- `SUBMISSION_AUDIT.md`: generated verification matrix and handoff evidence summary.',
+    '- `SUBMISSION_REPRODUCE.md`: exact environment, command, and source-consistency notes for rebuilding the submission.',
     '- `SUBMISSION_STRATEGY_AUDIT.md`: generated per-seed strategy edge and rule-claim evidence.',
     '- `SUBMISSION_MANIFEST.json`: machine-readable bundle inventory with hashes.',
     '',
@@ -486,6 +493,7 @@ code {
       ${startLink('Demo Index', 'showcase/index.html', 'Showcase package entry point and artifact links.')}
       ${startLink('One-Pager', 'SUBMISSION_ONE_PAGER.md', 'Short judge-facing pitch and review path.')}
       ${startLink('Audit Report', 'SUBMISSION_AUDIT.md', 'Generated verification matrix and command evidence.')}
+      ${startLink('Reproduce Report', 'SUBMISSION_REPRODUCE.md', 'Environment requirements, command sequence, and source consistency checks.')}
       ${startLink('Strategy Audit', 'SUBMISSION_STRATEGY_AUDIT.md', 'Per-seed strategy edge, rule-claim evidence, and benchmark deltas.')}
       ${startLink('Scorecard', 'showcase/SCORECARD.md', 'Capability gates and expected proof points.')}
       ${startLink('Agent Authoring', 'source/docs/agent-authoring.md', 'State protocol, action contract, and minimal agent example.')}
@@ -584,6 +592,75 @@ function renderStrategyAudit(summary) {
     '- `row_count_disclosure` proves the agent can validate a row-level global clue before claiming it.',
     '- `sector_c_two_unstable` proves the agent can validate a sector-level echo constraint before claiming it.',
     '- Seeds without a rule claim still complete through the shared baseline route, so the experiments are bounded rather than reckless.',
+    '',
+  ].join('\n');
+}
+
+function renderReproduceReport(summary) {
+  const sourceMatchesShowcase = summary.source.commit &&
+    summary.source.showcase_commit &&
+    summary.source.commit === summary.source.showcase_commit;
+  const showcase = summary.showcase;
+  const publicBenchmark = summary.benchmarks.public;
+  const adversarial = summary.benchmarks.adversarial;
+  const rules = summary.benchmarks.rules;
+  return [
+    '# EchoGrid Reproduce Report',
+    '',
+    `Generated: ${summary.generated_at}`,
+    '',
+    '## Source',
+    '',
+    `- Repository: ${summary.source.repository || 'unknown'}`,
+    `- Branch: ${summary.source.branch || 'unknown'}`,
+    `- Commit: ${summary.source.commit_short || 'unknown'} (${summary.source.commit || 'unknown'})`,
+    `- Showcase manifest commit: ${summary.source.showcase_commit_short || 'unknown'} (${summary.source.showcase_commit || 'unknown'})`,
+    '',
+    '## Environment',
+    '',
+    `- Node.js used for bundle generation: ${summary.source.node || 'unknown'}`,
+    `- Node.js recorded in showcase manifest: ${summary.source.showcase_node || 'unknown'}`,
+    `- Platform: ${summary.source.platform || 'unknown'}`,
+    '- Browser smoke tests use Chrome or Edge locally. Set `ECHOGRID_BROWSER` to a browser executable path when auto-detection is not reliable.',
+    '- GitHub Actions provisions stable Chrome explicitly before running the visual smoke gate.',
+    '',
+    '## Source Consistency',
+    '',
+    `- Bundle source commit and showcase manifest commit match: ${sourceMatchesShowcase ? 'yes' : 'no'}.`,
+    `- Bundle verifier checks the source commit, showcase manifest commit, sha256 inventory, local HTML links, and zip archive.`,
+    '',
+    '## Command Sequence',
+    '',
+    '| Purpose | Command |',
+    '| --- | --- |',
+    `| Full CI-style submission gate | \`${summary.commands.full_gate}\` |`,
+    `| Rebuild showcase artifacts | \`${summary.commands.demo_package}\` |`,
+    `| Render visual smoke screenshots | \`${summary.commands.visual_smoke}\` |`,
+    `| Run public benchmark | \`${summary.commands.public_benchmark}\` |`,
+    `| Run adversarial benchmark | \`${summary.commands.adversarial_benchmark}\` |`,
+    `| Run rule-signal benchmark | \`${summary.commands.rule_signals_benchmark}\` |`,
+    `| Rebuild submission bundle | \`${summary.commands.regenerate_bundle}\` |`,
+    `| Verify submission bundle | \`${summary.commands.verify_bundle}\` |`,
+    '',
+    '## Benchmark Evidence',
+    '',
+    '| Gate | Evidence |',
+    '| --- | --- |',
+    `| Showcase | ${showcase.result}/${showcase.reason}, score ${showcase.score}, turns ${showcase.turns}, artifacts ${showcase.artifacts} |`,
+    `| Public benchmark | leader ${publicBenchmark.leader.agent}, success ${formatPercent(publicBenchmark.leader.success_rate)}, average score ${publicBenchmark.leader.average_score} |`,
+    `| Adversarial benchmark | leader ${adversarial.leader.agent}, success ${formatPercent(adversarial.leader.success_rate)}, average score ${adversarial.leader.average_score} |`,
+    `| Rule-signal benchmark | leader ${rules.leader.agent}, success ${formatPercent(rules.leader.success_rate)}, average score ${rules.leader.average_score} |`,
+    '',
+    '## Judge Rebuild Path',
+    '',
+    'From a clean checkout at the source commit above:',
+    '',
+    '```bash',
+    'npm install',
+    summary.commands.full_gate,
+    '```',
+    '',
+    'The command sequence regenerates the showcase, screenshots, benchmarks, bundle directory, and zip archive, then verifies the final handoff package.',
     '',
   ].join('\n');
 }
