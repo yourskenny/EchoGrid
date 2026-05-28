@@ -75,7 +75,7 @@ class EchoGridGame {
         outcome = this.extract();
         break;
       case 'claim_rule':
-        outcome = this.claimRule(parsed.ruleId);
+        outcome = this.claimRule(parsed.ruleId, parsed.rationale);
         break;
       default:
         outcome = {
@@ -243,9 +243,10 @@ class EchoGridGame {
     return this.invalid('Extract is only valid on an uncollected artifact or the exit.');
   }
 
-  claimRule(ruleId) {
+  claimRule(ruleId, rationale = null) {
     if (!isKnownRule(ruleId)) return this.invalid(`Unknown rule id: ${ruleId}`);
     this.spend('claim_rule');
+    const cleanRationale = normalizeRationale(rationale);
     if (this.claimedRule) {
       this.penalties.wasted += 1;
       return {
@@ -260,12 +261,14 @@ class EchoGridGame {
       id: ruleId,
       correct,
       turn: this.turn,
+      ...(cleanRationale ? { rationale: cleanRationale } : {}),
     };
     if (!correct) this.penalties.invalid += 1;
     const observation = {
       type: 'rule_claim',
       rule_id: ruleId,
       accepted: correct,
+      ...(cleanRationale ? { rationale: cleanRationale } : {}),
     };
     this.addObservations([observation]);
     return {
@@ -432,7 +435,7 @@ class EchoGridGame {
         'mark x y hazard|safe|artifact|entity',
         'extract',
         'wait',
-        'claim_rule rule_id',
+        'claim_rule rule_id [because rationale]',
       ],
       action_hints: this.actionHints(),
       score: this.score(),
@@ -1082,7 +1085,18 @@ function parseAction(commandLine) {
   }
   if (verb === 'wait' && parts.length === 1) return { ok: true, action: 'wait' };
   if (verb === 'extract' && parts.length === 1) return { ok: true, action: 'extract' };
-  if (verb === 'claim_rule' && parts.length === 2) return { ok: true, action: 'claim_rule', ruleId: parts[1] };
+  if (verb === 'claim_rule' && parts.length >= 2) {
+    if (parts.length === 2) return { ok: true, action: 'claim_rule', ruleId: parts[1] };
+    if (parts[2].toLowerCase() !== 'because' || parts.length < 4) {
+      return { ok: false, type: 'invalid', message: 'Rule claim rationale must use: claim_rule rule_id because rationale' };
+    }
+    return {
+      ok: true,
+      action: 'claim_rule',
+      ruleId: parts[1],
+      rationale: parts.slice(3).join(' '),
+    };
+  }
   return {
     ok: false,
     type: 'invalid',
@@ -1291,6 +1305,12 @@ function terrainChar(terrain) {
   if (terrain === 'artifact') return 'A';
   if (terrain === 'exit') return 'E';
   return '.';
+}
+
+function normalizeRationale(value) {
+  const text = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!text) return null;
+  return text.slice(0, 180);
 }
 
 module.exports = {

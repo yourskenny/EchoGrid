@@ -113,6 +113,7 @@ mark x y hazard|safe|artifact|entity
 extract
 wait
 claim_rule rule_id
+claim_rule rule_id because rationale
 ```
 
 For batch evaluation, EchoGrid runs the agent once per turn and sends the full `STATE` JSON on stdin. The first non-empty stdout line is used as the action.

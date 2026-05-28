@@ -110,6 +110,7 @@ function verifyShowcaseLog(file, errors) {
   if (!exitEvent) errors.push('showcase missing exit extraction event');
   if (!ruleSignal) errors.push('showcase missing rule signal event');
   if (!ruleClaim?.event?.outcome?.observation?.accepted) errors.push('showcase missing accepted rule claim');
+  if (!ruleClaim?.event?.outcome?.observation?.rationale) errors.push('showcase rule claim missing audited rationale');
   if ((finalState?.metrics?.damage_events ?? 0) !== 0) errors.push('showcase recorded damage events');
   if ((finalState?.metrics?.invalid_actions ?? 0) !== 0) errors.push('showcase recorded invalid actions');
   if ((finalState?.metrics?.wasted_actions ?? 0) !== 0) errors.push('showcase recorded wasted actions');

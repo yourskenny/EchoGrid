@@ -139,7 +139,8 @@
               "properties": {
                 "id": { "type": "string" },
                 "correct": { "type": "boolean" },
-                "turn": { "type": "integer", "minimum": 0 }
+                "turn": { "type": "integer", "minimum": 0 },
+                "rationale": { "type": "string" }
               },
               "additionalProperties": true
             }

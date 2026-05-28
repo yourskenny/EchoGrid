@@ -513,7 +513,7 @@ function buildMilestones(actionEvents) {
         turn,
         frameIndex: index + 1,
         label: 'Rule claim',
-        detail: outcome.observation?.accepted ? 'accepted' : 'rejected',
+        detail: `${outcome.observation?.accepted ? 'accepted' : 'rejected'}${outcome.observation?.rationale ? ` - ${outcome.observation.rationale}` : ''}`,
       });
     }
     if (outcome.type === 'extract_artifact') {

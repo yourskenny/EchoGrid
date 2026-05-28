@@ -299,7 +299,7 @@ test('demo artifact verifier accepts a complete showcase package', () => {
       },
       {
         type: 'action',
-        event: { outcome: { type: 'claim_rule', observation: { accepted: true } } },
+        event: { outcome: { type: 'claim_rule', observation: { accepted: true, rationale: 'scan evidence' } } },
         state: { seed: '9001' },
       },
       ...[1, 2, 3].map((count) => ({

@@ -57,6 +57,7 @@ const prompt = [
   '- extract',
   '- wait',
   '- claim_rule rule_id',
+  '- claim_rule rule_id because rationale',
   '',
   'Priorities:',
   '1. If must_copy_action is present, output it exactly.',
@@ -247,14 +248,14 @@ function sanitizeAction(content) {
     .find((item) => item && !item.startsWith('```'));
   if (!line) return null;
   const cleaned = line.replace(/^["'`]|["'`]$/g, '').trim();
-  const match = cleaned.match(/^(move\s+[NSEW]|probe\s+\d+\s+\d+|scan\s+(?:row|col)\s+\d+|scan\s+sector\s+[ABCD]|mark\s+\d+\s+\d+\s+(?:hazard|safe|artifact|entity)|extract|wait|claim_rule\s+[a-z0-9_]+)$/i);
+  const match = cleaned.match(/^(move\s+[NSEW]|probe\s+\d+\s+\d+|scan\s+(?:row|col)\s+\d+|scan\s+sector\s+[ABCD]|mark\s+\d+\s+\d+\s+(?:hazard|safe|artifact|entity)|extract|wait|claim_rule\s+[a-z0-9_]+(?:\s+because\s+.+)?)$/i);
   return match ? match[1].toLowerCase().replace(/^move\s+([nsew])$/i, (_, dir) => `move ${dir.toUpperCase()}`) : null;
 }
 
 function extractActionFromReasoning(reasoning) {
   const text = String(reasoning || '');
   if (!text.trim()) return null;
-  const matches = [...text.matchAll(/\b(move\s+[NSEW]|probe\s+\d+\s+\d+|scan\s+(?:row|col)\s+\d+|scan\s+sector\s+[ABCD]|mark\s+\d+\s+\d+\s+(?:hazard|safe|artifact|entity)|extract|wait|claim_rule\s+[a-z0-9_]+)\b/gi)];
+  const matches = [...text.matchAll(/\b(move\s+[NSEW]|probe\s+\d+\s+\d+|scan\s+(?:row|col)\s+\d+|scan\s+sector\s+[ABCD]|mark\s+\d+\s+\d+\s+(?:hazard|safe|artifact|entity)|extract|wait|claim_rule\s+[a-z0-9_]+(?:\s+because\s+[^\n.]+)?)\b/gi)];
   if (!matches.length) return null;
   return sanitizeAction(matches.at(-1)[1]);
 }

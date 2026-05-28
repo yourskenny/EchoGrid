@@ -22,7 +22,7 @@ The hidden answer is not present during evaluation. `inspect` output is a debugg
 | Mark | `mark x y hazard\|safe\|artifact\|entity` | 0 | Coordinate is in bounds | `mark` | Marks are scored later. Incorrect marks create `false_mark_penalty`. |
 | Extract | `extract` | 1 | Current cell is an uncollected artifact, or current cell is exit after required artifacts are collected | `extract_artifact` or `extract_exit` | The same command collects artifacts and completes the mission at the exit. |
 | Wait | `wait` | 1 | Always valid | `wait` | Re-observes the current cell. Usually low value. |
-| Claim rule | `claim_rule rule_id` | 1 | `rule_id` exists in `rules.catalog` | `claim_rule` | Only the first claim can score. A second claim is wasted. A wrong first claim is counted as invalid. |
+| Claim rule | `claim_rule rule_id` or `claim_rule rule_id because rationale` | 1 | `rule_id` exists in `rules.catalog` | `claim_rule` | Only the first claim can score. A second claim is wasted. A wrong first claim is counted as invalid. Optional rationale is logged for audit only and does not affect scoring. |
 
 Malformed actions, out-of-bounds targets, moving into walls, extracting in the wrong place, extracting at the exit before enough artifacts, and unknown rule ids are invalid. Invalid actions consume one turn and add an invalid-action penalty.
 
@@ -95,6 +95,16 @@ Some hidden rules add public rule evidence:
 - `rule_signal`
 - `disclosed_hazard_count`
 - `confidence`
+
+## Rule-Claim Rationale
+
+Agents may attach a short audited rationale to a hidden-rule claim:
+
+```text
+claim_rule sector_c_two_unstable because sector C scan showed exactly two unstable echoes
+```
+
+The rationale is stored in `rules.claim.rationale`, the `rule_claim` observation, reports, replay milestones, and judge briefs. It is agent-authored audit text only; EchoGrid does not treat it as evidence, does not reveal hidden answers through it, and does not change score based on its wording.
 
 ## Action Hints
 

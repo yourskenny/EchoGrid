@@ -18,7 +18,7 @@ if (!state.rules.claim) {
     .reverse()
     .find((item) => item.type === 'scan' && item.kind === 'sector' && item.value === 'C');
   if (sectorCSignal?.rule_signal === 'sector_c_exactly_two_unstable') {
-    console.log('claim_rule sector_c_two_unstable');
+    console.log('claim_rule sector_c_two_unstable because sector C scan showed exactly two unstable echoes');
     process.exit(0);
   }
 }

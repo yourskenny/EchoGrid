@@ -30,4 +30,6 @@ The score is not only a win/loss result. It indicates agent behavior:
 
 `metrics` expose supporting audit fields such as visible cells, marks, false marks, damage events, invalid actions, and wasted actions.
 
+Optional `claim_rule ... because ...` rationale text is logged for audit, but score depends only on whether the claimed rule id is correct.
+
 For the action-level events that feed these components, see [protocol-reference.md](./protocol-reference.md).

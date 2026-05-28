@@ -586,7 +586,8 @@ function buildReport(events) {
       keyEvents.push(`- Turn ${turn}: observed ${outcome.observation.rule_signal}.`);
     }
     if (outcome.type === 'claim_rule') {
-      keyEvents.push(`- Turn ${turn}: claimed hidden rule; accepted=${Boolean(outcome.observation?.accepted)}.`);
+      const rationale = outcome.observation?.rationale ? ` rationale="${outcome.observation.rationale}"` : '';
+      keyEvents.push(`- Turn ${turn}: claimed hidden rule; accepted=${Boolean(outcome.observation?.accepted)}.${rationale}`);
     }
     if (outcome.type === 'move' && outcome.observations?.some((item) => item.type === 'damage')) {
       risks.push(`- Turn ${turn}: hazard contact reduced integrity.`);
@@ -722,6 +723,7 @@ Action protocol:
   extract
   wait
   claim_rule rule_id
+  claim_rule rule_id because rationale
 
 Coordinates are zero-based: (0,0) is the northwest corner.
 `;

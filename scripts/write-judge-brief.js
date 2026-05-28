@@ -158,7 +158,8 @@ function collectKeyEvents(actionEvents) {
     }
     if (outcome.type === 'claim_rule') {
       const accepted = outcome.observation?.accepted ? 'accepted' : 'rejected';
-      events.push(`- Turn ${turn}: rule claim ${accepted} (${outcome.observation?.rule_id || 'unknown'}).`);
+      const rationale = outcome.observation?.rationale ? ` Rationale: ${outcome.observation.rationale}.` : '';
+      events.push(`- Turn ${turn}: rule claim ${accepted} (${outcome.observation?.rule_id || 'unknown'}).${rationale}`);
     }
     if (outcome.type === 'extract_artifact') {
       const coord = formatCoord(outcome.observation?.coord);

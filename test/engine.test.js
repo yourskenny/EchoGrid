@@ -27,6 +27,28 @@ test('action parser accepts the documented protocol', () => {
     action: 'claim_rule',
     ruleId: 'wall_echo_inversion',
   });
+  assert.deepEqual(parseAction('claim_rule sector_c_two_unstable because sector scan matched'), {
+    ok: true,
+    action: 'claim_rule',
+    ruleId: 'sector_c_two_unstable',
+    rationale: 'sector scan matched',
+  });
+});
+
+test('rule claims can include audited rationale without changing scoring', () => {
+  const game = new EchoGridGame({ seed: 9001 });
+  game.step('scan sector C');
+  const event = game.step('claim_rule sector_c_two_unstable because sector C scan showed exactly two unstable echoes');
+  const state = game.state();
+
+  assert.equal(event.outcome.ok, true);
+  assert.equal(event.outcome.type, 'claim_rule');
+  assert.equal(event.outcome.observation.accepted, true);
+  assert.equal(event.outcome.observation.rationale, 'sector C scan showed exactly two unstable echoes');
+  assert.equal(state.rules.claim.id, 'sector_c_two_unstable');
+  assert.equal(state.rules.claim.correct, true);
+  assert.equal(state.rules.claim.rationale, 'sector C scan showed exactly two unstable echoes');
+  assert.equal(state.score_breakdown.rule_discovery_bonus, 120);
 });
 
 test('probe and scan produce structured observations without exposing the answer', () => {
