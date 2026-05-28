@@ -21,7 +21,7 @@
 - Private and held-out seed workflows for final rankings.
 - Stable score breakdown and capability metrics.
 - Faster multi-agent evaluation harness with ordered concurrent comparison output.
-- CI for tests, full demo execution, generated artifact checks, and showcase artifact upload.
+- CI for tests, full demo execution, generated artifact checks, public benchmark runs, and evaluation artifact upload.
 
 ## Reasoning Depth
 

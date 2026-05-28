@@ -52,6 +52,12 @@ To validate the generated showcase artifacts after `npm run demo:full`:
 npm run demo:check
 ```
 
+For the full submission gate used by CI:
+
+```bash
+npm run submission:check
+```
+
 ## Useful Commands
 
 ```bash
@@ -59,6 +65,7 @@ npm run demo
 npm run compare
 npm run showcase
 npm run demo:ci
+npm run submission:check
 npm run benchmark:adversarial
 npm run benchmark:rules
 npm run benchmark:heldout

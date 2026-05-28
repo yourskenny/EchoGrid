@@ -35,10 +35,10 @@ This runs tests, the rule-aware showcase, and the three-agent showcase compariso
 For CI-style verification of the full judge package:
 
 ```bash
-npm run demo:ci
+npm run submission:check
 ```
 
-This runs the full demo and then checks that the JSONL log, replay viewer, comparison arena, comparison JSON, and judge brief were generated and contain the expected showcase result.
+This runs the full demo, checks the generated judge package, and then runs the adversarial and rule-signals public benchmarks. GitHub Actions uses the same command and uploads the generated `logs` directory as an evaluation artifact.
 
 ## What To Look For
 

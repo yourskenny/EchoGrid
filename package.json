@@ -20,6 +20,7 @@
     "demo:manifest": "node ./scripts/write-demo-manifest.js ./logs/showcase/9001.jsonl --out ./logs/showcase/MANIFEST.json --index ./logs/showcase/index.html --dashboard-html ./logs/showcase/mission-control.html --scorecard ./logs/showcase/SCORECARD.md --brief ./logs/showcase/JUDGE_BRIEF.md --replay-html ./logs/showcase/replay.html --arena-html ./logs/showcase/arena.html --leaderboard ./logs/showcase/leaderboard.md --comparison-json ./logs/showcase/agent-comparison.json --comparison ./logs/showcase/agent-comparison.txt",
     "demo:check": "node ./scripts/verify-demo-artifacts.js ./logs/showcase",
     "demo:ci": "npm run demo:full && npm run demo:check",
+    "submission:check": "npm run demo:ci && npm run benchmark:adversarial && npm run benchmark:rules",
     "compare": "node ./scripts/compare.js --seeds ./seeds/demo.txt",
     "benchmark:adversarial": "node ./scripts/compare.js --seeds ./seeds/adversarial.txt --json-out ./logs/adversarial/agent-comparison.json --html-out ./logs/adversarial/arena.html --leaderboard-out ./logs/adversarial/leaderboard.md",
     "benchmark:rules": "node ./scripts/compare.js --seeds ./seeds/rule-signals.txt --agents ./agents/baseline.js,./agents/rule-aware.js,./agents/rule-explorer.js --json-out ./logs/rules/agent-comparison.json --html-out ./logs/rules/arena.html --leaderboard-out ./logs/rules/leaderboard.md",
