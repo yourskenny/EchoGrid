@@ -10,6 +10,7 @@ function main(argv = process.argv.slice(2)) {
   const showcaseDir = resolvePath(argv[0] || './logs/showcase');
   const files = {
     log: path.join(showcaseDir, '9001.jsonl'),
+    index: path.join(showcaseDir, 'index.html'),
     replay: path.join(showcaseDir, 'replay.html'),
     arena: path.join(showcaseDir, 'arena.html'),
     brief: path.join(showcaseDir, 'JUDGE_BRIEF.md'),
@@ -38,6 +39,17 @@ function main(argv = process.argv.slice(2)) {
       'const frames = ',
       'const milestones = ',
       'objective complete',
+    ], errors);
+    verifyText(files.index, [
+      'EchoGrid Demo Index',
+      '90-Second Runbook',
+      'Leaderboard Snapshot',
+      'Audit Gates',
+      'const demoSummary = ',
+      'JUDGE_BRIEF.md',
+      'replay.html',
+      'arena.html',
+      'sector C scan showed exactly two unstable echoes',
     ], errors);
     verifyText(files.arena, [
       'EchoGrid Arena',

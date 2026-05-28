@@ -32,9 +32,10 @@ npm run demo:full
 7. self-contained HTML comparison arena
 8. tournament-style leaderboard
 9. generated judge brief
+10. generated demo index
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/JUDGE_BRIEF.md` first after `npm run demo:full`, then open `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`.
+Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`.
 
 For a shorter verification path, run:
 
@@ -65,6 +66,7 @@ node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 npm run replay:html -- ./logs/48129.jsonl --out ./logs/48129.replay.html
 npm run demo:brief
+npm run demo:index
 ```
 
 `inspect` is a local debugging command and may print hidden answer data. Do not use its output as evaluated agent input.

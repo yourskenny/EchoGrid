@@ -12,6 +12,7 @@ const showcaseLog = path.join(showcaseLogDir, '9001.jsonl');
 const showcaseReplayHtml = path.join(showcaseLogDir, 'replay.html');
 const showcaseArenaHtml = path.join(showcaseLogDir, 'arena.html');
 const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
+const showcaseIndex = path.join(showcaseLogDir, 'index.html');
 const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
 const agentComparisonJson = path.join(showcaseLogDir, 'agent-comparison.json');
 const leaderboard = path.join(showcaseLogDir, 'leaderboard.md');
@@ -74,7 +75,24 @@ run('Showcase judge brief', [
   '--arena-html',
   showcaseArenaHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseBrief)} first, then ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)} for the judge-friendly outputs.\n`);
+run('Showcase demo index', [
+  process.execPath,
+  './scripts/write-demo-index.js',
+  showcaseLog,
+  '--out',
+  showcaseIndex,
+  '--brief',
+  showcaseBrief,
+  '--leaderboard',
+  leaderboard,
+  '--comparison-json',
+  agentComparisonJson,
+  '--arena-html',
+  showcaseArenaHtml,
+  '--replay-html',
+  showcaseReplayHtml,
+]);
+process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)} for the judge-friendly outputs.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);
