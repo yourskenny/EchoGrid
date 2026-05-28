@@ -57,9 +57,11 @@ function buildDemoDashboard(events, options = {}) {
   const leader = rankings[0] || null;
   const baseline = rows.find((row) => row.agent === './agents/baseline.js' || /baseline\.js$/.test(row.agent));
   const ruleAware = rows.find((row) => row.agent === './agents/rule-aware.js' || /rule-aware\.js$/.test(row.agent));
+  const random = rows.find((row) => row.agent === './agents/random.js' || /random\.js$/.test(row.agent));
   const scoreGap = baseline && ruleAware
     ? roundNumber(Number(ruleAware.average_score) - Number(baseline.average_score))
     : null;
+  const strategy = buildStrategyEvidence(rows, { baseline, ruleAware, random, scoreGap });
   const routeSteps = collectRouteSteps(events);
   const milestones = collectMilestones(actionEvents, routeSteps);
   const route = routeSteps.map((step) => step.coord);
@@ -102,6 +104,7 @@ function buildDemoDashboard(events, options = {}) {
       detail,
       route_index: routeIndex,
     })),
+    strategy,
     comparison_seed_file: comparison.seed_file || 'unknown',
   };
 
@@ -367,6 +370,48 @@ h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
 .leaderRow:last-child { border-bottom: 0; padding-bottom: 0; }
 .rank { color: var(--purple); font-weight: 800; }
 .agentName { overflow-wrap: anywhere; font-weight: 700; }
+.strategyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.strategyStat {
+  border-left: 3px solid var(--blue);
+  padding-left: 10px;
+  min-width: 0;
+}
+.strategyStat span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.strategyStat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.deltaTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.deltaWrap { overflow-x: auto; }
+.deltaTable th,
+.deltaTable td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.deltaTable th {
+  color: var(--muted);
+  font-size: 12px;
+}
+.deltaTable .right { text-align: right; }
+.positive { color: var(--green); font-weight: 800; }
+.negative { color: var(--red); font-weight: 800; }
 .links {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -396,6 +441,7 @@ code {
   header, .hero, .grid, .boardWrap { grid-template-columns: 1fr; }
   .stamp { text-align: left; }
   .statusGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .strategyGrid { grid-template-columns: 1fr; }
   .links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
@@ -474,6 +520,11 @@ code {
         ${leaderRows(rankings, rows)}
       </div>
     </div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <h2>Strategy Edge</h2>
+    ${strategyEvidence(strategy)}
   </section>
 
   <section class="grid">
@@ -641,6 +692,23 @@ function leaderRows(rankings, rows) {
   }).join('\n');
 }
 
+function strategyEvidence(strategy) {
+  const deltas = Array.isArray(strategy.seed_deltas) ? strategy.seed_deltas : [];
+  return `<div class="strategyGrid">
+    <div class="strategyStat"><span>Average score edge</span><strong>${escapeHtml(formatSigned(strategy.average_score_gap))}</strong></div>
+    <div class="strategyStat"><span>Accepted rule claims</span><strong>${escapeHtml(strategy.accepted_rule_claims ?? 0)}</strong></div>
+    <div class="strategyStat"><span>Random agent failures</span><strong>${escapeHtml(strategy.random_failures ?? 'n/a')}</strong></div>
+  </div>
+  <div class="deltaWrap">
+  <table class="deltaTable">
+    <thead><tr><th>Seed</th><th>Hidden rule</th><th class="right">Baseline</th><th class="right">Rule-aware</th><th class="right">Delta</th><th>Evidence</th></tr></thead>
+    <tbody>
+      ${deltas.map((item) => `<tr><td>${escapeHtml(item.seed)}</td><td>${escapeHtml(item.hidden_rule)}</td><td class="right">${escapeHtml(item.baseline_score)}</td><td class="right">${escapeHtml(item.rule_aware_score)}</td><td class="right ${item.delta >= 0 ? 'positive' : 'negative'}">${escapeHtml(formatSigned(item.delta))}</td><td>${escapeHtml(item.evidence)}</td></tr>`).join('\n')}
+    </tbody>
+  </table>
+  </div>`;
+}
+
 function linkTile(item) {
   return `<a class="linkTile" href="${escapeHtml(item.href)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.description)}</span></a>`;
 }
@@ -661,6 +729,41 @@ function artifactLinks(paths, outFile) {
       href: relativeHref(outFile, file),
       description,
     }));
+}
+
+function buildStrategyEvidence(rows, context = {}) {
+  const baseline = context.baseline;
+  const ruleAware = context.ruleAware;
+  const random = context.random;
+  const baselineResults = new Map((baseline?.results || []).map((item) => [String(item.seed), item]));
+  const ruleAwareResults = ruleAware?.results || [];
+  const seedDeltas = ruleAwareResults.map((result) => {
+    const baselineResult = baselineResults.get(String(result.seed));
+    const delta = baselineResult ? Number(result.score) - Number(baselineResult.score) : 0;
+    const ruleClaim = result.rule_claim;
+    const evidence = ruleClaim?.correct
+      ? `claimed ${ruleClaim.id} at turn ${ruleClaim.turn ?? '?'}`
+      : 'completed through shared routing policy';
+    return {
+      seed: result.seed,
+      hidden_rule: result.hidden_rule || baselineResult?.hidden_rule || 'unknown',
+      baseline_score: baselineResult?.score ?? 'n/a',
+      rule_aware_score: result.score,
+      delta: roundNumber(delta),
+      evidence,
+    };
+  });
+  const acceptedRuleClaims = ruleAwareResults.filter((result) => result.rule_claim?.correct).length;
+  const randomFailures = random
+    ? `${Number(random.seeds || 0) - Number(random.successes || 0)} / ${random.seeds}`
+    : null;
+
+  return {
+    average_score_gap: context.scoreGap,
+    accepted_rule_claims: acceptedRuleClaims,
+    random_failures: randomFailures,
+    seed_deltas: seedDeltas,
+  };
 }
 
 function collectMilestones(actionEvents, routeSteps = []) {
@@ -837,6 +940,12 @@ function resolvePath(cwd, value) {
 function formatPercent(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${(number * 100).toFixed(1)}%` : 'n/a';
+}
+
+function formatSigned(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'n/a';
+  return number >= 0 ? `+${number}` : String(number);
 }
 
 function escapeHtml(value) {
