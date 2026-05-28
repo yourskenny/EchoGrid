@@ -191,7 +191,7 @@ Persistent mode starts the agent once per seed, sends one state JSON line per tu
 - `agents/random.js`: weak deterministic random policy; included to prove the game is not solved by arbitrary movement.
 - `agents/baseline.js`: conservative reference agent that follows public `action_hints.next_action` and falls back to visible terrain search.
 - `agents/baseline-persistent.js`: same baseline policy over the persistent line protocol.
-- `agents/rule-aware.js`: showcase agent that actively checks a hidden-rule signal before delegating to baseline.
+- `agents/rule-aware.js`: showcase agent that runs bounded public rule experiments for sector and row signals before delegating to baseline.
 - `agents/rule-explorer.js`: experimental rule agent that checks a row-disclosure signal before delegating to baseline.
 - `agents/llm-openai-compatible.js`: OpenAI-compatible LLM bridge for DeepSeek/OpenAI-style chat completion APIs.
 

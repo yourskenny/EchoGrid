@@ -689,13 +689,29 @@ function runReferencePolicy(seed, policy) {
 
 function referenceAction(state, policy) {
   if (policy === 'rule-aware' && !state.rules.claim) {
-    if (state.turn.current === 0) return 'scan sector C';
     const sectorCSignal = [...state.observations.recent]
       .reverse()
       .find((item) => item.type === 'scan' && item.kind === 'sector' && item.value === 'C');
     if (sectorCSignal?.rule_signal === 'sector_c_exactly_two_unstable') {
       return 'claim_rule sector_c_two_unstable';
     }
+    const disclosedRow = [...state.observations.recent]
+      .reverse()
+      .find((item) => item.type === 'scan' && item.kind === 'row' && item.rule_signal === 'fixed_row_count_disclosure');
+    if (disclosedRow) {
+      return 'claim_rule row_count_disclosure';
+    }
+    if (!sectorCSignal) return Number(state.turn?.current || 0) === 0 ? 'scan sector C' : decideAction(state);
+    const rowProbe = Math.min(2, Math.max(0, Number(state.map?.size || 0) - 1));
+    const currentObservation = state.agent?.current_cell?.observation;
+    if (currentObservation?.echo !== 'stable' || currentObservation?.trace !== 'east-biased') return decideAction(state);
+    if (Number(sectorCSignal?.hazard_count) < 5 || Number(sectorCSignal?.wall_count) < 3) return decideAction(state);
+    const scannedRows = new Set(
+      state.observations.recent
+        .filter((item) => item.type === 'scan' && item.kind === 'row' && Number.isInteger(item.value))
+        .map((item) => item.value),
+    );
+    if (!scannedRows.has(rowProbe)) return `scan row ${rowProbe}`;
   }
   return decideAction(state);
 }

@@ -100,6 +100,27 @@ test('rule explorer claims row-count disclosure from public scan signal', () => 
   assert.match(row.rule_claim.rationale, /row 2 scan disclosed/);
 });
 
+test('rule-aware agent claims row-count disclosure after bounded experiments', () => {
+  const result = spawnSync(
+    process.execPath,
+    [cli, 'evaluate', '--agent', './agents/rule-aware.js', '--seed', '44', '--json'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 60000,
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout);
+  const row = output.results[0];
+  assert.equal(row.status, 'success');
+  assert.equal(row.hidden_rule, 'row_count_disclosure');
+  assert.equal(row.rule_claim.id, 'row_count_disclosure');
+  assert.equal(row.rule_claim.correct, true);
+  assert.match(row.rule_claim.rationale, /row 2 scan disclosed/);
+});
+
 test('persistent agent mode matches one-shot baseline results', () => {
   const oneShot = spawnSync(
     process.execPath,

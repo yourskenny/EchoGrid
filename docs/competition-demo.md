@@ -115,7 +115,7 @@ The random agent fails because arbitrary probing and movement waste resources.
 
 The baseline agent succeeds because it follows the same public `action_hints.next_action` protocol exposed to external agents, with a conservative visible-terrain fallback.
 
-The rule-aware agent scores higher because it performs an early sector scan, claims the hidden rule when the signal is present, then completes the mission through the shared baseline policy.
+The rule-aware agent scores higher because it performs bounded public experiments for sector and row hidden-rule signals, claims only when a `rule_signal` is present, then completes the mission through the shared baseline policy.
 
 ## Competition Pitch
 

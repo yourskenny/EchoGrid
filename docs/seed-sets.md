@@ -14,7 +14,7 @@ EchoGrid seed files are deterministic benchmark surfaces. They are public by des
 | `seeds/targeted-oscillation.txt` | Regression seeds for recent loop-recovery fixes. |
 | `seeds/llm-smoke.txt` | Small external-model integration smoke set. |
 
-## Adversarial Set
+## Rule-Signal Set
 
 `seeds/rule-signals.txt` is a compact reasoning showcase for audited rule claims:
 
@@ -22,7 +22,7 @@ EchoGrid seed files are deterministic benchmark surfaces. They are public by des
 npm run benchmark:rules
 ```
 
-The rules benchmark writes `logs/rules/agent-comparison.json`, `logs/rules/arena.html`, and `logs/rules/leaderboard.md`. It includes `agents/rule-explorer.js`, which actively probes a row hidden-rule signal before falling back to baseline routing.
+The rules benchmark writes `logs/rules/agent-comparison.json`, `logs/rules/arena.html`, and `logs/rules/leaderboard.md`. It includes `agents/rule-aware.js`, which checks bounded sector and row signals, plus `agents/rule-explorer.js`, which focuses on the row hidden-rule signal before falling back to baseline routing.
 
 | Hidden rule | Seeds |
 | --- | --- |
