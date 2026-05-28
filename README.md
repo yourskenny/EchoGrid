@@ -40,6 +40,14 @@ npm run demo:full
 It recreates `logs/showcase` for the showcase run.
 Open `logs/showcase/index.html` first after `npm run demo:full`, then open `logs/showcase/mission-control.html` for the guided briefing, dashboard, and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
 
+To build the final judge handoff bundle after the showcase and public benchmark logs exist:
+
+```bash
+npm run submission:bundle
+```
+
+This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the showcase package, adversarial benchmark, rule-signals benchmark, source docs, checklist, and sha256 bundle manifest.
+
 For a shorter verification path, run:
 
 ```bash
@@ -58,6 +66,8 @@ For the full submission gate used by CI:
 npm run submission:check
 ```
 
+This runs the full showcase package, artifact verifier, adversarial benchmark, rule-signals benchmark, and submission bundle generator.
+
 ## Useful Commands
 
 ```bash
@@ -65,6 +75,7 @@ npm run demo
 npm run compare
 npm run showcase
 npm run demo:ci
+npm run submission:bundle
 npm run submission:check
 npm run benchmark:adversarial
 npm run benchmark:rules

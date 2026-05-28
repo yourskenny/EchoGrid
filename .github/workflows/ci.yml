@@ -33,3 +33,12 @@ jobs:
           path: logs
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Upload submission bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: echogrid-submission-bundle
+          path: dist/submission
+          if-no-files-found: ignore
+          retention-days: 14

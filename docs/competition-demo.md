@@ -38,7 +38,15 @@ For CI-style verification of the full judge package:
 npm run submission:check
 ```
 
-This runs the full demo, checks the generated judge package, and then runs the adversarial and rule-signals public benchmarks. GitHub Actions uses the same command and uploads the generated `logs` directory as an evaluation artifact.
+This runs the full demo, checks the generated judge package, runs the adversarial and rule-signals public benchmarks, and creates `dist/submission/echogrid-submission` plus `dist/submission/echogrid-submission.zip`. GitHub Actions uses the same command and uploads both the generated `logs` directory and the submission bundle as evaluation artifacts.
+
+If the logs already exist and only the final handoff package needs to be rebuilt:
+
+```bash
+npm run submission:bundle
+```
+
+The bundle includes the showcase package, adversarial benchmark, rule-signals benchmark, source docs, `SUBMISSION_CHECKLIST.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 ## What To Look For
 
@@ -56,6 +64,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Demo index: generated HTML entry point with artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.
 - Scorecard: generated capability gates for mission completion, artifact routing, rule inference, resource discipline, score bar, and agent separation.
+- Submission bundle: generated final handoff directory and zip that gathers the showcase, public benchmarks, docs, checklist, and bundle-level sha256 manifest.
 - Report: summary of outcome, scoring, risks, and transferable lesson.
 - Compare table: demonstrates that strategy quality changes results.
 

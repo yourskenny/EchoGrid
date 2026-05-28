@@ -574,6 +574,71 @@ test('demo artifact verifier accepts a complete showcase package', () => {
   }
 });
 
+test('submission bundle gathers showcase and benchmark artifacts', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
+  try {
+    const showcaseDir = path.join(tmp, 'showcase');
+    const adversarialDir = path.join(tmp, 'adversarial');
+    const rulesDir = path.join(tmp, 'rules');
+    const outDir = path.join(tmp, 'bundle');
+    writeMinimalShowcasePackage(showcaseDir);
+    writeBenchmarkPackage(adversarialDir, {
+      seed_file: './seeds/adversarial.txt',
+      rows: [
+        { agent: './agents/random.js', seeds: 2, successes: 0, success_rate: 0, average_score: 150, average_turns: 100, best_score: 200, worst_score: 100, results: [] },
+        { agent: './agents/baseline.js', seeds: 2, successes: 2, success_rate: 1, average_score: 830, average_turns: 104, best_score: 850, worst_score: 810, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 2, successes: 2, success_rate: 1, average_score: 860, average_turns: 105, best_score: 970, worst_score: 825, results: [] },
+      ],
+    });
+    writeBenchmarkPackage(rulesDir, {
+      seed_file: './seeds/rule-signals.txt',
+      rows: [
+        { agent: './agents/baseline.js', seeds: 2, successes: 2, success_rate: 1, average_score: 849, average_turns: 98, best_score: 856, worst_score: 842, results: [] },
+        { agent: './agents/rule-aware.js', seeds: 2, successes: 2, success_rate: 1, average_score: 904.5, average_turns: 99, best_score: 971, worst_score: 838, results: [] },
+        { agent: './agents/rule-explorer.js', seeds: 2, successes: 2, success_rate: 1, average_score: 890.5, average_turns: 102, best_score: 957, worst_score: 824, results: [] },
+      ],
+    });
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        './scripts/create-submission-bundle.js',
+        '--showcase',
+        showcaseDir,
+        '--adversarial',
+        adversarialDir,
+        '--rules',
+        rulesDir,
+        '--out',
+        outDir,
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /ECHO GRID SUBMISSION BUNDLE/);
+    assert.ok(fs.existsSync(path.join(outDir, 'README.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_CHECKLIST.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_MANIFEST.json')));
+    assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
+    assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'adversarial', 'leaderboard.md')));
+    assert.ok(fs.existsSync(`${outDir}.zip`));
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(outDir, 'SUBMISSION_MANIFEST.json'), 'utf8'));
+    assert.equal(manifest.schema, 'echogrid.submission_bundle.v1');
+    assert.equal(manifest.showcase.result, 'success');
+    assert.equal(manifest.benchmarks.adversarial.leader.agent, './agents/rule-aware.js');
+    assert.ok(manifest.files.find((item) => item.path === 'showcase/MANIFEST.json')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
+    assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('analyze-run reports quality flags for JSONL logs', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echogrid-'));
   try {
@@ -880,4 +945,122 @@ function spawnProcess(command, args, options) {
       resolve({ status, stdout, stderr });
     });
   });
+}
+
+function writeMinimalShowcasePackage(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+  const log = [
+    { type: 'start', state: { seed: '9001' } },
+    {
+      type: 'action',
+      event: { outcome: { type: 'scan', observation: { rule_signal: 'sector_c_exactly_two_unstable' } } },
+      state: { seed: '9001' },
+    },
+    {
+      type: 'action',
+      event: { outcome: { type: 'claim_rule', observation: { accepted: true, rationale: 'scan evidence' } } },
+      state: { seed: '9001' },
+    },
+    ...[1, 2, 3].map((count) => ({
+      type: 'action',
+      event: { outcome: { type: 'extract_artifact' } },
+      state: { seed: '9001', objective: { artifacts_collected: count, artifacts_required: 3 } },
+    })),
+    {
+      type: 'action',
+      event: { outcome: { type: 'extract_exit' } },
+      state: {
+        seed: '9001',
+        score: 991,
+        turn: {
+          terminal: {
+            status: 'success',
+            reason: 'objective_complete',
+            score: 991,
+            hidden_rule: 'sector_c_two_unstable',
+          },
+        },
+        objective: { artifacts_collected: 3, artifacts_required: 3 },
+        rules: {
+          claim: {
+            id: 'sector_c_two_unstable',
+            correct: true,
+            turn: 2,
+            rationale: 'sector C scan showed exactly two unstable echoes',
+          },
+        },
+        metrics: { damage_events: 0, invalid_actions: 0, wasted_actions: 0 },
+      },
+    },
+  ];
+  fs.writeFileSync(path.join(dir, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
+  fs.writeFileSync(path.join(dir, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
+  fs.writeFileSync(path.join(dir, 'mission-control.html'), 'EchoGrid Mission Control Judge Briefing id="briefNext" data-brief-index Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Strategy Edge Average score edge Accepted rule claims Random agent failures deltaWrap Evidence Links const missionControl = id="routeSlider" initRoutePlayback class="jumpButton" data-route-index sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
+  fs.writeFileSync(path.join(dir, 'SCORECARD.md'), 'EchoGrid Demo Scorecard Capability gates passed: 6/6 Mission completion Hidden-rule inference Agent separation PASS rule-aware avg=929.5', 'utf8');
+  fs.writeFileSync(path.join(dir, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
+  fs.writeFileSync(path.join(dir, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
+  fs.writeFileSync(path.join(dir, 'JUDGE_BRIEF.md'), 'EchoGrid Judge Brief 90-Second Judge Script SUCCESS / objective_complete logs/showcase/arena.html logs/showcase/replay.html ECHO GRID AGENT COMPARISON', 'utf8');
+  fs.writeFileSync(path.join(dir, 'agent-comparison.txt'), 'ECHO GRID AGENT COMPARISON ./agents/random.js ./agents/baseline.js ./agents/rule-aware.js', 'utf8');
+  fs.writeFileSync(path.join(dir, 'leaderboard.md'), 'EchoGrid Leaderboard Ranked by success rate Per-Seed Winners ./agents/rule-aware.js', 'utf8');
+  fs.writeFileSync(path.join(dir, 'agent-comparison.json'), JSON.stringify({
+    seed_file: './seeds/demo.txt',
+    rows: [
+      { agent: './agents/random.js', seeds: 4, successes: 0, average_score: 218.5 },
+      { agent: './agents/baseline.js', seeds: 4, successes: 4, average_score: 874 },
+      { agent: './agents/rule-aware.js', seeds: 4, successes: 4, average_score: 929.5 },
+    ],
+  }), 'utf8');
+  const manifest = spawnSync(
+    process.execPath,
+    [
+      './scripts/write-demo-manifest.js',
+      path.join(dir, '9001.jsonl'),
+      '--out',
+      path.join(dir, 'MANIFEST.json'),
+      '--index',
+      path.join(dir, 'index.html'),
+      '--dashboard-html',
+      path.join(dir, 'mission-control.html'),
+      '--scorecard',
+      path.join(dir, 'SCORECARD.md'),
+      '--brief',
+      path.join(dir, 'JUDGE_BRIEF.md'),
+      '--replay-html',
+      path.join(dir, 'replay.html'),
+      '--arena-html',
+      path.join(dir, 'arena.html'),
+      '--leaderboard',
+      path.join(dir, 'leaderboard.md'),
+      '--comparison-json',
+      path.join(dir, 'agent-comparison.json'),
+      '--comparison',
+      path.join(dir, 'agent-comparison.txt'),
+    ],
+    {
+      cwd: root,
+      encoding: 'utf8',
+    },
+  );
+  assert.equal(manifest.status, 0, manifest.stderr);
+}
+
+function writeBenchmarkPackage(dir, comparison) {
+  fs.mkdirSync(dir, { recursive: true });
+  const rankings = [...comparison.rows]
+    .sort((a, b) => (b.success_rate - a.success_rate) ||
+      (b.average_score - a.average_score) ||
+      (a.average_turns - b.average_turns) ||
+      a.agent.localeCompare(b.agent))
+    .map((row, index) => ({
+      rank: index + 1,
+      agent: row.agent,
+      success_rate: row.success_rate,
+      average_score: row.average_score,
+      average_turns: row.average_turns,
+      best_score: row.best_score,
+      worst_score: row.worst_score,
+    }));
+  fs.writeFileSync(path.join(dir, 'agent-comparison.json'), `${JSON.stringify({ ...comparison, rankings }, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(dir, 'arena.html'), 'EchoGrid Arena const comparison = ./agents/rule-aware.js', 'utf8');
+  fs.writeFileSync(path.join(dir, 'leaderboard.md'), 'EchoGrid Leaderboard Ranked by success rate ./agents/rule-aware.js', 'utf8');
 }
