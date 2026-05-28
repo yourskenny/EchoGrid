@@ -14,6 +14,7 @@ function main(argv = process.argv.slice(2)) {
   const outFile = resolvePath(cwd, options.out || path.join(path.dirname(source), 'JUDGE_BRIEF.md'));
   const replayHtml = resolvePath(cwd, options['replay-html'] || path.join(path.dirname(source), 'replay.html'));
   const arenaHtml = options['arena-html'] ? resolvePath(cwd, options['arena-html']) : null;
+  const leaderboardFile = options.leaderboard ? resolvePath(cwd, options.leaderboard) : null;
   const comparisonFile = options.comparison ? resolvePath(cwd, options.comparison) : null;
 
   const events = readJsonl(source);
@@ -24,6 +25,7 @@ function main(argv = process.argv.slice(2)) {
     outFile,
     replayHtml,
     arenaHtml,
+    leaderboardFile,
     comparisonFile,
     comparisonText,
   });
@@ -51,6 +53,7 @@ function buildJudgeBrief(events, options = {}) {
   const outPath = displayPath(options.outFile || 'logs/showcase/JUDGE_BRIEF.md', options.cwd);
   const replayPath = displayPath(options.replayHtml || 'logs/showcase/replay.html', options.cwd);
   const arenaPath = options.arenaHtml ? displayPath(options.arenaHtml, options.cwd) : null;
+  const leaderboardPath = options.leaderboardFile ? displayPath(options.leaderboardFile, options.cwd) : null;
   const comparisonPath = options.comparisonFile ? displayPath(options.comparisonFile, options.cwd) : null;
   const penalties = sum([
     score.damage_penalty,
@@ -73,8 +76,9 @@ function buildJudgeBrief(events, options = {}) {
     '',
     `1. \`${outPath}\` - this one-page handoff.`,
     ...(arenaPath ? [`2. \`${arenaPath}\` - side-by-side agent arena for strategy comparison.`] : []),
-    `${arenaPath ? '3' : '2'}. \`${replayPath}\` - self-contained visual replay with board states, key events, and score curve.`,
-    `${arenaPath ? '4' : '3'}. \`${sourcePath}\` - raw JSONL audit log for every state, action, and outcome.`,
+    ...(leaderboardPath ? [`${arenaPath ? '3' : '2'}. \`${leaderboardPath}\` - ranked tournament-style result table.`] : []),
+    `${1 + (arenaPath ? 1 : 0) + (leaderboardPath ? 1 : 0) + 1}. \`${replayPath}\` - self-contained visual replay with board states, key events, and score curve.`,
+    `${1 + (arenaPath ? 1 : 0) + (leaderboardPath ? 1 : 0) + 2}. \`${sourcePath}\` - raw JSONL audit log for every state, action, and outcome.`,
     '',
     '## Result Snapshot',
     '',
@@ -100,7 +104,7 @@ function buildJudgeBrief(events, options = {}) {
     '## 90-Second Judge Script',
     '',
     '1. Run `npm run demo:full` from the repository root.',
-    `2. Open ${arenaPath ? `\`${arenaPath}\` to compare bundled agents, then ` : ''}\`${replayPath}\` and use the Key Events buttons.`,
+    `2. Open ${leaderboardPath ? `\`${leaderboardPath}\` for the ranked result, then ` : ''}${arenaPath ? `\`${arenaPath}\` to compare bundled agents, then ` : ''}\`${replayPath}\` and use the Key Events buttons.`,
     '3. Jump to the rule signal and rule claim, then the artifact events and final exit extraction.',
     '4. Check the score curve and battle report to connect strategy quality to score.',
     '5. Compare random, baseline, and rule-aware agents to verify the game rewards structured planning.',
@@ -271,7 +275,7 @@ function trimForFence(value) {
 
 function usage() {
   return `Usage:
-  node ./scripts/write-judge-brief.js <log.jsonl> [--out JUDGE_BRIEF.md] [--replay-html replay.html] [--arena-html arena.html] [--comparison agent-comparison.txt]
+  node ./scripts/write-judge-brief.js <log.jsonl> [--out JUDGE_BRIEF.md] [--replay-html replay.html] [--arena-html arena.html] [--leaderboard leaderboard.md] [--comparison agent-comparison.txt]
 
 Creates a judge-facing Markdown brief from an EchoGrid JSONL log.`;
 }

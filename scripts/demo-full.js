@@ -14,6 +14,7 @@ const showcaseArenaHtml = path.join(showcaseLogDir, 'arena.html');
 const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
 const agentComparison = path.join(showcaseLogDir, 'agent-comparison.txt');
 const agentComparisonJson = path.join(showcaseLogDir, 'agent-comparison.json');
+const leaderboard = path.join(showcaseLogDir, 'leaderboard.md');
 
 fs.rmSync(showcaseLogDir, { recursive: true, force: true });
 fs.mkdirSync(showcaseLogDir, { recursive: true });
@@ -29,6 +30,8 @@ run(
     agentComparisonJson,
     '--html-out',
     showcaseArenaHtml,
+    '--leaderboard-out',
+    leaderboard,
   ],
   {
     teeFile: agentComparison,
@@ -64,12 +67,14 @@ run('Showcase judge brief', [
   showcaseBrief,
   '--replay-html',
   showcaseReplayHtml,
+  '--leaderboard',
+  leaderboard,
   '--comparison',
   agentComparison,
   '--arena-html',
   showcaseArenaHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseBrief)} first, then ${relativePath(showcaseArenaHtml)} and ${relativePath(showcaseReplayHtml)} for the judge-friendly viewers.\n`);
+process.stdout.write(`\nOpen ${relativePath(showcaseBrief)} first, then ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)} for the judge-friendly outputs.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);

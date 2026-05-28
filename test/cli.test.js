@@ -157,6 +157,7 @@ test('render replay html creates a self-contained viewer', () => {
     const logDir = path.join(tmp, 'logs');
     const outFile = path.join(tmp, 'replay.html');
     const arenaFile = path.join(tmp, 'arena.html');
+    const leaderboardFile = path.join(tmp, 'leaderboard.md');
     const comparisonFile = path.join(tmp, 'agent-comparison.txt');
     const briefFile = path.join(tmp, 'JUDGE_BRIEF.md');
     const run = spawnSync(
@@ -196,7 +197,7 @@ test('render replay html creates a self-contained viewer', () => {
     fs.writeFileSync(comparisonFile, 'ECHO GRID AGENT COMPARISON\n./agents/rule-aware.js  1  991\n', 'utf8');
     const brief = spawnSync(
       process.execPath,
-      ['./scripts/write-judge-brief.js', path.join(logDir, '9001.jsonl'), '--out', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--comparison', comparisonFile],
+      ['./scripts/write-judge-brief.js', path.join(logDir, '9001.jsonl'), '--out', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison', comparisonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -208,6 +209,7 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(markdown, /EchoGrid Judge Brief/);
     assert.match(markdown, /90-Second Judge Script/);
     assert.match(markdown, /arena\.html/);
+    assert.match(markdown, /leaderboard\.md/);
     assert.match(markdown, /SUCCESS \/ objective_complete/);
     assert.match(markdown, /rule claim accepted/);
     assert.match(markdown, /exit extraction completed/);
@@ -247,9 +249,10 @@ test('compare script prints agent comparison table', () => {
   try {
     const jsonFile = path.join(tmp, 'comparison.json');
     const htmlFile = path.join(tmp, 'arena.html');
+    const leaderboardFile = path.join(tmp, 'leaderboard.md');
     const result = spawnSync(
       process.execPath,
-      ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js', '--json-out', jsonFile, '--html-out', htmlFile],
+      ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js', '--json-out', jsonFile, '--html-out', htmlFile, '--leaderboard-out', leaderboardFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -265,6 +268,7 @@ test('compare script prints agent comparison table', () => {
     assert.equal(comparison.seed_file, './seeds/showcase.txt');
     assert.equal(comparison.rows.length, 1);
     assert.equal(comparison.rows[0].agent, './agents/random.js');
+    assert.equal(comparison.rankings[0].rank, 1);
     assert.ok(Array.isArray(comparison.rows[0].results));
 
     const html = fs.readFileSync(htmlFile, 'utf8');
@@ -272,6 +276,12 @@ test('compare script prints agent comparison table', () => {
     assert.match(html, /Per-Seed Matrix/);
     assert.match(html, /const comparison = /);
     assert.match(html, /random/);
+
+    const leaderboard = fs.readFileSync(leaderboardFile, 'utf8');
+    assert.match(leaderboard, /EchoGrid Leaderboard/);
+    assert.match(leaderboard, /Per-Seed Winners/);
+    assert.match(leaderboard, /Ranked by success rate/);
+    assert.match(leaderboard, /agents\/random\.js/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -321,6 +331,7 @@ test('demo artifact verifier accepts a complete showcase package', () => {
     fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
     fs.writeFileSync(path.join(tmp, 'JUDGE_BRIEF.md'), 'EchoGrid Judge Brief 90-Second Judge Script SUCCESS / objective_complete logs/showcase/arena.html logs/showcase/replay.html ECHO GRID AGENT COMPARISON', 'utf8');
     fs.writeFileSync(path.join(tmp, 'agent-comparison.txt'), 'ECHO GRID AGENT COMPARISON ./agents/random.js ./agents/baseline.js ./agents/rule-aware.js', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'leaderboard.md'), 'EchoGrid Leaderboard Ranked by success rate Per-Seed Winners ./agents/rule-aware.js', 'utf8');
     fs.writeFileSync(path.join(tmp, 'agent-comparison.json'), JSON.stringify({
       seed_file: './seeds/demo.txt',
       rows: [

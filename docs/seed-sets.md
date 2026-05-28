@@ -21,6 +21,8 @@ EchoGrid seed files are deterministic benchmark surfaces. They are public by des
 npm run benchmark:adversarial
 ```
 
+The command writes `logs/adversarial/agent-comparison.json`, `logs/adversarial/arena.html`, and `logs/adversarial/leaderboard.md`.
+
 The set covers all current hidden-rule families with one compact stress seed each:
 
 | Hidden rule | Seeds |

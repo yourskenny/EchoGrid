@@ -43,11 +43,13 @@ const comparison = {
   seed_file: seeds,
   agents,
   rows,
+  rankings: rankRows(rows),
 };
 
 printTable(rows);
 if (options['json-out']) writeFile(options['json-out'], `${JSON.stringify(comparison, null, 2)}\n`);
 if (options['html-out']) writeFile(options['html-out'], renderArenaHtml(comparison));
+if (options['leaderboard-out']) writeFile(options['leaderboard-out'], renderLeaderboardMarkdown(comparison));
 
 function printTable(rowsToPrint) {
   const columns = [
@@ -241,6 +243,40 @@ const comparison = ${JSON.stringify(comparisonData)};
 </html>`;
 }
 
+function renderLeaderboardMarkdown(comparisonData) {
+  const seedIds = unique(comparisonData.rows.flatMap((row) => row.results.map((result) => result.seed)));
+  return [
+    '# EchoGrid Leaderboard',
+    '',
+    `Seed file: \`${comparisonData.seed_file}\``,
+    '',
+    'Ranked by success rate, then average score, then lower average turns.',
+    '',
+    '| Rank | Agent | Success | Avg Score | Avg Turns | Best | Worst |',
+    '| ---: | --- | ---: | ---: | ---: | ---: | ---: |',
+    ...comparisonData.rankings.map((row) =>
+      `| ${row.rank} | \`${escapeMarkdown(row.agent)}\` | ${formatPercent(row.success_rate)} | ${row.average_score} | ${row.average_turns} | ${row.best_score} | ${row.worst_score} |`,
+    ),
+    '',
+    '## Per-Seed Winners',
+    '',
+    '| Seed | Winner | Score | Result |',
+    '| --- | --- | ---: | --- |',
+    ...seedIds.map((seed) => {
+      const winners = seedWinners(seed, comparisonData.rows);
+      return `| ${escapeMarkdown(seed)} | ${winners.map((winner) => `\`${escapeMarkdown(winner.agent)}\``).join(', ')} | ${winners[0]?.score ?? 'n/a'} | ${escapeMarkdown(winners[0]?.result || 'missing')} |`;
+    }),
+    '',
+    '## Agents',
+    '',
+    ...comparisonData.rows.map((row) => {
+      const outcomes = row.results.map((result) => `${result.seed}:${result.status}/${result.score}`).join(', ');
+      return `- \`${escapeMarkdown(row.agent)}\`: ${outcomes}`;
+    }),
+    '',
+  ].join('\n');
+}
+
 function scoreBar(row, bestAverage, leaderAgent) {
   const width = Math.max(2, Math.round((row.average_score / bestAverage) * 100));
   const leaderClass = row.agent === leaderAgent ? ' leader' : '';
@@ -313,6 +349,58 @@ function writeFile(file, content) {
   fs.writeFileSync(outFile, content, 'utf8');
 }
 
+function rankRows(rowsToRank) {
+  const sorted = [...rowsToRank].sort(compareRankingRows);
+  let previous = null;
+  let previousRank = 0;
+  return sorted.map((row, index) => {
+    const rank = previous && compareRankingRows(previous, row) === 0 ? previousRank : index + 1;
+    previous = row;
+    previousRank = rank;
+    return {
+      rank,
+      agent: row.agent,
+      success_rate: row.success_rate,
+      average_score: row.average_score,
+      average_turns: row.average_turns,
+      best_score: row.best_score,
+      worst_score: row.worst_score,
+    };
+  });
+}
+
+function compareRankingRows(a, b) {
+  return (b.success_rate - a.success_rate) ||
+    (b.average_score - a.average_score) ||
+    (a.average_turns - b.average_turns) ||
+    a.agent.localeCompare(b.agent);
+}
+
+function seedWinners(seed, rowsToSearch) {
+  const candidates = rowsToSearch
+    .map((row) => {
+      const result = row.results.find((item) => item.seed === seed);
+      return result ? {
+        agent: row.agent,
+        score: result.score,
+        result: `${result.status}/${result.reason}`,
+      } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || a.agent.localeCompare(b.agent));
+  if (!candidates.length) return [];
+  const bestScore = candidates[0].score;
+  return candidates.filter((item) => item.score === bestScore);
+}
+
+function formatPercent(value) {
+  return `${Number(value * 100).toFixed(1)}%`;
+}
+
+function escapeMarkdown(value) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/`/g, '\\`');
+}
+
 function unique(values) {
   return [...new Set(values)];
 }
@@ -345,6 +433,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (argv[i] === '--html-out') {
       parsed['html-out'] = argv[i + 1];
+      i += 1;
+    } else if (argv[i] === '--leaderboard-out') {
+      parsed['leaderboard-out'] = argv[i + 1];
       i += 1;
     }
   }

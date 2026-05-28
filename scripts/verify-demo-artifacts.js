@@ -15,6 +15,7 @@ function main(argv = process.argv.slice(2)) {
     brief: path.join(showcaseDir, 'JUDGE_BRIEF.md'),
     comparison: path.join(showcaseDir, 'agent-comparison.json'),
     comparisonText: path.join(showcaseDir, 'agent-comparison.txt'),
+    leaderboard: path.join(showcaseDir, 'leaderboard.md'),
   };
   const errors = [];
 
@@ -58,6 +59,12 @@ function main(argv = process.argv.slice(2)) {
       'ECHO GRID AGENT COMPARISON',
       './agents/random.js',
       './agents/baseline.js',
+      './agents/rule-aware.js',
+    ], errors);
+    verifyText(files.leaderboard, [
+      'EchoGrid Leaderboard',
+      'Ranked by success rate',
+      'Per-Seed Winners',
       './agents/rule-aware.js',
     ], errors);
   }

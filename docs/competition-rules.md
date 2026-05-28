@@ -134,6 +134,7 @@ A judged submission should provide:
 - average turns
 - per-seed status
 - JSONL log directory
+- leaderboard or equivalent ranking table
 - comparison arena or equivalent per-seed comparison
 - generated judge brief or equivalent handoff
 - any model diagnostics or fallback policy
