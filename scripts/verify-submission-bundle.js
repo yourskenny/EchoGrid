@@ -12,6 +12,7 @@ const REQUIRED_FILES = [
   'SUBMISSION_AUDIT.md',
   'SUBMISSION_CHECKLIST.md',
   'SUBMISSION_MANIFEST.json',
+  'SUBMISSION_ONE_PAGER.md',
   'showcase/9001.jsonl',
   'showcase/MANIFEST.json',
   'showcase/index.html',
@@ -66,6 +67,7 @@ function main(argv = process.argv.slice(2)) {
     }
     verifyVisualSmoke(bundleDir, errors);
     verifyAuditReport(bundleDir, errors);
+    verifyOnePager(bundleDir, errors);
     verifyZipArchive(bundleDir, zipFile, errors);
   }
 
@@ -209,6 +211,24 @@ function verifyAuditReport(bundleDir, errors) {
     'PASS',
   ]) {
     if (!text.includes(needle)) errors.push(`SUBMISSION_AUDIT.md missing "${needle}"`);
+  }
+}
+
+function verifyOnePager(bundleDir, errors) {
+  const file = path.join(bundleDir, 'SUBMISSION_ONE_PAGER.md');
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of [
+    'EchoGrid One-Pager',
+    'Why It Is Worth Judging',
+    '90-Second Review Path',
+    'Competition Verdict',
+    'Route Playback',
+    'SUBMISSION_AUDIT.md',
+    'benchmarkable agents',
+    'npm run submission:check',
+  ]) {
+    if (!text.includes(needle)) errors.push(`SUBMISSION_ONE_PAGER.md missing "${needle}"`);
   }
 }
 

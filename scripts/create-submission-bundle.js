@@ -75,9 +75,11 @@ function main(argv = process.argv.slice(2)) {
   });
 
   const readmeFile = path.join(outDir, 'README.md');
+  const onePagerFile = path.join(outDir, 'SUBMISSION_ONE_PAGER.md');
   const checklistFile = path.join(outDir, 'SUBMISSION_CHECKLIST.md');
   const auditFile = path.join(outDir, 'SUBMISSION_AUDIT.md');
   fs.writeFileSync(readmeFile, renderReadme(summary), 'utf8');
+  fs.writeFileSync(onePagerFile, renderOnePager(summary), 'utf8');
   fs.writeFileSync(checklistFile, renderChecklist(summary), 'utf8');
   fs.writeFileSync(auditFile, renderAuditReport(summary), 'utf8');
 
@@ -268,6 +270,7 @@ function renderReadme(summary) {
     '- `benchmarks/adversarial/`: fixed adversarial public benchmark output.',
     '- `benchmarks/rules/`: hidden-rule signal benchmark output.',
     '- `source/`: project README and judge-facing protocol/scoring docs.',
+    '- `SUBMISSION_ONE_PAGER.md`: short judge-facing pitch and review path.',
     '- `SUBMISSION_CHECKLIST.md`: human-readable delivery checklist.',
     '- `SUBMISSION_AUDIT.md`: generated verification matrix and handoff evidence summary.',
     '- `SUBMISSION_MANIFEST.json`: machine-readable bundle inventory with hashes.',
@@ -292,6 +295,43 @@ function renderReadme(summary) {
   ].join('\n');
 }
 
+function renderOnePager(summary) {
+  const showcase = summary.showcase;
+  const adversarial = summary.benchmarks.adversarial;
+  const rules = summary.benchmarks.rules;
+  const edge = Number(adversarial.leader.average_score) - averageScore(adversarial.rows, './agents/baseline.js');
+  return [
+    '# EchoGrid One-Pager',
+    '',
+    'EchoGrid is an agent-native inference and planning game: deterministic seeds, machine-readable state, one-line actions, hidden-rule discovery, auditable logs, replay, and benchmarkable agents.',
+    '',
+    '## Why It Is Worth Judging',
+    '',
+    `- The showcase completes the full mission: ${showcase.result}/${showcase.reason}, score ${showcase.score}, ${showcase.artifacts} artifacts, ${showcase.turns} turns.`,
+    `- The agent infers a hidden rule from public evidence: ${showcase.rule_claim?.id || 'unknown'}, accepted=${Boolean(showcase.rule_claim?.correct)}.`,
+    `- The run is clean: damage=${showcase.metrics?.damage_events ?? 'n/a'}, invalid=${showcase.metrics?.invalid_actions ?? 'n/a'}, wasted=${showcase.metrics?.wasted_actions ?? 'n/a'}.`,
+    `- Strategy quality separates agents: adversarial leader ${adversarial.leader.agent}, average score edge ${formatSigned(edge)} over baseline.`,
+    `- Rule-signal benchmark stays robust: ${rules.leader.agent} leads at average score ${rules.leader.average_score}.`,
+    '',
+    '## 90-Second Review Path',
+    '',
+    '1. Open `showcase/index.html` for the package entry point.',
+    '2. Open `showcase/mission-control.html` and read the Competition Verdict first.',
+    '3. Use Route Playback to scrub the public path and rule-claim milestones.',
+    '4. Check `showcase/SCORECARD.md` and `SUBMISSION_AUDIT.md` for the capability gates.',
+    '5. Review `benchmarks/adversarial/leaderboard.md` and `benchmarks/rules/leaderboard.md` for agent separation.',
+    '',
+    '## Reproduce',
+    '',
+    '```bash',
+    summary.commands.full_gate,
+    '```',
+    '',
+    `Source commit: ${summary.source.commit_short || 'unknown'}`,
+    '',
+  ].join('\n');
+}
+
 function renderChecklist(summary) {
   return [
     '# EchoGrid Submission Checklist',
@@ -305,6 +345,7 @@ function renderChecklist(summary) {
     '- [x] Replay viewer included at `showcase/replay.html`.',
     '- [x] Browser-rendered visual smoke screenshots included when available.',
     '- [x] Judge brief and scorecard included.',
+    '- [x] Judge-facing one-pager included at `SUBMISSION_ONE_PAGER.md`.',
     '- [x] Submission audit report included at `SUBMISSION_AUDIT.md`.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
     '- [x] Adversarial benchmark included and rule-aware beats baseline on average score.',
@@ -320,6 +361,17 @@ function renderChecklist(summary) {
     '4. Review `benchmarks/adversarial/leaderboard.md` and `benchmarks/rules/leaderboard.md`.',
     '',
   ].join('\n');
+}
+
+function averageScore(rows, agent) {
+  const row = (rows || []).find((item) => item.agent === agent);
+  return Number(row?.average_score || 0);
+}
+
+function formatSigned(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'n/a';
+  return number >= 0 ? `+${Math.round(number * 10) / 10}` : String(Math.round(number * 10) / 10);
 }
 
 function renderAuditReport(summary) {
