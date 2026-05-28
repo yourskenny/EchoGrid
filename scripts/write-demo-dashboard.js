@@ -143,10 +143,12 @@ body {
   background: var(--bg);
   color: var(--ink);
   font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
 }
 button, input { font: inherit; }
 main {
-  width: min(1220px, calc(100vw - 28px));
+  width: calc(100vw - 28px);
+  max-width: 1220px;
   margin: 0 auto;
   padding: 22px 0 32px;
 }
@@ -158,9 +160,59 @@ header {
   border-bottom: 1px solid var(--line);
   padding-bottom: 14px;
 }
-h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
-.subtle { margin: 5px 0 0; color: var(--muted); }
-.stamp { color: var(--muted); font-size: 12px; text-align: right; }
+h1 { margin: 0; font-size: 30px; line-height: 1.12; letter-spacing: 0; overflow-wrap: anywhere; }
+h1 .titleLine { display: inline-block; }
+h1 .titleLine + .titleLine { margin-left: 0.28em; }
+.subtle { margin: 5px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.stamp { min-width: 0; color: var(--muted); font-size: 12px; text-align: right; overflow-wrap: anywhere; }
+.verdictBand {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  align-items: stretch;
+  margin: 14px 0;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  background: #f8fbf6;
+  padding: 14px;
+}
+.verdictIntro {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+.verdictIntro span,
+.verdictItem span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.verdictIntro strong {
+  font-size: 24px;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+.verdictIntro p {
+  margin: 0;
+  color: var(--muted);
+}
+.verdictGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.verdictItem {
+  min-width: 0;
+  border-left: 3px solid var(--blue);
+  padding: 7px 0 7px 10px;
+}
+.verdictItem strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
 .hero {
   display: grid;
   grid-template-columns: minmax(320px, 0.98fr) minmax(360px, 1.02fr);
@@ -180,9 +232,9 @@ h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
   gap: 10px;
   margin: 14px 0;
 }
-.metric { min-height: 76px; padding: 11px; }
+.metric { min-width: 0; min-height: 76px; padding: 11px; }
 .metric span { display: block; color: var(--muted); font-size: 12px; }
-.metric strong { display: block; margin-top: 6px; font-size: 22px; overflow-wrap: anywhere; }
+.metric strong { display: block; margin-top: 6px; font-size: 22px; line-height: 1.32; overflow-wrap: anywhere; }
 .success { color: var(--green); }
 .warn { color: var(--amber); }
 .briefingPanel { margin: 14px 0; }
@@ -207,6 +259,7 @@ h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
   color: var(--ink);
   padding: 6px 10px;
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 .briefingControls button:hover,
 .briefStep:hover,
@@ -481,17 +534,23 @@ code {
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 1px 5px;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 980px) {
-  main { width: min(100vw - 20px, 1220px); }
+  main { width: calc(100vw - 20px); }
   header, .hero, .grid, .boardWrap, .briefingTop { grid-template-columns: 1fr; }
   .stamp { text-align: left; }
+  .verdictBand { grid-template-columns: 1fr; }
+  .verdictGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .statusGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .strategyGrid { grid-template-columns: 1fr; }
   .links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
+  h1 .titleLine { display: block; }
+  h1 .titleLine + .titleLine { margin-left: 0; }
   .statusGrid, .links { grid-template-columns: 1fr; }
+  .verdictGrid { grid-template-columns: 1fr; }
   .briefingControls { grid-template-columns: 1fr; }
   .routeControls { grid-template-columns: 1fr 1fr; }
   .routeControls input { grid-column: 1 / -1; }
@@ -505,11 +564,13 @@ code {
 <main>
   <header>
     <div>
-      <h1>EchoGrid Mission Control</h1>
-      <p class="subtle">Judge-facing dashboard for the showcase run, agent comparison, and audit evidence.</p>
+      <h1><span class="titleLine">EchoGrid Mission</span><span class="titleLine">Control</span></h1>
+      <p class="subtle">Showcase run, agent comparison, and audit evidence.</p>
     </div>
     <div class="stamp">Generated from <code>${escapeHtml(displayPath(options.source || 'unknown', options.cwd))}</code></div>
   </header>
+
+  ${verdictStrip(summary, strategy, ruleClaim)}
 
   <section class="statusGrid" aria-label="Mission snapshot">
     ${metric('Result', `${summary.result.toUpperCase()} / ${summary.reason}`, summary.result === 'success' ? 'success' : 'warn')}
@@ -772,6 +833,28 @@ function legendItem(className, label) {
 function metric(label, value, className = '') {
   const classAttr = className ? ` class="${className}"` : '';
   return `<div class="metric"><span>${escapeHtml(label)}</span><strong${classAttr}>${escapeHtml(value)}</strong></div>`;
+}
+
+function verdictStrip(summary, strategy, ruleClaim) {
+  const completed = summary.result === 'success' && summary.reason === 'objective_complete';
+  const cleanRun = Number(summary.damage_events) === 0 && Number(summary.invalid_actions) === 0;
+  return `<section class="verdictBand" aria-label="Competition verdict">
+    <div class="verdictIntro">
+      <span>Competition Verdict</span>
+      <strong>${escapeHtml(completed ? 'Complete run. Ready.' : 'Run needs review before judging.')}</strong>
+      <p>${escapeHtml(cleanRun ? 'Clean run: 0 damage, 0 invalid, 0 wasted.' : 'Audit counters are visible below for review.')}</p>
+    </div>
+    <div class="verdictGrid">
+      ${verdictItem('Mission', `${summary.score} score`, `${summary.artifacts} artifacts in ${summary.turns} turns`)}
+      ${verdictItem('Inference', ruleClaim?.correct ? 'Accepted rule claim' : 'No accepted claim', ruleClaim?.rationale || summary.hidden_rule)}
+      ${verdictItem('Agent Edge', formatSigned(strategy.average_score_gap), 'average score over baseline')}
+      ${verdictItem('Audit Trail', 'Hash manifest', 'JSONL, replay, scorecard, screenshots')}
+    </div>
+  </section>`;
+}
+
+function verdictItem(label, value, detail) {
+  return `<div class="verdictItem"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><span>${escapeHtml(detail)}</span></div>`;
 }
 
 function milestone(item) {
