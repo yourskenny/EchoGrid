@@ -21,6 +21,7 @@
     "demo:ci": "npm run demo:full && npm run demo:check",
     "compare": "node ./scripts/compare.js --seeds ./seeds/demo.txt",
     "benchmark:adversarial": "node ./scripts/compare.js --seeds ./seeds/adversarial.txt --json-out ./logs/adversarial/agent-comparison.json --html-out ./logs/adversarial/arena.html --leaderboard-out ./logs/adversarial/leaderboard.md",
+    "benchmark:rules": "node ./scripts/compare.js --seeds ./seeds/rule-signals.txt --agents ./agents/baseline.js,./agents/rule-aware.js,./agents/rule-explorer.js --json-out ./logs/rules/agent-comparison.json --html-out ./logs/rules/arena.html --leaderboard-out ./logs/rules/leaderboard.md",
     "benchmark:heldout": "node ./scripts/run-heldout-benchmark.js",
     "showcase": "node ./bin/echogrid.js evaluate --agent ./agents/rule-aware.js --seed 9001 --log-dir ./logs/showcase",
     "llm:smoke": "node ./scripts/run-llm-eval.js --models deepseek-v4-pro,deepseek-v4-flash --seeds ./seeds/llm-smoke.txt --mode micro --max-model-turns 12 --leaderboard both",

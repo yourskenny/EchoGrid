@@ -59,6 +59,7 @@ npm run compare
 npm run showcase
 npm run demo:ci
 npm run benchmark:adversarial
+npm run benchmark:rules
 npm run benchmark:heldout
 node ./scripts/compare.js --seeds ./seeds/demo.txt --concurrency 3
 
@@ -155,6 +156,7 @@ Persistent mode starts the agent once per seed, sends one state JSON line per tu
 - `agents/baseline.js`: conservative reference agent that follows public `action_hints.next_action` and falls back to visible terrain search.
 - `agents/baseline-persistent.js`: same baseline policy over the persistent line protocol.
 - `agents/rule-aware.js`: showcase agent that actively checks a hidden-rule signal before delegating to baseline.
+- `agents/rule-explorer.js`: experimental rule agent that checks a row-disclosure signal before delegating to baseline.
 - `agents/llm-openai-compatible.js`: OpenAI-compatible LLM bridge for DeepSeek/OpenAI-style chat completion APIs.
 
 Example comparison:

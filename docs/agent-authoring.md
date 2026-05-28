@@ -91,4 +91,6 @@ Invalid actions consume a turn and reduce score.
 
 The optional `because` form is useful for audited demos. It records the agent's public reasoning text in logs and reports, but it does not change correctness or scoring.
 
+For a small audited rule-experiment policy, see `agents/rule-explorer.js`. It runs a single bounded row-scan probe for `row_count_disclosure`, claims only when a public `rule_signal` appears, then delegates routing to the baseline policy.
+
 For competition boundaries such as forbidden answer inspection and LLM leaderboard modes, see [competition-rules.md](./competition-rules.md).

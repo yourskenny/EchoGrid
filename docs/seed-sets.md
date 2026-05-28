@@ -9,9 +9,25 @@ EchoGrid seed files are deterministic benchmark surfaces. They are public by des
 | `seeds/showcase.txt` | Single judge-facing showcase seed. |
 | `seeds/demo.txt` | Small bundled comparison set used by `npm run demo:full`. |
 | `seeds/public.txt` | Broader public local benchmark set. |
+| `seeds/rule-signals.txt` | Compact rule-signal demonstration set. |
 | `seeds/adversarial.txt` | Stress set with longer routes and hidden-rule coverage. |
 | `seeds/targeted-oscillation.txt` | Regression seeds for recent loop-recovery fixes. |
 | `seeds/llm-smoke.txt` | Small external-model integration smoke set. |
+
+## Adversarial Set
+
+`seeds/rule-signals.txt` is a compact reasoning showcase for audited rule claims:
+
+```bash
+npm run benchmark:rules
+```
+
+The rules benchmark writes `logs/rules/agent-comparison.json`, `logs/rules/arena.html`, and `logs/rules/leaderboard.md`. It includes `agents/rule-explorer.js`, which actively probes a row hidden-rule signal before falling back to baseline routing.
+
+| Hidden rule | Seeds |
+| --- | --- |
+| `row_count_disclosure` | `44` |
+| `sector_c_two_unstable` | `48` |
 
 ## Adversarial Set
 
