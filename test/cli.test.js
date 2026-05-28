@@ -183,6 +183,11 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(html, /id="board"/);
     assert.match(html, /id="timelineRows"/);
     assert.match(html, /const frames = /);
+    assert.match(html, /Score Curve/);
+    assert.match(html, /Key Events/);
+    assert.match(html, /const milestones = /);
+    assert.match(html, /Rule claim/);
+    assert.match(html, /objective complete/);
     assert.match(html, /extract_artifact/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

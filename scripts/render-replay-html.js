@@ -64,6 +64,8 @@ function buildReplayHtml(events, options = {}) {
   const start = events.find((event) => event.type === 'start');
   const actionEvents = events.filter((event) => event.type === 'action');
   const frames = buildFrames(start, actionEvents);
+  const milestones = buildMilestones(actionEvents);
+  const scoreSeries = buildScoreSeries(frames);
   const finalState = [...events].reverse().find((event) => event.state)?.state || start?.state || {};
   const terminal = finalState.turn?.terminal || {};
   const initialState = start?.state || frames[0]?.state || finalState;
@@ -207,7 +209,7 @@ button, input { font: inherit; }
 .swatch { width: 14px; height: 14px; display: inline-block; border: 1px solid rgba(31,41,51,0.2); }
 .detailPane {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   min-width: 0;
   padding: 18px;
   gap: 14px;
@@ -231,6 +233,50 @@ button, input { font: inherit; }
   background: var(--panel);
   min-height: 280px;
 }
+.chartPanel,
+.milestonePanel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 10px;
+}
+.panelTitle {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.scoreChart {
+  display: block;
+  width: 100%;
+  height: 96px;
+}
+.scoreChart polyline {
+  fill: none;
+  stroke: var(--exit);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.scoreChart line {
+  stroke: #ece7dd;
+  stroke-width: 1;
+}
+.milestones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.milestone {
+  border: 1px solid #ece7dd;
+  background: #fbfaf7;
+  padding: 8px;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.milestone:hover { background: #f1ede5; }
+.milestone strong { display: block; font-size: 13px; }
+.milestone span { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .timeline table { width: 100%; border-collapse: collapse; }
 .timeline th, .timeline td {
   padding: 8px 9px;
@@ -297,6 +343,14 @@ button, input { font: inherit; }
         <div><span>Position</span><strong id="positionText"></strong></div>
         <div><span>Score</span><strong id="scoreText"></strong></div>
       </div>
+      <div class="chartPanel">
+        <p class="panelTitle">Score Curve</p>
+        ${scoreChart(scoreSeries)}
+      </div>
+      <div class="milestonePanel">
+        <p class="panelTitle">Key Events</p>
+        <div class="milestones" id="milestones"></div>
+      </div>
       <div class="timeline">
         <table>
           <thead><tr><th>Turn</th><th>Action</th><th>Outcome</th><th>Score</th></tr></thead>
@@ -308,12 +362,14 @@ button, input { font: inherit; }
 </div>
 <script>
 const frames = ${JSON.stringify(frames)};
+const milestones = ${JSON.stringify(milestones)};
 let index = 0;
 let playing = false;
 let timer = null;
 const board = document.getElementById('board');
 const scrubber = document.getElementById('scrubber');
 const timelineRows = document.getElementById('timelineRows');
+const milestoneRoot = document.getElementById('milestones');
 const playBtn = document.getElementById('playBtn');
 
 function terrainClass(ch) {
@@ -350,6 +406,24 @@ function renderTimeline() {
     row.innerHTML = '<td>' + frame.turn + '</td><td>' + escapeCell(frame.action) + '</td><td class="outcome">' + escapeCell(frame.outcome) + '</td><td>' + frame.score + '</td>';
     row.addEventListener('click', () => setFrame(i));
     timelineRows.appendChild(row);
+  });
+}
+function renderMilestones() {
+  milestoneRoot.innerHTML = '';
+  if (!milestones.length) {
+    const empty = document.createElement('div');
+    empty.className = 'milestone';
+    empty.innerHTML = '<strong>No key events</strong><span>Use the timeline below.</span>';
+    milestoneRoot.appendChild(empty);
+    return;
+  }
+  milestones.forEach((item) => {
+    const button = document.createElement('button');
+    button.className = 'milestone';
+    button.type = 'button';
+    button.innerHTML = '<strong>T' + item.turn + ' - ' + escapeCell(item.label) + '</strong><span>' + escapeCell(item.detail) + '</span>';
+    button.addEventListener('click', () => setFrame(item.frameIndex));
+    milestoneRoot.appendChild(button);
   });
 }
 function escapeCell(value) {
@@ -390,6 +464,7 @@ document.getElementById('nextBtn').addEventListener('click', () => step(1));
 playBtn.addEventListener('click', togglePlay);
 scrubber.addEventListener('input', (event) => setFrame(Number(event.target.value)));
 renderTimeline();
+renderMilestones();
 setFrame(0);
 </script>
 </body>
@@ -418,6 +493,87 @@ function buildFrames(start, actionEvents) {
     }));
   }
   return frames;
+}
+
+function buildMilestones(actionEvents) {
+  const result = [];
+  actionEvents.forEach((entry, index) => {
+    const outcome = entry.event?.outcome || {};
+    const turn = entry.event?.turn ?? entry.state?.turn?.current ?? index + 1;
+    if (outcome.type === 'scan' && outcome.observation?.rule_signal) {
+      result.push({
+        turn,
+        frameIndex: index + 1,
+        label: 'Rule signal',
+        detail: outcome.observation.rule_signal,
+      });
+    }
+    if (outcome.type === 'claim_rule') {
+      result.push({
+        turn,
+        frameIndex: index + 1,
+        label: 'Rule claim',
+        detail: outcome.observation?.accepted ? 'accepted' : 'rejected',
+      });
+    }
+    if (outcome.type === 'extract_artifact') {
+      result.push({
+        turn,
+        frameIndex: index + 1,
+        label: 'Artifact',
+        detail: `collected ${outcome.observation?.artifacts_collected ?? '?'}`,
+      });
+    }
+    if (outcome.type === 'extract_exit') {
+      result.push({
+        turn,
+        frameIndex: index + 1,
+        label: 'Exit',
+        detail: 'objective complete',
+      });
+    }
+    if (outcome.ok === false) {
+      result.push({
+        turn,
+        frameIndex: index + 1,
+        label: 'Risk',
+        detail: outcome.message || outcome.type || 'failed action',
+      });
+    }
+  });
+  return result;
+}
+
+function buildScoreSeries(frames) {
+  return frames.map((frame) => ({
+    turn: frame.turn,
+    score: Number(frame.score || 0),
+  }));
+}
+
+function scoreChart(series) {
+  if (!series.length) return '<svg class="scoreChart" viewBox="0 0 320 96" aria-label="Score curve"></svg>';
+  const width = 320;
+  const height = 96;
+  const pad = 8;
+  const minScore = Math.min(...series.map((item) => item.score));
+  const maxScore = Math.max(...series.map((item) => item.score));
+  const span = Math.max(1, maxScore - minScore);
+  const lastIndex = Math.max(1, series.length - 1);
+  const points = series.map((item, index) => {
+    const x = pad + ((width - pad * 2) * index) / lastIndex;
+    const y = height - pad - ((height - pad * 2) * (item.score - minScore)) / span;
+    return `${round(x)},${round(y)}`;
+  }).join(' ');
+  return `<svg class="scoreChart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Score curve from ${escapeHtml(minScore)} to ${escapeHtml(maxScore)}">
+  <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}"></line>
+  <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}"></line>
+  <polyline points="${points}"></polyline>
+</svg>`;
+}
+
+function round(value) {
+  return Math.round(value * 10) / 10;
 }
 
 function frameFromState({ state, turn, action, outcome, score }) {

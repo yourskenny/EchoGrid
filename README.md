@@ -31,7 +31,7 @@ npm run demo:full
 6. self-contained HTML replay viewer
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/replay.html` in a browser after `npm run demo:full` for the judge-friendly visual replay.
+Open `logs/showcase/replay.html` in a browser after `npm run demo:full` for the judge-friendly visual replay with board states, key events, and a score curve.
 
 For a shorter verification path, run:
 

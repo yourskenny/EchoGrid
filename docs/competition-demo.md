@@ -33,7 +33,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Action lines: deterministic, parseable commands.
 - JSONL logs: complete audit trail.
 - Replay: turn-by-turn reconstruction.
-- HTML replay viewer: browser-based board, controls, and action timeline for judges.
+- HTML replay viewer: browser-based board, controls, score curve, key events, and action timeline for judges.
 - Report: summary of outcome, scoring, risks, and transferable lesson.
 - Compare table: demonstrates that strategy quality changes results.
 
@@ -54,7 +54,7 @@ node ./bin/echogrid.js replay ./logs/showcase/9001.jsonl
 npm run replay:html -- ./logs/showcase/9001.jsonl --out ./logs/showcase/replay.html
 ```
 
-After `npm run demo:full`, open `logs/showcase/replay.html` in a browser. The viewer is a single HTML file with no server or external assets. It shows the public board state, current action, outcome, score, and clickable turn timeline.
+After `npm run demo:full`, open `logs/showcase/replay.html` in a browser. The viewer is a single HTML file with no server or external assets. It shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline.
 
 ## Expected Story
 
