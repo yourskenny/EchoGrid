@@ -15,6 +15,7 @@ const SHOWCASE_FILES = [
   'mission-control.html',
   'SCORECARD.md',
   'JUDGE_BRIEF.md',
+  'PROTOCOL_TRACE.md',
   'leaderboard.md',
   'arena.html',
   'replay.html',
@@ -308,7 +309,7 @@ function renderReadme(summary) {
     '',
     '## Contents',
     '',
-    '- `showcase/`: judge entry point, Mission Control dashboard, replay viewer, scorecard, brief, leaderboard, arena, JSONL log, and sha256 manifest.',
+    '- `showcase/`: judge entry point, Mission Control dashboard, replay viewer, scorecard, brief, protocol trace, leaderboard, arena, JSONL log, and sha256 manifest.',
     '- `showcase/screenshots/`: desktop and mobile visual smoke screenshots when `npm run demo:visual` has been run.',
     '- `benchmarks/public/`: broader public seed benchmark output.',
     '- `benchmarks/adversarial/`: fixed adversarial public benchmark output.',
@@ -495,6 +496,7 @@ code {
       ${startLink('Audit Report', 'SUBMISSION_AUDIT.md', 'Generated verification matrix and command evidence.')}
       ${startLink('Reproduce Report', 'SUBMISSION_REPRODUCE.md', 'Environment requirements, command sequence, and source consistency checks.')}
       ${startLink('Strategy Audit', 'SUBMISSION_STRATEGY_AUDIT.md', 'Per-seed strategy edge, rule-claim evidence, and benchmark deltas.')}
+      ${startLink('Protocol Trace', 'showcase/PROTOCOL_TRACE.md', 'Readable STATE to ACTION to EVENT walk-through from the JSONL log.')}
       ${startLink('Scorecard', 'showcase/SCORECARD.md', 'Capability gates and expected proof points.')}
       ${startLink('Agent Authoring', 'source/docs/agent-authoring.md', 'State protocol, action contract, and minimal agent example.')}
       ${startLink('State Schema', 'source/schemas/state.schema.json', 'Machine-readable JSON schema for public STATE payloads.')}
@@ -727,6 +729,7 @@ function renderChecklist(summary) {
     '- [x] Judge brief and scorecard included.',
     '- [x] Judge-facing one-pager included at `SUBMISSION_ONE_PAGER.md`.',
     '- [x] Submission audit report included at `SUBMISSION_AUDIT.md`.',
+    '- [x] Protocol trace included at `showcase/PROTOCOL_TRACE.md`.',
     '- [x] Strategy audit included at `SUBMISSION_STRATEGY_AUDIT.md`.',
     '- [x] Artifact hash manifest included at `showcase/MANIFEST.json`.',
     '- [x] Public benchmark included, fully solved by reference policies, and rule-aware beats baseline on average score.',
@@ -739,7 +742,7 @@ function renderChecklist(summary) {
     '',
     '1. Open `showcase/index.html`.',
     '2. Open `showcase/mission-control.html` for the guided briefing and route playback.',
-    '3. Check `showcase/SCORECARD.md` and `showcase/JUDGE_BRIEF.md`.',
+    '3. Check `showcase/SCORECARD.md`, `showcase/JUDGE_BRIEF.md`, and `showcase/PROTOCOL_TRACE.md`.',
     '4. Review `SUBMISSION_STRATEGY_AUDIT.md`, `benchmarks/public/leaderboard.md`, `benchmarks/adversarial/leaderboard.md`, and `benchmarks/rules/leaderboard.md`.',
     '',
   ].join('\n');
@@ -812,6 +815,7 @@ function renderAuditReport(summary) {
     '- `showcase/mission-control.html`',
     '- `showcase/SCORECARD.md`',
     '- `showcase/JUDGE_BRIEF.md`',
+    '- `showcase/PROTOCOL_TRACE.md`',
     '- `SUBMISSION_STRATEGY_AUDIT.md`',
     '- `benchmarks/public/leaderboard.md`',
     '- `benchmarks/adversarial/leaderboard.md`',

@@ -23,6 +23,7 @@ const REQUIRED_FILES = [
   'showcase/mission-control.html',
   'showcase/SCORECARD.md',
   'showcase/JUDGE_BRIEF.md',
+  'showcase/PROTOCOL_TRACE.md',
   'showcase/leaderboard.md',
   'showcase/arena.html',
   'showcase/replay.html',
@@ -82,6 +83,7 @@ function main(argv = process.argv.slice(2)) {
     verifyAuditReport(bundleDir, errors);
     verifyOnePager(bundleDir, errors);
     verifyReproduceReport(bundleDir, errors);
+    verifyProtocolTrace(bundleDir, errors);
     verifyStrategyAudit(bundleDir, errors);
     verifyStartHere(bundleDir, errors);
     verifySourceProtocolPackage(bundleDir, errors);
@@ -338,6 +340,26 @@ function verifyReproduceReport(bundleDir, errors) {
   }
 }
 
+function verifyProtocolTrace(bundleDir, errors) {
+  const file = path.join(bundleDir, 'showcase', 'PROTOCOL_TRACE.md');
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of [
+    'EchoGrid Protocol Trace',
+    'STATE -> ACTION -> EVENT -> STATE',
+    'Public STATE Excerpt',
+    'Key Turn Trace',
+    'No Hidden Inputs Check',
+    'action_hints.next_action',
+    'scan sector C',
+    'claim_rule sector_c_two_unstable',
+    'extract_exit',
+    'sector C scan showed exactly two unstable echoes',
+  ]) {
+    if (!text.includes(needle)) errors.push(`showcase/PROTOCOL_TRACE.md missing "${needle}"`);
+  }
+}
+
 function verifyStrategyAudit(bundleDir, errors) {
   const file = path.join(bundleDir, 'SUBMISSION_STRATEGY_AUDIT.md');
   if (!fs.existsSync(file)) return;
@@ -376,6 +398,7 @@ function verifyStartHere(bundleDir, errors) {
     'SUBMISSION_AUDIT.md',
     'SUBMISSION_REPRODUCE.md',
     'SUBMISSION_STRATEGY_AUDIT.md',
+    'showcase/PROTOCOL_TRACE.md',
     'Agent Authoring',
     'source/docs/agent-authoring.md',
     'State Schema',

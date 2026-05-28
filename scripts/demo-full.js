@@ -12,6 +12,7 @@ const showcaseLog = path.join(showcaseLogDir, '9001.jsonl');
 const showcaseReplayHtml = path.join(showcaseLogDir, 'replay.html');
 const showcaseArenaHtml = path.join(showcaseLogDir, 'arena.html');
 const showcaseBrief = path.join(showcaseLogDir, 'JUDGE_BRIEF.md');
+const showcaseProtocolTrace = path.join(showcaseLogDir, 'PROTOCOL_TRACE.md');
 const showcaseIndex = path.join(showcaseLogDir, 'index.html');
 const showcaseManifest = path.join(showcaseLogDir, 'MANIFEST.json');
 const showcaseScorecard = path.join(showcaseLogDir, 'SCORECARD.md');
@@ -56,6 +57,13 @@ run('Run rule-aware showcase seed', [
 
 run('Showcase battle report', [process.execPath, './bin/echogrid.js', 'report', showcaseLog]);
 run('Showcase replay', [process.execPath, './bin/echogrid.js', 'replay', showcaseLog]);
+run('Showcase protocol trace', [
+  process.execPath,
+  './scripts/write-protocol-trace.js',
+  showcaseLog,
+  '--out',
+  showcaseProtocolTrace,
+]);
 run('Showcase HTML replay viewer', [
   process.execPath,
   './scripts/render-replay-html.js',
@@ -122,6 +130,8 @@ run('Showcase demo index', [
   showcaseScorecard,
   '--brief',
   showcaseBrief,
+  '--protocol-trace',
+  showcaseProtocolTrace,
   '--leaderboard',
   leaderboard,
   '--comparison-json',
@@ -145,6 +155,8 @@ run('Showcase manifest', [
   showcaseScorecard,
   '--brief',
   showcaseBrief,
+  '--protocol-trace',
+  showcaseProtocolTrace,
   '--leaderboard',
   leaderboard,
   '--comparison-json',
@@ -156,7 +168,7 @@ run('Showcase manifest', [
   '--replay-html',
   showcaseReplayHtml,
 ]);
-process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseDashboard)}, ${relativePath(showcaseScorecard)}, ${relativePath(showcaseBrief)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
+process.stdout.write(`\nOpen ${relativePath(showcaseIndex)} first, then ${relativePath(showcaseDashboard)}, ${relativePath(showcaseScorecard)}, ${relativePath(showcaseBrief)}, ${relativePath(showcaseProtocolTrace)}, ${relativePath(leaderboard)}, ${relativePath(showcaseArenaHtml)}, and ${relativePath(showcaseReplayHtml)}. Use ${relativePath(showcaseManifest)} for artifact hashes.\n`);
 
 function run(title, command, options = {}) {
   process.stdout.write(`\n=== ${title} ===\n`);

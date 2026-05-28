@@ -15,6 +15,7 @@ function main(argv = process.argv.slice(2)) {
     index: path.join(showcaseDir, 'index.html'),
     dashboard: path.join(showcaseDir, 'mission-control.html'),
     scorecard: path.join(showcaseDir, 'SCORECARD.md'),
+    protocolTrace: path.join(showcaseDir, 'PROTOCOL_TRACE.md'),
     replay: path.join(showcaseDir, 'replay.html'),
     arena: path.join(showcaseDir, 'arena.html'),
     brief: path.join(showcaseDir, 'JUDGE_BRIEF.md'),
@@ -58,6 +59,7 @@ function main(argv = process.argv.slice(2)) {
       'mission-control.html',
       'SCORECARD.md',
       'JUDGE_BRIEF.md',
+      'PROTOCOL_TRACE.md',
       'replay.html',
       'arena.html',
       'sector C scan showed exactly two unstable echoes',
@@ -98,6 +100,18 @@ function main(argv = process.argv.slice(2)) {
       'Agent separation',
       'PASS',
       'rule-aware avg=929.5',
+    ], errors);
+    verifyText(files.protocolTrace, [
+      'EchoGrid Protocol Trace',
+      'STATE -> ACTION -> EVENT -> STATE',
+      'Public STATE Excerpt',
+      'Key Turn Trace',
+      'No Hidden Inputs Check',
+      'action_hints.next_action',
+      'scan sector C',
+      'claim_rule sector_c_two_unstable',
+      'extract_exit',
+      'sector C scan showed exactly two unstable echoes',
     ], errors);
     verifyText(files.arena, [
       'EchoGrid Arena',
@@ -222,7 +236,7 @@ function verifyManifest(file, files, errors) {
   if (manifest.comparison?.seed_file !== './seeds/demo.txt') errors.push(`manifest comparison seed file expected ./seeds/demo.txt, got ${manifest.comparison?.seed_file || 'unknown'}`);
 
   const artifacts = manifest.artifacts || [];
-  const expectedNames = ['log', 'index', 'dashboard', 'scorecard', 'brief', 'leaderboard', 'arena', 'replay', 'comparison', 'comparison_text'];
+  const expectedNames = ['log', 'index', 'dashboard', 'scorecard', 'brief', 'protocol_trace', 'leaderboard', 'arena', 'replay', 'comparison', 'comparison_text'];
   for (const name of expectedNames) {
     const artifact = artifacts.find((item) => item.name === name);
     if (!artifact) {

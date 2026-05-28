@@ -22,7 +22,8 @@ This command proves the demo end to end:
 10. Generates a capability scorecard at `logs/showcase/SCORECARD.md`.
 11. Generates a mission-control dashboard at `logs/showcase/mission-control.html`.
 12. Generates a single-entry demo index with a first-screen competition verdict at `logs/showcase/index.html`.
-13. Generates an artifact hash manifest at `logs/showcase/MANIFEST.json`.
+13. Generates a protocol trace at `logs/showcase/PROTOCOL_TRACE.md`.
+14. Generates an artifact hash manifest at `logs/showcase/MANIFEST.json`.
 
 For browser-level verification of the generated HTML pages:
 
@@ -54,7 +55,7 @@ If the logs already exist and only the final handoff package needs to be rebuilt
 npm run submission:bundle
 ```
 
-The bundle includes `START_HERE.html`, the showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, agent-authoring guide, JSON schemas, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_REPRODUCE.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
+The bundle includes `START_HERE.html`, the showcase package, `showcase/PROTOCOL_TRACE.md`, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, agent-authoring guide, JSON schemas, `SUBMISSION_ONE_PAGER.md`, `SUBMISSION_CHECKLIST.md`, `SUBMISSION_AUDIT.md`, `SUBMISSION_REPRODUCE.md`, `SUBMISSION_STRATEGY_AUDIT.md`, and `SUBMISSION_MANIFEST.json` with sha256 hashes for every copied file.
 
 To verify the handoff package without rebuilding it:
 
@@ -79,6 +80,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - Mission-control dashboard: first-glance presentation page with a competition verdict strip, guided judge briefing, final public map, scrub/play route playback, clickable milestones, score construction, strategy edge, agent tournament, and evidence links.
 - Visual smoke screenshots: browser-rendered desktop and mobile PNGs for the index, Mission Control, replay, and arena pages.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.
+- Protocol trace: generated Markdown walk-through of the real `STATE -> ACTION -> EVENT -> STATE` contract from the showcase JSONL log.
 - Demo index: generated HTML entry point with a first-screen competition verdict, artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.
 - Scorecard: generated capability gates for mission completion, artifact routing, rule inference, resource discipline, score bar, and agent separation.
@@ -104,13 +106,14 @@ node ./bin/echogrid.js report ./logs/showcase/9001.jsonl
 node ./bin/echogrid.js replay ./logs/showcase/9001.jsonl
 npm run replay:html -- ./logs/showcase/9001.jsonl --out ./logs/showcase/replay.html
 npm run demo:brief
+npm run demo:protocol
 npm run demo:scorecard
 npm run demo:dashboard
 npm run demo:index
 npm run demo:manifest
 ```
 
-After `npm run demo:full`, open `logs/showcase/index.html` first for the demo package entry point. Then open `logs/showcase/mission-control.html` for the guided judge briefing, presentation dashboard, and quick route playback, `logs/showcase/SCORECARD.md` for the capability gates, `logs/showcase/JUDGE_BRIEF.md` for the short judging script and result snapshot, `logs/showcase/leaderboard.md` for ranked results, `logs/showcase/arena.html` for the side-by-side agent comparison, and `logs/showcase/replay.html` for the single-run replay. The HTML viewers are single files with no server or external assets. The replay viewer shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline. Use `logs/showcase/MANIFEST.json` to verify the generated files by size and sha256 hash.
+After `npm run demo:full`, open `logs/showcase/index.html` first for the demo package entry point. Then open `logs/showcase/mission-control.html` for the guided judge briefing, presentation dashboard, and quick route playback, `logs/showcase/SCORECARD.md` for the capability gates, `logs/showcase/JUDGE_BRIEF.md` for the short judging script and result snapshot, `logs/showcase/PROTOCOL_TRACE.md` for a readable protocol walk-through, `logs/showcase/leaderboard.md` for ranked results, `logs/showcase/arena.html` for the side-by-side agent comparison, and `logs/showcase/replay.html` for the single-run replay. The HTML viewers are single files with no server or external assets. The replay viewer shows the public board state, current action, outcome, score curve, key events, and clickable turn timeline. Use `logs/showcase/MANIFEST.json` to verify the generated files by size and sha256 hash.
 
 ## Expected Story
 

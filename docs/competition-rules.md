@@ -15,7 +15,7 @@ This document defines the recommended judging contract for EchoGrid demo submiss
 npm run demo:full
 ```
 
-This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, writes `logs/showcase/mission-control.html`, writes `logs/showcase/JUDGE_BRIEF.md`, writes `logs/showcase/SCORECARD.md`, writes the package entry point `logs/showcase/index.html` with a first-screen competition verdict, and writes artifact hashes to `logs/showcase/MANIFEST.json`.
+This command is the judge-facing demo path. It runs tests, compares bundled agents, evaluates the showcase seed, prints a battle report, prints a replay timeline, generates the HTML replay viewer, generates the HTML comparison arena, writes `logs/showcase/mission-control.html`, writes `logs/showcase/JUDGE_BRIEF.md`, writes `logs/showcase/SCORECARD.md`, writes `logs/showcase/PROTOCOL_TRACE.md`, writes the package entry point `logs/showcase/index.html` with a first-screen competition verdict, and writes artifact hashes to `logs/showcase/MANIFEST.json`.
 
 It recreates `logs/showcase` before running the showcase seed, so keep custom logs outside that directory.
 
@@ -31,7 +31,7 @@ For automated submission checks:
 npm run submission:check
 ```
 
-This command runs the full demo, verifies that the demo index, mission-control dashboard, scorecard, manifest, judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present, internally consistent, and hash-checkable, then runs the public, adversarial, and rule-signals benchmark sets.
+This command runs the full demo, verifies that the demo index, mission-control dashboard, scorecard, protocol trace, manifest, judge brief, replay viewer, comparison arena, comparison JSON, and showcase log are present, internally consistent, and hash-checkable, then runs the public, adversarial, and rule-signals benchmark sets.
 
 The GitHub Actions workflow runs the same submission gate on pushes, pull requests, and manual dispatch. It provisions stable Chrome explicitly for the visual smoke screenshots through `ECHOGRID_BROWSER`, then uploads the generated `logs` directory as `echogrid-evaluation-logs` and the final submission bundle as an evaluation artifact.
 

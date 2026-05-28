@@ -204,6 +204,7 @@ test('render replay html creates a self-contained viewer', () => {
     const comparisonFile = path.join(tmp, 'agent-comparison.txt');
     const comparisonJsonFile = path.join(tmp, 'agent-comparison.json');
     const briefFile = path.join(tmp, 'JUDGE_BRIEF.md');
+    const protocolTraceFile = path.join(tmp, 'PROTOCOL_TRACE.md');
     const indexFile = path.join(tmp, 'index.html');
     const manifestFile = path.join(tmp, 'MANIFEST.json');
     const scorecardFile = path.join(tmp, 'SCORECARD.md');
@@ -241,6 +242,24 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(html, /Rule claim/);
     assert.match(html, /objective complete/);
     assert.match(html, /extract_artifact/);
+
+    const protocolTrace = spawnSync(
+      process.execPath,
+      ['./scripts/write-protocol-trace.js', path.join(logDir, '9001.jsonl'), '--out', protocolTraceFile],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(protocolTrace.status, 0, protocolTrace.stderr);
+    assert.match(protocolTrace.stdout, /Wrote/);
+    const protocolMarkdown = fs.readFileSync(protocolTraceFile, 'utf8');
+    assert.match(protocolMarkdown, /EchoGrid Protocol Trace/);
+    assert.match(protocolMarkdown, /STATE -> ACTION -> EVENT -> STATE/);
+    assert.match(protocolMarkdown, /Public STATE Excerpt/);
+    assert.match(protocolMarkdown, /action_hints\.next_action/);
+    assert.match(protocolMarkdown, /claim_rule sector_c_two_unstable/);
+    assert.match(protocolMarkdown, /No Hidden Inputs Check/);
 
     fs.writeFileSync(comparisonFile, 'ECHO GRID AGENT COMPARISON\n./agents/rule-aware.js  1  991\n', 'utf8');
     const brief = spawnSync(
@@ -328,7 +347,7 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(dashboardHtml, /sector C scan showed exactly two unstable echoes/);
     const index = spawnSync(
       process.execPath,
-      ['./scripts/write-demo-index.js', path.join(logDir, '9001.jsonl'), '--out', indexFile, '--manifest', manifestFile, '--dashboard-html', dashboardFile, '--scorecard', scorecardFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile],
+      ['./scripts/write-demo-index.js', path.join(logDir, '9001.jsonl'), '--out', indexFile, '--manifest', manifestFile, '--dashboard-html', dashboardFile, '--scorecard', scorecardFile, '--brief', briefFile, '--protocol-trace', protocolTraceFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -350,11 +369,12 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(indexHtml, /mission-control\.html/);
     assert.match(indexHtml, /SCORECARD\.md/);
     assert.match(indexHtml, /JUDGE_BRIEF\.md/);
+    assert.match(indexHtml, /PROTOCOL_TRACE\.md/);
     assert.match(indexHtml, /replay\.html/);
 
     const manifest = spawnSync(
       process.execPath,
-      ['./scripts/write-demo-manifest.js', path.join(logDir, '9001.jsonl'), '--out', manifestFile, '--index', indexFile, '--dashboard-html', dashboardFile, '--scorecard', scorecardFile, '--brief', briefFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile, '--comparison', comparisonFile],
+      ['./scripts/write-demo-manifest.js', path.join(logDir, '9001.jsonl'), '--out', manifestFile, '--index', indexFile, '--dashboard-html', dashboardFile, '--scorecard', scorecardFile, '--brief', briefFile, '--protocol-trace', protocolTraceFile, '--replay-html', outFile, '--arena-html', arenaFile, '--leaderboard', leaderboardFile, '--comparison-json', comparisonJsonFile, '--comparison', comparisonFile],
       {
         cwd: root,
         encoding: 'utf8',
@@ -367,6 +387,7 @@ test('render replay html creates a self-contained viewer', () => {
     assert.equal(parsedManifest.showcase.result, 'success');
     assert.equal(parsedManifest.showcase.score, 991);
     assert.ok(parsedManifest.artifacts.find((item) => item.name === 'scorecard')?.sha256);
+    assert.ok(parsedManifest.artifacts.find((item) => item.name === 'protocol_trace')?.sha256);
     assert.ok(parsedManifest.artifacts.find((item) => item.name === 'index')?.sha256);
     assert.ok(parsedManifest.artifacts.find((item) => item.name === 'dashboard')?.sha256);
   } finally {
@@ -543,9 +564,10 @@ test('demo artifact verifier accepts a complete showcase package', () => {
       },
     ];
     fs.writeFileSync(path.join(tmp, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
-    fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index Competition Verdict Complete run. Ready. Clean run: Agent Edge 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index Competition Verdict Complete run. Ready. Clean run: Agent Edge 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md PROTOCOL_TRACE.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
     fs.writeFileSync(path.join(tmp, 'mission-control.html'), 'EchoGrid Mission Control Competition Verdict Complete run. Ready. verdictGrid Audit Trail Judge Briefing id="briefNext" data-brief-index Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Strategy Edge Average score edge Accepted rule claims Random agent failures deltaWrap Evidence Links const missionControl = id="routeSlider" initRoutePlayback class="jumpButton" data-route-index sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
     fs.writeFileSync(path.join(tmp, 'SCORECARD.md'), 'EchoGrid Demo Scorecard Capability gates passed: 6/6 Mission completion Hidden-rule inference Agent separation PASS rule-aware avg=929.5', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'PROTOCOL_TRACE.md'), 'EchoGrid Protocol Trace STATE -> ACTION -> EVENT -> STATE Public STATE Excerpt Key Turn Trace No Hidden Inputs Check action_hints.next_action scan sector C claim_rule sector_c_two_unstable extract_exit sector C scan showed exactly two unstable echoes', 'utf8');
     fs.writeFileSync(path.join(tmp, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
     fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
     fs.writeFileSync(path.join(tmp, 'JUDGE_BRIEF.md'), 'EchoGrid Judge Brief 90-Second Judge Script SUCCESS / objective_complete logs/showcase/arena.html logs/showcase/replay.html ECHO GRID AGENT COMPARISON', 'utf8');
@@ -574,6 +596,8 @@ test('demo artifact verifier accepts a complete showcase package', () => {
         path.join(tmp, 'SCORECARD.md'),
         '--brief',
         path.join(tmp, 'JUDGE_BRIEF.md'),
+        '--protocol-trace',
+        path.join(tmp, 'PROTOCOL_TRACE.md'),
         '--replay-html',
         path.join(tmp, 'replay.html'),
         '--arena-html',
@@ -671,6 +695,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_REPRODUCE.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'mission-control.html')));
+    assert.ok(fs.existsSync(path.join(outDir, 'showcase', 'PROTOCOL_TRACE.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'source', 'docs', 'agent-authoring.md')));
     assert.ok(fs.existsSync(path.join(outDir, 'source', 'schemas', 'state.schema.json')));
     assert.ok(fs.existsSync(path.join(outDir, 'benchmarks', 'public', 'leaderboard.md')));
@@ -695,6 +720,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.equal(manifest.benchmarks.adversarial.leader.agent, './agents/rule-aware.js');
     assert.ok(manifest.files.find((item) => item.path === 'START_HERE.html')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'showcase/MANIFEST.json')?.sha256);
+    assert.ok(manifest.files.find((item) => item.path === 'showcase/PROTOCOL_TRACE.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'benchmarks/public/leaderboard.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_AUDIT.md')?.sha256);
     assert.ok(manifest.files.find((item) => item.path === 'SUBMISSION_CHECKLIST.md')?.sha256);
@@ -717,6 +743,10 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(reproduce, /npm run submission:check/);
     assert.match(reproduce, /ECHOGRID_BROWSER/);
     assert.match(reproduce, /Source Consistency/);
+    const protocolTrace = fs.readFileSync(path.join(outDir, 'showcase', 'PROTOCOL_TRACE.md'), 'utf8');
+    assert.match(protocolTrace, /EchoGrid Protocol Trace/);
+    assert.match(protocolTrace, /STATE -> ACTION -> EVENT -> STATE/);
+    assert.match(protocolTrace, /No Hidden Inputs Check/);
     const strategyAudit = fs.readFileSync(path.join(outDir, 'SUBMISSION_STRATEGY_AUDIT.md'), 'utf8');
     assert.match(strategyAudit, /EchoGrid Strategy Audit/);
     assert.match(strategyAudit, /Benchmark Edge/);
@@ -735,6 +765,7 @@ test('submission bundle gathers showcase and benchmark artifacts', () => {
     assert.match(startHere, /benchmarks\/public\/leaderboard\.md/);
     assert.match(startHere, /SUBMISSION_REPRODUCE\.md/);
     assert.match(startHere, /SUBMISSION_STRATEGY_AUDIT\.md/);
+    assert.match(startHere, /showcase\/PROTOCOL_TRACE\.md/);
     assert.equal(fs.readFileSync(`${outDir}.zip`).subarray(0, 2).toString('utf8'), 'PK');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -1248,9 +1279,10 @@ function writeMinimalShowcasePackage(dir) {
     },
   ];
   fs.writeFileSync(path.join(dir, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
-  fs.writeFileSync(path.join(dir, 'index.html'), 'EchoGrid Demo Index Competition Verdict Complete run. Ready. Clean run: Agent Edge 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
+  fs.writeFileSync(path.join(dir, 'index.html'), 'EchoGrid Demo Index Competition Verdict Complete run. Ready. Clean run: Agent Edge 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md PROTOCOL_TRACE.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
   fs.writeFileSync(path.join(dir, 'mission-control.html'), 'EchoGrid Mission Control Competition Verdict Complete run. Ready. verdictGrid Audit Trail Judge Briefing id="briefNext" data-brief-index Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Strategy Edge Average score edge Accepted rule claims Random agent failures deltaWrap Evidence Links const missionControl = id="routeSlider" initRoutePlayback class="jumpButton" data-route-index sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
   fs.writeFileSync(path.join(dir, 'SCORECARD.md'), 'EchoGrid Demo Scorecard Capability gates passed: 6/6 Mission completion Hidden-rule inference Agent separation PASS rule-aware avg=929.5', 'utf8');
+  fs.writeFileSync(path.join(dir, 'PROTOCOL_TRACE.md'), 'EchoGrid Protocol Trace STATE -> ACTION -> EVENT -> STATE Public STATE Excerpt Key Turn Trace No Hidden Inputs Check action_hints.next_action scan sector C claim_rule sector_c_two_unstable extract_exit sector C scan showed exactly two unstable echoes', 'utf8');
   fs.writeFileSync(path.join(dir, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
   fs.writeFileSync(path.join(dir, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');
   fs.writeFileSync(path.join(dir, 'JUDGE_BRIEF.md'), 'EchoGrid Judge Brief 90-Second Judge Script SUCCESS / objective_complete logs/showcase/arena.html logs/showcase/replay.html ECHO GRID AGENT COMPARISON', 'utf8');
@@ -1279,6 +1311,8 @@ function writeMinimalShowcasePackage(dir) {
       path.join(dir, 'SCORECARD.md'),
       '--brief',
       path.join(dir, 'JUDGE_BRIEF.md'),
+      '--protocol-trace',
+      path.join(dir, 'PROTOCOL_TRACE.md'),
       '--replay-html',
       path.join(dir, 'replay.html'),
       '--arena-html',

@@ -35,10 +35,11 @@ npm run demo:full
 10. generated capability scorecard
 11. generated mission-control dashboard
 12. generated demo index with a first-screen competition verdict
-13. generated artifact manifest with sha256 hashes
+13. generated protocol trace
+14. generated artifact manifest with sha256 hashes
 
 It recreates `logs/showcase` for the showcase run.
-Open `logs/showcase/index.html` first after `npm run demo:full` for the first-screen competition verdict and artifact order, then open `logs/showcase/mission-control.html` for the guided briefing, dashboard, and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
+Open `logs/showcase/index.html` first after `npm run demo:full` for the first-screen competition verdict and artifact order, then open `logs/showcase/mission-control.html` for the guided briefing, dashboard, and route playback, `logs/showcase/SCORECARD.md`, `logs/showcase/JUDGE_BRIEF.md`, `logs/showcase/PROTOCOL_TRACE.md`, `logs/showcase/leaderboard.md`, `logs/showcase/arena.html`, and `logs/showcase/replay.html`. Use `logs/showcase/MANIFEST.json` to verify artifact sizes and hashes.
 
 To render the browser-facing artifacts through headless Chrome/Edge and save desktop/mobile screenshots:
 
@@ -54,7 +55,7 @@ To build the final judge handoff bundle after the showcase and benchmark logs ex
 npm run submission:bundle
 ```
 
-This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the browser-first `START_HERE.html`, showcase package, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, agent-authoring guide, JSON schemas, one-pager, checklist, generated audit report, reproduce report, strategy audit, and sha256 bundle manifest.
+This writes `dist/submission/echogrid-submission` and `dist/submission/echogrid-submission.zip`, including the browser-first `START_HERE.html`, showcase package, protocol trace, visual smoke screenshots when available, public benchmark, adversarial benchmark, rule-signals benchmark, source docs, agent-authoring guide, JSON schemas, one-pager, checklist, generated audit report, reproduce report, strategy audit, and sha256 bundle manifest.
 
 To verify the generated handoff directory, source commit, HTML entry links, and zip archive:
 
@@ -109,6 +110,7 @@ node ./bin/echogrid.js replay ./logs/48129.jsonl
 node ./bin/echogrid.js report ./logs/48129.jsonl
 npm run replay:html -- ./logs/48129.jsonl --out ./logs/48129.replay.html
 npm run demo:brief
+npm run demo:protocol
 npm run demo:scorecard
 npm run demo:dashboard
 npm run demo:index
