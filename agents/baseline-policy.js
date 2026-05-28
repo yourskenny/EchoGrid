@@ -20,6 +20,11 @@ function decideAction(state) {
     return 'extract';
   }
 
+  const hintedAction = state.action_hints?.next_action;
+  if (typeof hintedAction === 'string' && hintedAction.trim()) {
+    return hintedAction;
+  }
+
   const visibleArtifacts = [...known.values()]
     .filter((cell) => cell.visible && cell.terrain === 'artifact')
     .map((cell) => cell.coord);

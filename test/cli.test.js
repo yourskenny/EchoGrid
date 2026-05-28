@@ -47,6 +47,37 @@ test('baseline agent can complete a known public seed through evaluate', () => {
   assert.equal(output.results[0].status, 'success');
 });
 
+test('demo agents produce a judge-friendly comparison curve', () => {
+  const baseline = spawnSync(
+    process.execPath,
+    [cli, 'evaluate', '--agent', './agents/baseline.js', '--seeds', './seeds/demo.txt', '--json'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 60000,
+    },
+  );
+  const ruleAware = spawnSync(
+    process.execPath,
+    [cli, 'evaluate', '--agent', './agents/rule-aware.js', '--seeds', './seeds/demo.txt', '--json'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 60000,
+    },
+  );
+
+  assert.equal(baseline.status, 0, baseline.stderr);
+  assert.equal(ruleAware.status, 0, ruleAware.stderr);
+  const baselineOutput = JSON.parse(baseline.stdout);
+  const ruleAwareOutput = JSON.parse(ruleAware.stdout);
+  assert.equal(baselineOutput.aggregate.successes, baselineOutput.aggregate.seeds);
+  assert.equal(ruleAwareOutput.aggregate.successes, ruleAwareOutput.aggregate.seeds);
+  assert.ok(ruleAwareOutput.aggregate.average_score > baselineOutput.aggregate.average_score);
+  assert.ok(Math.min(...baselineOutput.results.map((item) => item.score)) > 0);
+  assert.ok(Math.min(...ruleAwareOutput.results.map((item) => item.score)) > 0);
+});
+
 test('persistent agent mode matches one-shot baseline results', () => {
   const oneShot = spawnSync(
     process.execPath,
