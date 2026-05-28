@@ -3,55 +3,113 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const options = parseArgs(process.argv.slice(2));
-const seeds = options.seeds || './seeds/demo.txt';
-const agents = options.agents || [
-  './agents/random.js',
-  './agents/baseline.js',
-  './agents/rule-aware.js',
-];
 
-const rows = [];
-for (const agent of agents) {
-  const result = spawnSync(
-    process.execPath,
-    ['./bin/echogrid.js', 'evaluate', '--agent', agent, '--seeds', seeds, '--json', '--timeout', '2000'],
-    {
-      cwd: root,
-      encoding: 'utf8',
-      timeout: 180000,
-    },
-  );
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr || result.stdout);
-    process.exit(result.status || 1);
-  }
+main().catch((error) => {
+  process.stderr.write(`${error.message}\n`);
+  process.exitCode = 1;
+});
+
+async function main(argv = process.argv.slice(2)) {
+  const options = parseArgs(argv);
+  const seeds = options.seeds || './seeds/demo.txt';
+  const agents = options.agents || [
+    './agents/random.js',
+    './agents/baseline.js',
+    './agents/rule-aware.js',
+  ];
+  const concurrency = normalizeConcurrency(options.concurrency, agents.length);
+  const rows = await mapConcurrent(agents, concurrency, (agent) => evaluateAgent(agent, seeds));
+  const comparison = {
+    seed_file: seeds,
+    agents,
+    concurrency,
+    rows,
+    rankings: rankRows(rows),
+  };
+
+  printTable(rows, { seeds, concurrency });
+  if (options['json-out']) writeFile(options['json-out'], `${JSON.stringify(comparison, null, 2)}\n`);
+  if (options['html-out']) writeFile(options['html-out'], renderArenaHtml(comparison));
+  if (options['leaderboard-out']) writeFile(options['leaderboard-out'], renderLeaderboardMarkdown(comparison));
+}
+
+async function evaluateAgent(agent, seeds) {
+  const result = await runNode([
+    './bin/echogrid.js',
+    'evaluate',
+    '--agent',
+    agent,
+    '--seeds',
+    seeds,
+    '--json',
+    '--timeout',
+    '2000',
+  ], { timeoutMs: 180000 });
   const output = JSON.parse(result.stdout);
-  rows.push({
+  return {
     agent,
     ...output.aggregate,
     best_score: Math.max(...output.results.map((item) => item.score)),
     worst_score: Math.min(...output.results.map((item) => item.score)),
     results: output.results,
+  };
+}
+
+function runNode(args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, args, {
+      cwd: root,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, options.timeoutMs || 180000);
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', (status) => {
+      clearTimeout(timer);
+      if (timedOut) {
+        reject(new Error(`Command timed out: node ${args.join(' ')}`));
+        return;
+      }
+      if (status !== 0) {
+        reject(new Error(stderr || stdout || `Command failed with status ${status}: node ${args.join(' ')}`));
+        return;
+      }
+      resolve({ stdout, stderr, status });
+    });
   });
 }
 
-const comparison = {
-  seed_file: seeds,
-  agents,
-  rows,
-  rankings: rankRows(rows),
-};
+async function mapConcurrent(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await worker(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
-printTable(rows);
-if (options['json-out']) writeFile(options['json-out'], `${JSON.stringify(comparison, null, 2)}\n`);
-if (options['html-out']) writeFile(options['html-out'], renderArenaHtml(comparison));
-if (options['leaderboard-out']) writeFile(options['leaderboard-out'], renderLeaderboardMarkdown(comparison));
-
-function printTable(rowsToPrint) {
+function printTable(rowsToPrint, context = {}) {
   const columns = [
     ['agent', 'Agent'],
     ['success_rate', 'Success'],
@@ -71,7 +129,8 @@ function printTable(rowsToPrint) {
   );
 
   process.stdout.write('ECHO GRID AGENT COMPARISON\n');
-  process.stdout.write(`Seeds: ${seeds}\n\n`);
+  process.stdout.write(`Seeds: ${context.seeds || 'unknown'}\n`);
+  process.stdout.write(`Concurrency: ${context.concurrency || 1}\n\n`);
   process.stdout.write(columns.map(([key, label]) => label.padEnd(widths[key])).join('  '));
   process.stdout.write('\n');
   process.stdout.write(columns.map(([key]) => '-'.repeat(widths[key])).join('  '));
@@ -437,7 +496,16 @@ function parseArgs(argv) {
     } else if (argv[i] === '--leaderboard-out') {
       parsed['leaderboard-out'] = argv[i + 1];
       i += 1;
+    } else if (argv[i] === '--concurrency') {
+      parsed.concurrency = argv[i + 1];
+      i += 1;
     }
   }
   return parsed;
+}
+
+function normalizeConcurrency(value, itemCount) {
+  const parsed = Number.parseInt(value || String(itemCount), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.max(1, Math.min(parsed, Math.max(1, itemCount)));
 }

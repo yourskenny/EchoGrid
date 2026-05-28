@@ -321,22 +321,25 @@ test('compare script prints agent comparison table', () => {
     const leaderboardFile = path.join(tmp, 'leaderboard.md');
     const result = spawnSync(
       process.execPath,
-      ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/random.js', '--json-out', jsonFile, '--html-out', htmlFile, '--leaderboard-out', leaderboardFile],
+      ['./scripts/compare.js', '--seeds', './seeds/showcase.txt', '--agents', './agents/baseline.js,./agents/rule-aware.js', '--concurrency', '2', '--json-out', jsonFile, '--html-out', htmlFile, '--leaderboard-out', leaderboardFile],
       {
         cwd: root,
         encoding: 'utf8',
-        timeout: 30000,
+        timeout: 60000,
       },
     );
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /ECHO GRID AGENT COMPARISON/);
-    assert.match(result.stdout, /agents\/random\.js/);
+    assert.match(result.stdout, /Concurrency: 2/);
+    assert.match(result.stdout, /agents\/rule-aware\.js/);
 
     const comparison = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
     assert.equal(comparison.seed_file, './seeds/showcase.txt');
-    assert.equal(comparison.rows.length, 1);
-    assert.equal(comparison.rows[0].agent, './agents/random.js');
+    assert.equal(comparison.concurrency, 2);
+    assert.equal(comparison.rows.length, 2);
+    assert.equal(comparison.rows[0].agent, './agents/baseline.js');
+    assert.equal(comparison.rows[1].agent, './agents/rule-aware.js');
     assert.equal(comparison.rankings[0].rank, 1);
     assert.ok(Array.isArray(comparison.rows[0].results));
 
@@ -344,13 +347,13 @@ test('compare script prints agent comparison table', () => {
     assert.match(html, /EchoGrid Arena/);
     assert.match(html, /Per-Seed Matrix/);
     assert.match(html, /const comparison = /);
-    assert.match(html, /random/);
+    assert.match(html, /rule-aware/);
 
     const leaderboard = fs.readFileSync(leaderboardFile, 'utf8');
     assert.match(leaderboard, /EchoGrid Leaderboard/);
     assert.match(leaderboard, /Per-Seed Winners/);
     assert.match(leaderboard, /Ranked by success rate/);
-    assert.match(leaderboard, /agents\/random\.js/);
+    assert.match(leaderboard, /agents\/rule-aware\.js/);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

@@ -19,7 +19,7 @@
 - Public adversarial seed set with hidden-rule coverage.
 - Private and held-out seed workflows for final rankings.
 - Stable score breakdown and capability metrics.
-- Faster multi-agent evaluation harness.
+- Faster multi-agent evaluation harness with ordered concurrent comparison output.
 - CI for tests, full demo execution, generated artifact checks, and showcase artifact upload.
 
 ## Reasoning Depth

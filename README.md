@@ -60,6 +60,7 @@ npm run showcase
 npm run demo:ci
 npm run benchmark:adversarial
 npm run benchmark:heldout
+node ./scripts/compare.js --seeds ./seeds/demo.txt --concurrency 3
 
 node ./bin/echogrid.js inspect --seed 48129
 node ./bin/echogrid.js run --seed 48129 --pretty

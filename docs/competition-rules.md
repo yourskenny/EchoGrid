@@ -47,6 +47,14 @@ Seed file:
 node ./bin/echogrid.js evaluate --agent ./agents/baseline.js --seeds ./seeds/public.txt --log-dir ./logs
 ```
 
+Multi-agent comparison:
+
+```bash
+node ./scripts/compare.js --seeds ./seeds/demo.txt --concurrency 3
+```
+
+`scripts/compare.js` preserves output row order while evaluating multiple agents concurrently. Use `--concurrency 1` for strictly serial local debugging.
+
 Persistent agents may use:
 
 ```bash
