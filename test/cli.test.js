@@ -289,6 +289,8 @@ test('render replay html creates a self-contained viewer', () => {
     assert.match(dashboardHtml, /const missionControl = /);
     assert.match(dashboardHtml, /id="routeSlider"/);
     assert.match(dashboardHtml, /initRoutePlayback/);
+    assert.match(dashboardHtml, /class="jumpButton"/);
+    assert.match(dashboardHtml, /data-route-index/);
     assert.match(dashboardHtml, /sector C scan showed exactly two unstable echoes/);
     const index = spawnSync(
       process.execPath,
@@ -504,7 +506,7 @@ test('demo artifact verifier accepts a complete showcase package', () => {
     ];
     fs.writeFileSync(path.join(tmp, '9001.jsonl'), `${log.map((entry) => JSON.stringify(entry)).join('\n')}\n`, 'utf8');
     fs.writeFileSync(path.join(tmp, 'index.html'), 'EchoGrid Demo Index 90-Second Runbook Leaderboard Snapshot Audit Gates const demoSummary = MANIFEST.json mission-control.html SCORECARD.md JUDGE_BRIEF.md replay.html arena.html sector C scan showed exactly two unstable echoes', 'utf8');
-    fs.writeFileSync(path.join(tmp, 'mission-control.html'), 'EchoGrid Mission Control Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Evidence Links const missionControl = id="routeSlider" initRoutePlayback sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
+    fs.writeFileSync(path.join(tmp, 'mission-control.html'), 'EchoGrid Mission Control Final Public Map Mission Timeline Route Playback Score Construction Agent Tournament Evidence Links const missionControl = id="routeSlider" initRoutePlayback class="jumpButton" data-route-index sector C scan showed exactly two unstable echoes data-coord="7,7"', 'utf8');
     fs.writeFileSync(path.join(tmp, 'SCORECARD.md'), 'EchoGrid Demo Scorecard Capability gates passed: 6/6 Mission completion Hidden-rule inference Agent separation PASS rule-aware avg=929.5', 'utf8');
     fs.writeFileSync(path.join(tmp, 'replay.html'), 'EchoGrid Replay Score Curve Key Events const frames = const milestones = objective complete', 'utf8');
     fs.writeFileSync(path.join(tmp, 'arena.html'), 'EchoGrid Arena Average Score Aggregate Table Per-Seed Matrix const comparison = ./agents/rule-aware.js', 'utf8');

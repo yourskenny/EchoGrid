@@ -51,7 +51,7 @@ EchoGrid is designed around agent behavior, not a visual board. The important ar
 - HTML replay viewer: browser-based board, controls, score curve, key events, and action timeline for judges.
 - HTML comparison arena: side-by-side agent aggregate and per-seed score matrix.
 - Leaderboard: ranked Markdown output for tournament-style judging.
-- Mission-control dashboard: first-glance presentation page with the final public map, scrub/play route playback, milestones, score construction, agent tournament, and evidence links.
+- Mission-control dashboard: first-glance presentation page with the final public map, scrub/play route playback, clickable milestones, score construction, agent tournament, and evidence links.
 - Judge brief: generated one-page handoff with result snapshot, key events, score breakdown, audit notes, and comparison output.
 - Demo index: generated HTML entry point with artifact links, runbook, milestones, leaderboard snapshot, and audit gates.
 - Manifest: generated JSON inventory with commit id, command names, showcase result, artifact sizes, and sha256 hashes.

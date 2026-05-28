@@ -69,6 +69,8 @@ function main(argv = process.argv.slice(2)) {
       'const missionControl = ',
       'id="routeSlider"',
       'initRoutePlayback',
+      'class="jumpButton"',
+      'data-route-index',
       'sector C scan showed exactly two unstable echoes',
       'data-coord="7,7"',
     ], errors);

@@ -60,8 +60,9 @@ function buildDemoDashboard(events, options = {}) {
   const scoreGap = baseline && ruleAware
     ? roundNumber(Number(ruleAware.average_score) - Number(baseline.average_score))
     : null;
-  const milestones = collectMilestones(actionEvents);
-  const route = collectRoute(events);
+  const routeSteps = collectRouteSteps(events);
+  const milestones = collectMilestones(actionEvents, routeSteps);
+  const route = routeSteps.map((step) => step.coord);
   const pathCells = new Set(route.map((coord) => coord.join(',')));
   const extractionCells = new Set(collectExtractionCells(actionEvents).map((coord) => coord.join(',')));
   const links = artifactLinks(options.links || {}, options.outFile || process.cwd());
@@ -92,9 +93,15 @@ function buildDemoDashboard(events, options = {}) {
     summary,
     action_mix: actionMix,
     route,
+    route_steps: routeSteps,
     extraction_cells: [...extractionCells].map((coord) => coord.split(',').map((item) => Number(item))),
     route_length: route.length,
-    milestones: milestones.map(({ turn, title, detail }) => ({ turn, title, detail })),
+    milestones: milestones.map(({ turn, title, detail, route_index: routeIndex }) => ({
+      turn,
+      title,
+      detail,
+      route_index: routeIndex,
+    })),
     comparison_seed_file: comparison.seed_file || 'unknown',
   };
 
@@ -302,15 +309,32 @@ h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
 }
 .event {
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
+  grid-template-columns: 70px minmax(0, 1fr) auto;
   gap: 10px;
+  align-items: center;
   border-bottom: 1px solid var(--line);
   padding-bottom: 8px;
+}
+.event.active {
+  border-left: 3px solid var(--blue);
+  padding-left: 8px;
 }
 .event:last-child { border-bottom: 0; padding-bottom: 0; }
 .turn { color: var(--muted); font-variant-numeric: tabular-nums; }
 .event strong { display: block; }
 .event span { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.jumpButton {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  background: #fdfaf2;
+  color: var(--ink);
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.jumpButton:hover,
+.event.active .jumpButton {
+  border-color: var(--blue);
+}
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -378,6 +402,7 @@ code {
   .statusGrid, .links { grid-template-columns: 1fr; }
   .routeControls { grid-template-columns: 1fr 1fr; }
   .routeControls input { grid-column: 1 / -1; }
+  .event { grid-template-columns: 1fr; }
   .scoreRow, .leaderRow { grid-template-columns: 1fr; }
   .value { text-align: left; }
 }
@@ -425,7 +450,7 @@ code {
           <button id="routePause" type="button">Pause</button>
           <input id="routeSlider" type="range" min="0" max="${escapeHtml(Math.max(0, route.length - 1))}" value="0">
         </div>
-        <div class="routeMeta">Scrub the public route from the spawn cell to the final exit extraction.</div>
+        <div class="routeMeta">Public route: spawn to final exit extraction.</div>
       </div>
     </div>
     <div class="panel">
@@ -500,6 +525,10 @@ const missionControl = ${JSON.stringify(data, null, 2)};
       const coord = route[bounded];
       stepLabel.textContent = 'Step ' + (bounded + 1) + ' / ' + route.length + ' - (' + coord[0] + ',' + coord[1] + ')';
     }
+    document.querySelectorAll('.event').forEach((node) => {
+      const eventIndex = Number(node.getAttribute('data-route-index') || 0);
+      node.classList.toggle('active', eventIndex === bounded);
+    });
   }
 
   function stop() {
@@ -522,6 +551,12 @@ const missionControl = ${JSON.stringify(data, null, 2)};
   if (slider) slider.addEventListener('input', () => {
     stop();
     render(slider.value);
+  });
+  document.querySelectorAll('.jumpButton').forEach((button) => {
+    button.addEventListener('click', () => {
+      stop();
+      render(button.getAttribute('data-route-index'));
+    });
   });
   if (playButton) playButton.addEventListener('click', play);
   if (pauseButton) pauseButton.addEventListener('click', stop);
@@ -576,7 +611,8 @@ function metric(label, value, className = '') {
 }
 
 function milestone(item) {
-  return `<div class="event"><div class="turn">Turn ${escapeHtml(item.turn)}</div><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></div></div>`;
+  const routeIndex = Number.isInteger(item.route_index) ? item.route_index : 0;
+  return `<div class="event" data-route-index="${escapeHtml(routeIndex)}"><div class="turn">Turn ${escapeHtml(item.turn)}</div><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></div><button class="jumpButton" type="button" data-route-index="${escapeHtml(routeIndex)}">Jump</button></div>`;
 }
 
 function scoreRows(score) {
@@ -627,19 +663,25 @@ function artifactLinks(paths, outFile) {
     }));
 }
 
-function collectMilestones(actionEvents) {
+function collectMilestones(actionEvents, routeSteps = []) {
   const milestones = [];
   for (const entry of actionEvents) {
     const outcome = entry.event?.outcome || {};
     const turn = entry.event?.turn ?? '?';
     if (outcome.type === 'scan' && outcome.observation?.rule_signal) {
-      milestones.push({ turn, title: 'Rule signal found', detail: outcome.observation.rule_signal });
+      milestones.push({
+        turn,
+        title: 'Rule signal found',
+        detail: outcome.observation.rule_signal,
+        route_index: routeIndexForTurn(routeSteps, turn),
+      });
     }
     if (outcome.type === 'claim_rule') {
       milestones.push({
         turn,
         title: outcome.observation?.accepted ? 'Rule claim accepted' : 'Rule claim rejected',
         detail: outcome.observation?.rationale || outcome.observation?.rule_id || 'no rationale recorded',
+        route_index: routeIndexForTurn(routeSteps, turn),
       });
     }
     if (outcome.type === 'extract_artifact') {
@@ -647,25 +689,47 @@ function collectMilestones(actionEvents) {
         turn,
         title: 'Artifact secured',
         detail: `artifact ${outcome.observation?.artifacts_collected ?? '?'}`,
+        route_index: routeIndexForTurn(routeSteps, turn),
       });
     }
     if (outcome.type === 'extract_exit') {
-      milestones.push({ turn, title: 'Objective complete', detail: 'agent extracted at the exit' });
+      milestones.push({
+        turn,
+        title: 'Objective complete',
+        detail: 'agent extracted at the exit',
+        route_index: routeIndexForTurn(routeSteps, turn),
+      });
     }
   }
   return milestones.slice(0, 8);
 }
 
-function collectRoute(events) {
-  const route = [];
+function collectRouteSteps(events) {
+  const routeSteps = [];
   for (const entry of events) {
     const coord = entry.state?.agent?.position;
     if (isCoord(coord)) {
-      const last = route[route.length - 1];
-      if (!last || last[0] !== coord[0] || last[1] !== coord[1]) route.push(coord);
+      const last = routeSteps[routeSteps.length - 1];
+      if (!last || last.coord[0] !== coord[0] || last.coord[1] !== coord[1]) {
+        routeSteps.push({
+          turn: entry.state?.turn?.current ?? entry.event?.turn ?? 0,
+          coord,
+        });
+      }
     }
   }
-  return route;
+  return routeSteps;
+}
+
+function routeIndexForTurn(routeSteps, turn) {
+  const target = Number(turn);
+  if (!Number.isFinite(target) || routeSteps.length === 0) return 0;
+  let index = 0;
+  for (let cursor = 0; cursor < routeSteps.length; cursor += 1) {
+    if (Number(routeSteps[cursor].turn) <= target) index = cursor;
+    else break;
+  }
+  return index;
 }
 
 function collectExtractionCells(actionEvents) {
