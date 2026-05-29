@@ -4,6 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const root = path.resolve(__dirname, '..');
+
 if (require.main === module) {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -12,7 +14,7 @@ if (require.main === module) {
       process.exit(options.help ? 0 : 1);
     }
     const events = readJsonl(options.input);
-    const html = buildReplayHtml(events, { source: options.input });
+    const html = buildReplayHtml(events, { source: displaySource(options.input) });
     if (options.out) {
       fs.mkdirSync(path.dirname(path.resolve(options.out)), { recursive: true });
       fs.writeFileSync(options.out, html, 'utf8');
@@ -44,6 +46,18 @@ function parseArgs(argv) {
   return options;
 }
 
+function displaySource(source) {
+  const value = String(source || '');
+  if (!value) return '';
+  if (!path.isAbsolute(value) && !/[\\/]/.test(value)) return value;
+  const resolved = path.resolve(value);
+  const relative = path.relative(root, resolved);
+  if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+    return relative.replace(/\\/g, '/');
+  }
+  return value.replace(/\\/g, '/');
+}
+
 function readValue(argv, index, flag) {
   const value = argv[index + 1];
   if (!value || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -71,7 +85,7 @@ function buildReplayHtml(events, options = {}) {
   const initialState = start?.state || frames[0]?.state || finalState;
   const metadata = {
     title: 'EchoGrid Replay',
-    source: options.source || '',
+    source: displaySource(options.source || ''),
     seed: finalState.seed || initialState.seed || 'unknown',
     mode: finalState.mode || initialState.mode || 'unknown',
     agent: start?.agent || start?.runner || 'unknown',
@@ -141,7 +155,7 @@ button, input { font: inherit; }
   background: var(--panel);
 }
 .metric span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; }
-.metric strong { display: block; margin-top: 2px; font-size: 15px; }
+.metric strong { display: block; margin-top: 2px; font-size: 15px; overflow-wrap: anywhere; }
 .workspace {
   display: grid;
   grid-template-columns: minmax(280px, 42vw) minmax(320px, 1fr);
@@ -296,6 +310,31 @@ button, input { font: inherit; }
   .boardPane { border-right: 0; border-bottom: 1px solid var(--line); }
   .now { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+@media (max-width: 560px) {
+  .topbar, .boardPane, .detailPane { padding: 14px; }
+  .brand,
+  .summary,
+  .controls,
+  .boardWrap,
+  .source,
+  .detailPane > * {
+    max-width: min(360px, calc(100vw - 28px));
+  }
+  .summary { grid-template-columns: 1fr; }
+  .metric { min-width: 0; }
+  .controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .controls input {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .frameLabel { grid-column: 1 / -1; }
+  .board {
+    width: min(360px, calc(100vw - 28px));
+  }
+}
 </style>
 </head>
 <body>
@@ -368,6 +407,7 @@ let playing = false;
 let timer = null;
 const board = document.getElementById('board');
 const scrubber = document.getElementById('scrubber');
+const timeline = document.querySelector('.timeline');
 const timelineRows = document.getElementById('timelineRows');
 const milestoneRoot = document.getElementById('milestones');
 const playBtn = document.getElementById('playBtn');
@@ -440,7 +480,20 @@ function setFrame(next) {
   document.getElementById('positionText').textContent = '[' + (frame.position || []).join(', ') + ']';
   document.getElementById('scoreText').textContent = String(frame.score ?? 0);
   timelineRows.querySelectorAll('tr').forEach((row) => row.classList.toggle('active', Number(row.dataset.index) === index));
-  timelineRows.querySelector('tr.active')?.scrollIntoView({ block: 'nearest' });
+  syncTimelineSelection();
+}
+function syncTimelineSelection() {
+  const active = timelineRows.querySelector('tr.active');
+  if (!active || !timeline) return;
+  const rowTop = active.offsetTop;
+  const rowBottom = rowTop + active.offsetHeight;
+  const viewTop = timeline.scrollTop;
+  const viewBottom = viewTop + timeline.clientHeight;
+  if (rowTop < viewTop) {
+    timeline.scrollTop = rowTop;
+  } else if (rowBottom > viewBottom) {
+    timeline.scrollTop = rowBottom - timeline.clientHeight;
+  }
 }
 function step(delta) {
   setFrame(index + delta);

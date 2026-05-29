@@ -74,6 +74,7 @@ function main(argv = process.argv.slice(2)) {
         width: stats.width,
         height: stats.height,
         unique_colors: stats.uniqueColors,
+        top_half_unique_colors: stats.topHalfUniqueColors,
         size: stats.size,
         screenshot: displayPath(screenshot),
       });
@@ -102,7 +103,7 @@ function main(argv = process.argv.slice(2)) {
   process.stdout.write(`Browser: ${displayPath(browser)}\n`);
   process.stdout.write(`Report: ${displayPath(reportFile)}\n`);
   for (const item of results) {
-    process.stdout.write(`- ${item.screenshot} ${item.width}x${item.height} colors=${item.unique_colors}\n`);
+    process.stdout.write(`- ${item.screenshot} ${item.width}x${item.height} colors=${item.unique_colors} top=${item.top_half_unique_colors}\n`);
   }
 }
 
@@ -161,6 +162,7 @@ function visualIssue(stats, viewport) {
   }
   if (stats.size < 3000) return `screenshot too small to prove a rendered page (${stats.size} bytes)`;
   if (stats.uniqueColors < 24) return `screenshot appears blank or severely under-rendered (${stats.uniqueColors} sampled colors)`;
+  if (stats.topHalfUniqueColors < 16) return `top half appears blank or severely under-rendered (${stats.topHalfUniqueColors} sampled colors)`;
   return null;
 }
 
@@ -243,7 +245,7 @@ function readPngStats(file) {
   if (interlace !== 0) throw new Error(`${displayPath(file)} uses unsupported PNG interlace mode ${interlace}`);
   if (!idat.length) throw new Error(`${displayPath(file)} missing IDAT data`);
 
-  const uniqueColors = countUniquePngColors({
+  const colorStats = countUniquePngColors({
     raw: zlib.inflateSync(Buffer.concat(idat)),
     width,
     height,
@@ -256,7 +258,8 @@ function readPngStats(file) {
     height,
     bitDepth,
     colorType,
-    uniqueColors,
+    uniqueColors: colorStats.total,
+    topHalfUniqueColors: colorStats.topHalf,
     size: buffer.length,
   };
 }
@@ -267,6 +270,8 @@ function countUniquePngColors({ raw, width, height, colorType, palette, file }) 
   const stride = width * channels;
   const sampleEvery = Math.max(1, Math.floor((width * height) / 30000));
   const colors = new Set();
+  const topColors = new Set();
+  const topLimit = Math.max(1, Math.floor(height * 0.5));
   let rawOffset = 0;
   let previous = Buffer.alloc(stride);
   let pixelIndex = 0;
@@ -279,12 +284,19 @@ function countUniquePngColors({ raw, width, height, colorType, palette, file }) 
     if (scan.length !== stride) throw new Error(`${displayPath(file)} has a truncated scanline`);
     unfilterScanline(scan, previous, bpp, filter);
     for (let x = 0; x < width; x += 1) {
-      if (pixelIndex % sampleEvery === 0) colors.add(pixelKey(scan, x, colorType, palette));
+      if (pixelIndex % sampleEvery === 0) {
+        const color = pixelKey(scan, x, colorType, palette);
+        colors.add(color);
+        if (y < topLimit) topColors.add(color);
+      }
       pixelIndex += 1;
     }
     previous = scan;
   }
-  return colors.size;
+  return {
+    total: colors.size,
+    topHalf: topColors.size,
+  };
 }
 
 function pngChannels(colorType) {
